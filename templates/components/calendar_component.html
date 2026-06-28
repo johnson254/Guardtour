@@ -41,9 +41,9 @@ Calendar Component — reusable calendar grid with deployment dots
     <div class="cal-head">
         <div class="cal-title"><i class="fas fa-calendar-alt" style="color:var(--primary,#D32F2F);margin-right:6px;"></i> Schedule</div>
         <div class="cal-nav">
-            <button class="cal-nav-btn" id="calPrevBtn"><i class="fas fa-chevron-left"></i></button>
-            <button class="cal-nav-btn" id="calTodayBtn" title="Today"><i class="fas fa-dot-circle"></i></button>
-            <button class="cal-nav-btn" id="calNextBtn"><i class="fas fa-chevron-right"></i></button>
+            <button type="button" class="cal-nav-btn" id="calPrevBtn"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="cal-nav-btn" id="calTodayBtn" title="Today"><i class="fas fa-dot-circle"></i></button>
+            <button type="button" class="cal-nav-btn" id="calNextBtn"><i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
     <div class="cal-body">
@@ -53,7 +53,7 @@ Calendar Component — reusable calendar grid with deployment dots
         <div class="cal-deployments" id="calDeployments" style="display:none;">
             <div class="cal-deployments-head">
                 <div class="cal-deployments-label">Deployments</div>
-                <button class="cal-deployments-close" id="calDeploymentsClose" title="Close"><i class="fas fa-times"></i></button>
+                <button type="button" class="cal-deployments-close" id="calDeploymentsClose" title="Close"><i class="fas fa-times"></i></button>
             </div>
             <div id="calDeploymentsList"></div>
         </div>

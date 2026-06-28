@@ -4,8 +4,8 @@
     <div class="rs-r-card-top">
       <div class="rs-r-name">{{ r.name }}</div>
       <div style="display:flex;gap:5px;">
-        <button class="rs-r-del" style="color:var(--r-teal); opacity:0.6;" onclick="event.stopPropagation();mgQuickDeploy({{ r.id }})" title="Quick Deploy"><i class="fas fa-bolt"></i></button>
-        <button class="rs-r-del" onclick="event.stopPropagation();bpDeleteRoute(event,{{ r.id }})" title="Delete"><i class="fas fa-trash-alt"></i></button>
+        <button type="button" class="rs-r-del" style="color:var(--r-teal); opacity:0.6;" onclick="event.stopPropagation();mgQuickDeploy({{ r.id }})" title="Quick Deploy"><i class="fas fa-bolt"></i></button>
+        <button type="button" class="rs-r-del" onclick="event.stopPropagation();bpDeleteRoute(event,{{ r.id }})" title="Delete"><i class="fas fa-trash-alt"></i></button>
       </div>
     </div>
     <div class="rs-r-meta">{{ r.checkpoint_count|default:0 }} Checkpoints</div>

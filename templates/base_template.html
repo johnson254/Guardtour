@@ -26,7 +26,7 @@
             <div class="nav-right">
                 <span class="org-name" id="org-name">SecOps</span>
                 <span class="role-badge" id="role-badge"></span>
-                <button class="logout-btn" id="logout-btn" title="Logout">
+                <button type="button" class="logout-btn" id="logout-btn" title="Logout">
                     <i class="fas fa-power-off"></i>
                 </button>
             </div>
@@ -38,5 +38,29 @@
     </main>
 
     {% block page_js %}{% endblock %}
+    <script>
+        (function() {
+            try {
+                var userData = JSON.parse(localStorage.getItem('gt_user') || '{}');
+                var roleEl = document.getElementById('role-badge');
+                var orgEl = document.getElementById('org-name');
+                var logoutBtn = document.getElementById('logout-btn');
+                if (userData.role && roleEl) {
+                    roleEl.textContent = userData.role;
+                }
+                if (userData.organization_name && orgEl) {
+                    orgEl.textContent = userData.organization_name;
+                }
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', function() {
+                        try {
+                            localStorage.removeItem('gt_user');
+                        } catch (e) {}
+                        window.location.href = '/';
+                    });
+                }
+            } catch (e) {}
+        })();
+    </script>
 </body>
 </html>

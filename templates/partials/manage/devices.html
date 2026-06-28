@@ -17,10 +17,10 @@
       </div>
     </div>
     <div class="mg-card-actions">
-      <button class="mg-btn mg-btn-xs mg-btn-config" onclick="mgDeviceControls({{ d.id }}, this)" title="Configure device">
+      <button type="button" class="mg-btn mg-btn-xs mg-btn-config" onclick="mgDeviceControls({{ d.id }}, this)" title="Configure device">
         <i class="fas fa-sliders"></i>
       </button>
-      <button class="mg-btn mg-btn-xs mg-btn-swap" onclick="mgSwapOperator({{ d.id }},'{{ d.device_name|default:d.device_id|default:'Device'|escapejs }}')" title="Swap operator">
+      <button type="button" class="mg-btn mg-btn-xs mg-btn-swap" onclick="mgSwapOperator({{ d.id }},'{{ d.device_name|default:d.device_id|default:'Device'|escapejs }}')" title="Swap operator">
         <i class="fas fa-exchange-alt"></i>
       </button>
     </div>

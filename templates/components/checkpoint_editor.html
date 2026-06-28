@@ -85,7 +85,7 @@ Checkpoint Editor — editable checkpoint rows with type selector,
     function $(id) { return document.getElementById(id); }
 
     var TYPE_OPTS = [
-        {v:'nfc',l:'NFC'},{v:'gps',l:'GPS'},{v:'geo',l:'GEO'},{v:'peer',l:'Peer'}
+        {v:'nfc',l:'NFC'},{v:'gps',l:'GPS'},{v:'geo',l:'GEO'},{v:'peer',l:'Peer'},{v:'custom',l:'Custom'}
     ].map(function(o) { return '<option value="' + o.v + '">' + o.l + '</option>'; }).join('');
 
     function render() {
@@ -118,8 +118,8 @@ Checkpoint Editor — editable checkpoint rows with type selector,
             var nfcTag = cp.nfc_tag ?? '';
             var cpType = cp.checkpoint_type || 'gps';
             var showNfc = cpType === 'nfc';
-            var showLatLng = cpType === 'gps' || cpType === 'geo';
-            var showRadius = cpType === 'gps' || cpType === 'geo';
+            var showLatLng = cpType === 'gps' || cpType === 'geo' || cpType === 'custom';
+            var showRadius = cpType === 'gps' || cpType === 'geo' || cpType === 'custom';
             var selHtml = TYPE_OPTS.replace('value="' + cpType + '"', 'value="' + cpType + '" selected');
             return '<div class="cpe-row" data-idx="' + i + '">' +
                 '<div class="cpe-head">' +
@@ -127,7 +127,7 @@ Checkpoint Editor — editable checkpoint rows with type selector,
                     '<select class="cpe-type" onchange="window.CPE_UPDATE(' + i + ',\'checkpoint_type\',this.value);window.CPE_RENDER()">' + selHtml + '</select>' +
                     '<input class="cpe-name" value="' + escHtml(cp.name || '') + '" placeholder="Name" onchange="window.CPE_UPDATE(' + i + ',\'name\',this.value)">' +
                     (showNfc ? '<input class="cpe-tag" value="' + escHtml(nfcTag) + '" placeholder="NFC UID" onchange="window.CPE_UPDATE(' + i + ',\'nfc_tag\',this.value)">' : '') +
-                    '<button class="cpe-del" onclick="window.CPE_REMOVE(' + i + ')" title="Remove"><i class="fas fa-xmark"></i></button>' +
+                    '<button type="button" class="cpe-del" onclick="window.CPE_REMOVE(' + i + ')" title="Remove"><i class="fas fa-xmark"></i></button>' +
                 '</div>' +
                 '<div class="cpe-fields">' +
                     '<input class="cpe-time" type="time" value="' + planned + '" onchange="window.CPE_UPDATE(' + i + ',\'planned_time\',this.value)">' +

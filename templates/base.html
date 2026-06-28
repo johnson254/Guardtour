@@ -26,43 +26,48 @@ th{color:#ff5f52}
 <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <h1>Guard Tour</h1>
-        <div><span id="userRole"></span> | <span id="userName"></span> | <button onclick="logout()">Logout</button></div>
+        <div><span id="userRole"></span> | <span id="userName"></span> | <button type="button" onclick="logout()">Logout</button></div>
     </div>
     <div class="nav" id="navMenu"></div>
     {% block content %}{% endblock %}
 </div>
 <script>
-    const user = JSON.parse(localStorage.getItem('gt_user') || '{}');
-    if (!user.token) window.location.href = '/';
-    document.getElementById('userRole').innerText = user.role || '';
-    document.getElementById('userName').innerText = user.username || '';
-    
-    // Determine if user is system admin
-    const isSystemAdmin = user.is_system_admin === true;
-    
-    const navLinks = [
-        {url:'/dashboard/', name:'Dashboard', roles:['admin','supervisor','guard']},
-        {url:'/routes/', name:'Routes Dispatch', roles:['admin','supervisor']},
-        {url:'/dispatch/', name:'Mission Control', roles:['admin','supervisor']},
-        {url:'/guards/', name:'Guards', roles:['admin','supervisor']},
-        {url:'/reports/', name:'Reports', roles:['admin','supervisor','guard']},
-        {url:'/admin_panel/', name:'Admin', roles:['admin'], systemAdminOnly: true}
-    ];
-    
-    const navDiv = document.getElementById('navMenu');
-    navLinks.forEach(link => {
-        const hasRole = link.roles.includes(user.role);
-        const isAllowed = hasRole && (!link.systemAdminOnly || isSystemAdmin);
-        if (isAllowed) {
-            const a = document.createElement('a');
-            a.href = link.url;
-            a.innerText = link.name;
-            if(window.location.pathname === link.url) a.classList.add('active');
-            navDiv.appendChild(a);
+    try {
+        const user = JSON.parse(localStorage.getItem('gt_user') || '{}');
+        if (!user.token) window.location.href = '/';
+        const roleEl = document.getElementById('userRole');
+        const nameEl = document.getElementById('userName');
+        if (roleEl) roleEl.innerText = user.role || '';
+        if (nameEl) nameEl.innerText = user.username || '';
+
+        const isSystemAdmin = user.is_system_admin === true;
+
+        const navLinks = [
+            {url:'/dashboard/', name:'Dashboard', roles:['admin','supervisor','guard']},
+            {url:'/routes/', name:'Routes Dispatch', roles:['admin','supervisor']},
+            {url:'/dispatch/', name:'Mission Control', roles:['admin','supervisor']},
+            {url:'/guards/', name:'Guards', roles:['admin','supervisor']},
+            {url:'/reports/', name:'Reports', roles:['admin','supervisor','guard']},
+            {url:'/admin_panel/', name:'Admin', roles:['admin'], systemAdminOnly: true}
+        ];
+
+        const navDiv = document.getElementById('navMenu');
+        if (navDiv) {
+            navLinks.forEach(link => {
+                const hasRole = link.roles.includes(user.role);
+                const isAllowed = hasRole && (!link.systemAdminOnly || isSystemAdmin);
+                if (isAllowed) {
+                    const a = document.createElement('a');
+                    a.href = link.url;
+                    a.innerText = link.name;
+                    if(window.location.pathname === link.url) a.classList.add('active');
+                    navDiv.appendChild(a);
+                }
+            });
         }
-    });
-    
-    function logout() { localStorage.clear(); window.location.href = '/'; }
+
+        function logout() { try { localStorage.removeItem('gt_user'); } catch(e) {} window.location.href = '/'; }
+    } catch (e) {}
 </script>
 </body>
 </html>

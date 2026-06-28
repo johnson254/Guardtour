@@ -96,12 +96,12 @@ Uses dcBpPv-* / dcBpPvAssignList ID prefix, matches dispatch.html's JS.
 
 <div class="bp-shell dc-bp-progress dc-hidden" id="dcBpProgressView">
     <div class="bp-head">
-        <button class="bp-back" onclick="dcCloseBpProgress()" title="Back"><i class="fas fa-arrow-left"></i></button>
+        <button type="button" class="bp-back" onclick="dcCloseBpProgress()" title="Back"><i class="fas fa-arrow-left"></i></button>
         <div style="flex:1;min-width:0;">
             <div class="bp-title" id="dcBpPvTitle">Blueprint</div>
             <div class="bp-sub" id="dcBpPvSub">Select a blueprint</div>
         </div>
-        <button class="bp-deploy-btn" onclick="dcSetRouteForDeploy(window.__dcActiveBpId)" title="Deploy this blueprint"><i class="fas fa-rocket"></i> Deploy</button>
+        <button type="button" class="bp-deploy-btn" onclick="dcSetRouteForDeploy(window.__dcActiveBpId)" title="Deploy this blueprint"><i class="fas fa-rocket"></i> Deploy</button>
     </div>
     <div class="bp-body" id="dcBpPvBody">
         <div class="bp-summary" id="dcBpPvSummary"></div>

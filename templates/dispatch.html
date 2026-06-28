@@ -2188,8 +2188,8 @@
                 Blueprints
             </h3>
             <div style="display:flex;align-items:center;gap:6px;">
-                <button style="padding:6px 8px;border-radius:8px;border:1px solid rgba(211,47,47,0.3);background:rgba(211,47,47,0.1);color:var(--primary-light);font-size:0.55rem;font-weight:800;cursor:pointer;transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;" onclick="dcToggleDeployMode()" id="dcDeployToggle"><i class="fas fa-rocket"></i> Deploy Blueprints</button>
-                <button style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;"
+                <button type="button" style="padding:6px 8px;border-radius:8px;border:1px solid rgba(211,47,47,0.3);background:rgba(211,47,47,0.1);color:var(--primary-light);font-size:0.55rem;font-weight:800;cursor:pointer;transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;" onclick="dcToggleDeployMode()" id="dcDeployToggle"><i class="fas fa-rocket"></i> Deploy Blueprints</button>
+                 <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;"
                         hx-get="/api/blueprints-partial/"
                         hx-target="#dcBpGrid"
                         hx-trigger="click"
@@ -2226,7 +2226,7 @@
                 Missions
             </h3>
             <div style="display:flex;align-items:center;gap:6px;">
-                <button style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;" onclick="dcLoadAll()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+                <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;" onclick="dcLoadAll()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
             </div>
         </div>
         <div class="dc-ls-stats" id="dcLsStats">
@@ -2237,7 +2237,7 @@
             <div class="dc-ls-stat"><div class="dc-ls-stat-val amber" id="dcLsDaily">—</div><div class="dc-ls-stat-lbl">Daily</div></div>
         </div>
         <div class="dc-ls-tabs" id="dcLsTabs">
-            <button class="dc-ls-tab active"
+            <button type="button" class="dc-ls-tab active"
                     hx-get="/api/missions-partial/?tab=active"
                     hx-target="#dcLsGrid"
                     hx-trigger="click"
@@ -2245,7 +2245,7 @@
                     onclick="document.querySelectorAll('.dc-ls-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
                 Active <span class="dc-tab-count" id="dcTabActive"></span>
             </button>
-            <button class="dc-ls-tab"
+            <button type="button" class="dc-ls-tab"
                     hx-get="/api/missions-partial/?tab=upcoming"
                     hx-target="#dcLsGrid"
                     hx-trigger="click"
@@ -2253,7 +2253,7 @@
                     onclick="document.querySelectorAll('.dc-ls-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
                 Upcoming <span class="dc-tab-count" id="dcTabUpcoming"></span>
             </button>
-            <button class="dc-ls-tab"
+            <button type="button" class="dc-ls-tab"
                     hx-get="/api/missions-partial/?tab=all"
                     hx-target="#dcLsGrid"
                     hx-trigger="click"
@@ -2261,7 +2261,7 @@
                     onclick="document.querySelectorAll('.dc-ls-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
                 All <span class="dc-tab-count" id="dcTabAll"></span>
             </button>
-            <button class="dc-ls-tab"
+            <button type="button" class="dc-ls-tab"
                     hx-get="/api/missions-partial/?tab=done"
                     hx-target="#dcLsGrid"
                     hx-trigger="click"
@@ -2269,7 +2269,7 @@
                     onclick="document.querySelectorAll('.dc-ls-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
                 Done <span class="dc-tab-count" id="dcTabDone"></span>
             </button>
-            <button class="dc-ls-tab"
+            <button type="button" class="dc-ls-tab"
                     hx-get="/api/missions-partial/?tab=missed"
                     hx-target="#dcLsGrid"
                     hx-trigger="click"
@@ -2278,11 +2278,11 @@
                 Missed <span class="dc-tab-count" id="dcTabMissed"></span>
             </button>
             <span class="dc-tab-spacer"></span>
-            <button class="dc-ls-tab filter-btn active" data-filter="all" onclick="dcSetLsFilter('all',this)" title="All">A</button>
-            <button class="dc-ls-tab filter-btn" data-filter="live" onclick="dcSetLsFilter('live',this)" title="Live"><i class="fas fa-broadcast-tower"></i></button>
-            <button class="dc-ls-tab filter-btn" data-filter="missed" onclick="dcSetLsFilter('missed',this)" title="Alert"><i class="fas fa-exclamation-triangle"></i></button>
-            <button class="dc-ls-tab filter-btn" data-filter="device" onclick="dcSetLsFilter('device',this)" title="Device-only"><i class="fas fa-microchip"></i></button>
-            <button class="dc-ls-tab filter-btn" data-filter="paused" onclick="dcSetLsFilter('paused',this)" title="Paused"><i class="fas fa-pause"></i></button>
+            <button type="button" class="dc-ls-tab filter-btn active" data-filter="all" onclick="dcSetLsFilter('all',this)" title="All">A</button>
+            <button type="button" class="dc-ls-tab filter-btn" data-filter="live" onclick="dcSetLsFilter('live',this)" title="Live"><i class="fas fa-broadcast-tower"></i></button>
+            <button type="button" class="dc-ls-tab filter-btn" data-filter="missed" onclick="dcSetLsFilter('missed',this)" title="Alert"><i class="fas fa-exclamation-triangle"></i></button>
+            <button type="button" class="dc-ls-tab filter-btn" data-filter="device" onclick="dcSetLsFilter('device',this)" title="Device-only"><i class="fas fa-microchip"></i></button>
+            <button type="button" class="dc-ls-tab filter-btn" data-filter="paused" onclick="dcSetLsFilter('paused',this)" title="Paused"><i class="fas fa-pause"></i></button>
         </div>
         <div class="dc-center-body">
             <div class="dc-ls-grid" id="dcLsGrid"
@@ -2297,7 +2297,7 @@
             <!-- ════ Day View ════ -->
             <div class="dc-day-view dc-hidden" id="dcDayView">
                 <div class="dc-md-head">
-                    <button class="dc-md-back" onclick="dcCloseDayView()" title="Back"><i class="fas fa-arrow-left"></i></button>
+                    <button type="button" class="dc-md-back" onclick="dcCloseDayView()" title="Back"><i class="fas fa-arrow-left"></i></button>
                     <div class="dc-md-title" id="dcDvTitle">Day View</div>
                     <span style="font-size:0.6rem;color:rgba(255,255,255,0.3);" id="dcDvCount"></span>
                 </div>
@@ -2318,7 +2318,7 @@
             <div class="dc-rp-head">
                 <span id="dcDayPanelTitle" style="font-size:0.65rem;font-weight:800;color:rgba(255,255,255,0.6);">Day View</span>
                 <span id="dcDayPanelCount" style="font-size:0.55rem;color:rgba(255,255,255,0.3);"></span>
-                <button style="width:22px;height:22px;border-radius:4px;border:none;background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.5rem;" onclick="dcCloseDayPanel()" title="Close"><i class="fas fa-times"></i></button>
+                <button type="button" style="width:22px;height:22px;border-radius:4px;border:none;background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.5rem;" onclick="dcCloseDayPanel()" title="Close"><i class="fas fa-times"></i></button>
             </div>
             <div id="dcDayPanelList" style="flex:1;overflow-y:auto;padding:6px 8px;scrollbar-width:thin;"></div>
         </div>
@@ -2346,8 +2346,8 @@
         </div>
         <div style="font-size:0.6rem;color:rgba(255,255,255,0.6);line-height:1.5;" id="dcTtsConfirmBody"></div>
         <div style="display:flex;gap:8px;margin-top:4px;">
-            <button style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);font-size:0.6rem;font-weight:800;cursor:pointer;" onclick="this.closest('.dc-confirm-overlay').style.display='none'">Cancel</button>
-            <button style="flex:1;padding:6px;border-radius:8px;border:none;background:#6C8EEF;color:white;font-size:0.6rem;font-weight:800;cursor:pointer;" id="dcTtsConfirmBtn">Send TTS</button>
+            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);font-size:0.6rem;font-weight:800;cursor:pointer;" onclick="this.closest('.dc-confirm-overlay').style.display='none'">Cancel</button>
+            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:none;background:#6C8EEF;color:white;font-size:0.6rem;font-weight:800;cursor:pointer;" id="dcTtsConfirmBtn">Send TTS</button>
         </div>
     </div>
 </div>
@@ -2363,8 +2363,8 @@
         <div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:8px;font-size:0.55rem;color:rgba(255,255,255,0.7);" id="dcCpEditDiff"></div>
         <div style="font-size:0.5rem;color:rgba(255,213,79,0.6);background:rgba(255,213,79,0.06);border-radius:6px;padding:4px 8px;"><i class="fas fa-info-circle"></i> Changes apply to the route blueprint — affects future deployments</div>
         <div style="display:flex;gap:8px;margin-top:4px;">
-            <button style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);font-size:0.6rem;font-weight:800;cursor:pointer;" onclick="this.closest('.dc-confirm-overlay').style.display='none'">Cancel</button>
-            <button style="flex:1;padding:6px;border-radius:8px;border:none;background:#6C8EEF;color:white;font-size:0.6rem;font-weight:800;cursor:pointer;" id="dcCpEditConfirmBtn">Apply Changes</button>
+            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);font-size:0.6rem;font-weight:800;cursor:pointer;" onclick="this.closest('.dc-confirm-overlay').style.display='none'">Cancel</button>
+            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:none;background:#6C8EEF;color:white;font-size:0.6rem;font-weight:800;cursor:pointer;" id="dcCpEditConfirmBtn">Apply Changes</button>
         </div>
     </div>
 </div>

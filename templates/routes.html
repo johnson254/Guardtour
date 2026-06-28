@@ -981,7 +981,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
 <div id="rsLibPanel" class="rs-panel" style="display:flex; flex-direction:column; overflow:hidden;">
     <div class="rs-panel-head" style="background: linear-gradient(135deg, rgba(211,47,47,0.06) 0%, transparent 70%);">
         <h3 class="rs-panel-title"><i class="fas fa-folder-open" style="color:var(--r-crim)"></i> Blueprint Library</h3>
-        <button class="rs-btn rs-btn-xs" onclick="bpCreateNew()" title="New Blueprint"><i class="fas fa-plus"></i> New</button>
+        <button type="button" class="rs-btn rs-btn-xs" onclick="bpCreateNew()" title="New Blueprint"><i class="fas fa-plus"></i> New</button>
     </div>
     <div class="rs-search">
         <div class="rs-search-box">
@@ -1013,7 +1013,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                     <div class="rs-wiz-title"><i class="fas fa-compass-drafting" style="color:var(--r-crim)"></i> Mission Builder</div>
                     <div class="rs-wiz-sub">Choose how this patrol will be structured.</div>
                 </div>
-                <button class="rs-btn-back" onclick="hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="rs-btn-back" onclick="hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
             </div>
 
             <!-- Quick Deploy hero -->
@@ -1029,27 +1029,27 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             <div class="rs-or-divider">Or choose a structured strategy</div>
 
             <div class="rs-strat-grid">
-                <button class="rs-strat-chip rs-chip-flex" onclick="wizGo(2,'Flexible')">
+                <button type="button" class="rs-strat-chip rs-chip-flex" onclick="wizGo(2,'Flexible')">
                     <i class="fas fa-random"></i>
                     <div class="rs-strat-chip-label">Flexible</div>
                     <div class="rs-strat-chip-sub">Any order, volume-based</div>
                 </button>
-                <button class="rs-strat-chip rs-chip-seq" onclick="wizGo(2,'Sequential')">
+                <button type="button" class="rs-strat-chip rs-chip-seq" onclick="wizGo(2,'Sequential')">
                     <i class="fas fa-arrow-down-1-9"></i>
                     <div class="rs-strat-chip-label">Sequential</div>
                     <div class="rs-strat-chip-sub">Fixed order enforced</div>
                 </button>
-                <button class="rs-strat-chip rs-chip-sched" onclick="wizGo(2,'Scheduled')">
+                <button type="button" class="rs-strat-chip rs-chip-sched" onclick="wizGo(2,'Scheduled')">
                     <i class="fas fa-stopwatch"></i>
                     <div class="rs-strat-chip-label">Scheduled</div>
                     <div class="rs-strat-chip-sub">Time windows per point</div>
                 </button>
-                <button class="rs-strat-chip rs-chip-audit" onclick="wizGo('audit')">
+                <button type="button" class="rs-strat-chip rs-chip-audit" onclick="wizGo('audit')">
                     <i class="fas fa-user-shield"></i>
                     <div class="rs-strat-chip-label">Peer Audit</div>
                     <div class="rs-strat-chip-sub">Auditor sweeps guards</div>
                 </button>
-                <button class="rs-strat-chip rs-chip-custom" onclick="wizGo(2,'Custom')">
+                <button type="button" class="rs-strat-chip rs-chip-custom" onclick="wizGo(2,'Custom')">
                     <i class="fas fa-sliders"></i>
                     <div class="rs-strat-chip-label">Custom Design</div>
                     <div class="rs-strat-chip-sub">Full manual override</div>
@@ -1059,7 +1059,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
 
         <!-- STEP 2: Standard strategy config -->
         <div class="rs-wiz rs-hidden" id="wizStep2">
-            <button class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button type="button" class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
             <div class="rs-wiz-header">
                 <div class="rs-wiz-title" id="wizStep2Title">Configure Blueprint</div>
                 <div class="rs-wiz-sub" id="wizStep2Sub"></div>
@@ -1120,14 +1120,14 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             </div>
 
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="rs-btn rs-btn-block" style="flex:1;" onclick="wiz2Apply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
-                <button class="rs-btn rs-btn-success rs-btn-block" style="flex:1;" onclick="wiz2SaveDeploy()"><i class="fas fa-rocket"></i> Save & Deploy</button>
+                <button type="button" class="rs-btn rs-btn-block" style="flex:1;" onclick="wiz2Apply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
+                <button type="button" class="rs-btn rs-btn-success rs-btn-block" style="flex:1;" onclick="wiz2SaveDeploy()"><i class="fas fa-rocket"></i> Save & Deploy</button>
             </div>
         </div>
 
         <!-- STEP: Quick Deploy -->
         <div class="rs-wiz rs-hidden" id="wizStepQuick">
-            <button class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button type="button" class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
             <div class="rs-wiz-header">
                 <div class="rs-wiz-title"><i class="fas fa-bolt" style="color:#FFD54F"></i> Quick Deploy</div>
                 <div class="rs-wiz-sub">Name it, assign guards, add points, deploy.</div>
@@ -1192,9 +1192,10 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                     <span class="rs-lbl" style="margin-bottom:0;">Mission Sequence</span>
                     <div style="display:flex;gap:5px;">
-                        <button class="rs-btn rs-btn-xs" onclick="qAddPoint('nfc')"><i class="fas fa-wifi" style="color:var(--r-crim)"></i> NFC</button>
-                        <button class="rs-btn rs-btn-xs" onclick="qAddPoint('gps')"><i class="fas fa-map-pin" style="color:var(--r-indigo)"></i> GPS</button>
-                        <button class="rs-btn rs-btn-xs" onclick="qAddPoint('peer')"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer</button>
+                        <button type="button" class="rs-btn rs-btn-xs" onclick="qAddPoint('nfc')"><i class="fas fa-wifi" style="color:var(--r-crim)"></i> NFC</button>
+                        <button type="button" class="rs-btn rs-btn-xs" onclick="qAddPoint('gps')"><i class="fas fa-map-pin" style="color:var(--r-indigo)"></i> GPS</button>
+                        <button type="button" class="rs-btn rs-btn-xs" onclick="qAddPoint('peer')"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer</button>
+                        <button type="button" class="rs-btn rs-btn-xs" onclick="qAddPoint('custom')"><i class="fas fa-pen" style="color:var(--r-teal)"></i> Custom</button>
                     </div>
                 </div>
                 <div id="qPointsList" class="rs-cp-list" style="max-height:160px;min-height:60px;border:1.5px dashed var(--r-line);border-radius:10px;padding:6px;">
@@ -1205,8 +1206,8 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             </div>
 
             <div style="display:flex;gap:8px;">
-                <button class="rs-btn rs-btn-block" style="flex:1;" onclick="qApply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
-                <button class="rs-btn rs-btn-success rs-btn-block" style="flex:1;" onclick="qSaveDeploy()"><i class="fas fa-rocket"></i> Deploy Now</button>
+                <button type="button" class="rs-btn rs-btn-block" style="flex:1;" onclick="qApply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
+                <button type="button" class="rs-btn rs-btn-success rs-btn-block" style="flex:1;" onclick="qSaveDeploy()"><i class="fas fa-rocket"></i> Deploy Now</button>
             </div>
 
             <!-- Inline confirmation strip — slides up within Quick Deploy, no redirect -->
@@ -1219,7 +1220,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                         <div style="font-size:0.72rem;font-weight:900;color:var(--r-teal);letter-spacing:0.3px;">CONFIRM DEPLOYMENT</div>
                         <div id="qdConfirmSummary" style="font-size:0.55rem;color:rgba(255,255,255,0.45);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
                     </div>
-                    <button style="background:none;border:none;color:var(--r-mute);cursor:pointer;padding:2px 6px;font-size:0.75rem;" onclick="qdDismissConfirm()" title="Cancel"><i class="fas fa-xmark"></i></button>
+                    <button type="button" style="background:none;border:none;color:var(--r-mute);cursor:pointer;padding:2px 6px;font-size:0.75rem;" onclick="qdDismissConfirm()" title="Cancel"><i class="fas fa-xmark"></i></button>
                 </div>
                 <div id="qdConfirmCps" style="display:flex;flex-direction:column;gap:2px;max-height:120px;overflow-y:auto;margin-bottom:8px;"></div>
                 <div style="display:flex;align-items:center;gap:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
@@ -1227,7 +1228,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                         <input type="checkbox" id="qdInlineVerify" onchange="qdInlineUpdateBtn()" style="accent-color:#d32f2f;width:13px;height:13px;flex-shrink:0;" onclick="event.stopPropagation()">
                         <span style="font-size:0.52rem;font-weight:600;color:rgba(255,255,255,0.55);">I verify all parameters are correct</span>
                     </label>
-                    <button class="rs-btn rs-btn-success" id="qdInlineDeployBtn"
+                     <button type="button" class="rs-btn rs-btn-success" id="qdInlineDeployBtn"
                         style="padding:7px 16px;font-size:0.65rem;opacity:.4;cursor:not-allowed;letter-spacing:0.6px;white-space:nowrap;" disabled onclick="qdInlineExecute()">
                         <i class="fas fa-rocket"></i> COMMENCE
                     </button>
@@ -1240,7 +1241,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
 
         <!-- STEP: Peer Audit -->
         <div class="rs-wiz rs-hidden" id="wizStepAudit">
-            <button class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button type="button" class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
             <div class="rs-wiz-header">
                 <div class="rs-wiz-title"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer Audit</div>
                 <div class="rs-wiz-sub">One auditor sweeps a sequence of guards. Each guard becomes a timed checkpoint.</div>
@@ -1307,7 +1308,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                     <span class="rs-lbl" style="margin-bottom:0;color:var(--r-violet);">
                         <i class="fas fa-grip-vertical" style="margin-right:4px;opacity:.5"></i>Target Guards (drag to reorder)
                     </span>
-                    <button class="rs-btn rs-btn-xs rs-btn-violet" onclick="auditAddTarget()"><i class="fas fa-plus"></i> Add</button>
+                    <button type="button" class="rs-btn rs-btn-xs rs-btn-violet" onclick="auditAddTarget()"><i class="fas fa-plus"></i> Add</button>
                 </div>
                 <div id="auditTargets" style="display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;padding-right:3px;"></div>
                 <div style="font-size:0.64rem;color:rgba(255,255,255,0.28);margin-top:6px;">
@@ -1317,8 +1318,8 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             </div>
 
             <div style="display:flex;gap:8px;">
-                <button class="rs-btn rs-btn-block" style="flex:1;" onclick="auditApply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
-                <button class="rs-btn rs-btn-violet rs-btn-block" style="flex:1;" onclick="auditSaveDeploy()"><i class="fas fa-rocket"></i> Save & Deploy</button>
+                <button type="button" class="rs-btn rs-btn-block" style="flex:1;" onclick="auditApply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
+                <button type="button" class="rs-btn rs-btn-violet rs-btn-block" style="flex:1;" onclick="auditSaveDeploy()"><i class="fas fa-rocket"></i> Save & Deploy</button>
             </div>
         </div>
 
@@ -1329,7 +1330,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                     <div class="rs-wiz-title" style="color:var(--r-teal);font-size:1.2rem;"><i class="fas fa-bolt" style="color:#FFD54F"></i> QUICK DEPLOY — FINAL REVIEW</div>
                     <div class="rs-wiz-sub">All checkpoints shown with their planned times. Review and confirm.</div>
                 </div>
-                <button class="rs-btn-back" onclick="rsDeployCancel();hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="rs-btn-back" onclick="rsDeployCancel();hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
             </div>
 
             <div style="display:flex;gap:14px;flex:1;min-height:0;margin-top:8px;">
@@ -1400,7 +1401,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                         <div style="font-size:0.48rem;color:rgba(255,255,255,0.38);font-weight:400;">Deployment will initiate live tracking and broadcast alerts.</div>
                     </div>
                 </div>
-                <button class="rs-btn rs-btn-success" id="qdDeployBtn"
+                 <button type="button" class="rs-btn rs-btn-success" id="qdDeployBtn"
                     style="padding:10px 22px;font-size:0.72rem;opacity:.4;cursor:not-allowed;letter-spacing:0.8px;white-space:nowrap;" disabled onclick="qdExecute()">
                     <i class="fas fa-rocket"></i> COMMENCE DEPLOYMENT
                 </button>
@@ -1414,7 +1415,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                     <div class="rs-wiz-title" style="color:var(--r-amber);font-size:1.1rem;"><i class="fas fa-pen-to-square" style="color:var(--r-amber)"></i> EDIT CONFIRMATION</div>
                     <div class="rs-wiz-sub">Review the changes before saving this blueprint.</div>
                 </div>
-                <button class="rs-btn-back" onclick="hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="rs-btn-back" onclick="hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
             </div>
             <div style="flex:1;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:6px;">
                 <div id="editDiffContent" style="font-size:0.65rem;color:var(--r-mute);padding:4px;">Calculating changes…</div>
@@ -1427,7 +1428,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                         <div style="font-size:0.48rem;color:rgba(255,255,255,0.38);font-weight:400;">Save will update the blueprint and optionally re-deploy.</div>
                     </div>
                 </div>
-                <button class="rs-btn rs-btn-primary" id="editSaveBtn"
+                 <button type="button" class="rs-btn rs-btn-primary" id="editSaveBtn"
                     style="padding:10px 22px;font-size:0.72rem;opacity:.4;cursor:not-allowed;letter-spacing:0.8px;white-space:nowrap;" disabled onclick="editExecute()">
                     <i class="fas fa-floppy-disk"></i> SAVE CHANGES
                 </button>
@@ -1442,13 +1443,13 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             <i class="fas fa-route"></i> Routes Dispatch
         </h3>
         <div style="display:flex;gap:6px;">
-            <button class="rs-btn rs-btn-sm" onclick="bpCreateNew()" title="New Blueprint"><i class="fas fa-plus"></i> New</button>
-            <button class="rs-btn rs-btn-success rs-btn-sm rs-hidden" id="bpDeployBtn" onclick="rsDeployOpen()">
+            <button type="button" class="rs-btn rs-btn-sm" onclick="bpCreateNew()" title="New Blueprint"><i class="fas fa-plus"></i> New</button>
+            <button type="button" class="rs-btn rs-btn-success rs-btn-sm rs-hidden" id="bpDeployBtn" onclick="rsDeployOpen()">
                 <i class="fas fa-rocket"></i> Deploy
             </button>
-            <button class="rs-btn rs-btn-primary rs-btn-sm rs-hidden" id="bpReviewBtn" onclick="showEditConfirm()" title="Review changes before saving"><i class="fas fa-pen-to-square"></i> Review</button>
-            <button class="rs-btn rs-btn-sm" id="bpSaveBtn" onclick="bpSaveRoute()"><i class="fas fa-floppy-disk"></i> Save</button>
-            <button class="rs-btn rs-btn-sm" onclick="bpCloseEditor()">Discard</button>
+            <button type="button" class="rs-btn rs-btn-primary rs-btn-sm rs-hidden" id="bpReviewBtn" onclick="showEditConfirm()" title="Review changes before saving"><i class="fas fa-pen-to-square"></i> Review</button>
+            <button type="button" class="rs-btn rs-btn-sm" id="bpSaveBtn" onclick="bpSaveRoute()"><i class="fas fa-floppy-disk"></i> Save</button>
+            <button type="button" class="rs-btn rs-btn-sm" onclick="bpCloseEditor()">Discard</button>
         </div>
     </div>
 
@@ -1516,9 +1517,9 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
                                     </label>
                                     <div class="rs-step-group">
                                         <span style="font-size:0.4rem;font-weight:800;color:var(--r-mute);letter-spacing:0.3px;text-transform:uppercase;padding:1px 2px 1px 5px;">Rpt</span>
-                                        <button class="rs-step-btn rs-step-dec" onclick="const i=$('bpLeadTime');i.value=Math.max(0,parseInt(i.value||0)-5);i.oninput();const rl=$('bpRepeatLabel');if(rl)rl.textContent=i.value||'0';" title="Decrease repeat interval">−</button>
+                                        <button type="button" class="rs-step-btn rs-step-dec" onclick="const i=$('bpLeadTime');i.value=Math.max(0,parseInt(i.value||0)-5);i.oninput();const rl=$('bpRepeatLabel');if(rl)rl.textContent=i.value||'0';" title="Decrease repeat interval">−</button>
                                         <input id="bpLeadTime" type="number" min="0" class="rs-fi rs-fi-sm" value="15" oninput="bpSetDirty();bpUpdatePreview();const rl=$('bpRepeatLabel');if(rl)rl.textContent=this.value||'0';bpUpdateAlertTime();" style="width:20px;text-align:center;font-size:0.52rem;padding:1px;border:none;border-radius:0;background:rgba(0,0,0,0.3);color:var(--r-text);font-weight:900;">
-                                        <button class="rs-step-btn rs-step-inc" onclick="const i=$('bpLeadTime');i.value=Math.max(0,parseInt(i.value||0)+5);i.oninput();const rl=$('bpRepeatLabel');if(rl)rl.textContent=i.value||'0';" title="Increase repeat interval">+</button>
+                                        <button type="button" class="rs-step-btn rs-step-inc" onclick="const i=$('bpLeadTime');i.value=Math.max(0,parseInt(i.value||0)+5);i.oninput();const rl=$('bpRepeatLabel');if(rl)rl.textContent=i.value||'0';" title="Increase repeat interval">+</button>
                                         <span style="font-size:0.4rem;color:var(--r-mute);font-weight:800;padding:1px 2px 1px 1px;">min</span>
                                     </div>
                                     <span style="display:flex;align-items:center;gap:2px;font-size:0.4rem;color:var(--r-mute);padding:1px 5px;border-radius:10px;background:rgba(0,0,0,0.15);height:20px;border:1px solid rgba(255,255,255,0.03);white-space:nowrap;">
@@ -1629,7 +1630,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                 <label class="rs-lbl" style="margin-bottom:0; font-size:0.52rem;"><i class="fas fa-list-check" style="margin-right:3px;color:var(--r-indigo);"></i> Checkpoints</label>
                 <div style="display:flex;align-items:center;gap:4px;">
-                    <button class="rs-btn rs-btn-xs" onclick="bpClearCps()" style="color:var(--r-crim);border-color:rgba(211,47,47,0.3); padding:3px 8px;" title="Clear all">
+                    <button type="button" class="rs-btn rs-btn-xs" onclick="bpClearCps()" style="color:var(--r-crim);border-color:rgba(211,47,47,0.3); padding:3px 8px;" title="Clear all">
                         <i class="fas fa-trash-can" style="font-size:0.6rem;"></i>
                     </button>
                 </div>
@@ -1686,9 +1687,10 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             </div>
 
             <div class="rs-add-row">
-                <button class="rs-add-cp" onclick="bpAddCp()"><i class="fas fa-wifi" style="color:var(--r-crim)"></i> NFC</button>
-                <button class="rs-add-cp" onclick="bpAddCp({type:'gps'})"><i class="fas fa-map-pin" style="color:var(--r-indigo)"></i> GPS</button>
-                <button class="rs-add-cp" onclick="bpAddCp({type:'peer'})"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer</button>
+                <button type="button" class="rs-add-cp" onclick="bpAddCp()"><i class="fas fa-wifi" style="color:var(--r-crim)"></i> NFC</button>
+                <button type="button" class="rs-add-cp" onclick="bpAddCp({type:'gps'})"><i class="fas fa-map-pin" style="color:var(--r-indigo)"></i> GPS</button>
+                <button type="button" class="rs-add-cp" onclick="bpAddCp({type:'peer'})"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer</button>
+                <button type="button" class="rs-add-cp" onclick="bpAddCp({type:'custom'})"><i class="fas fa-pen" style="color:var(--r-teal)"></i> Custom</button>
             </div>
         </div>
 
@@ -1703,7 +1705,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
     <div class="rs-ed-footer">
         <span style="font-size:0.65rem;color:var(--r-mute);">Ctrl+S to save</span>
         <div style="display:flex;gap:7px;">
-            <button class="rs-btn rs-btn-success rs-btn-sm rs-hidden" id="bpDeployFooter" onclick="rsDeployOpen()">
+            <button type="button" class="rs-btn rs-btn-success rs-btn-sm rs-hidden" id="bpDeployFooter" onclick="rsDeployOpen()">
                 <i class="fas fa-rocket"></i> Go to Dispatch
             </button>
         </div>
@@ -1738,7 +1740,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
             <div style="font-size:0.82rem; font-weight:900; letter-spacing:0.5px; color:#fff;">
                 <i class="fas fa-shield-check"></i> MISSION INITIALIZATION
             </div>
-            <button class="rs-btn rs-btn-xs" onclick="rsDeployCancel()" style="color:var(--r-mute);border-color:transparent;"><i class="fas fa-times"></i> Back</button>
+            <button type="button" class="rs-btn rs-btn-xs" onclick="rsDeployCancel()" style="color:var(--r-mute);border-color:transparent;"><i class="fas fa-times"></i> Back</button>
         </div>
         <div style="padding:0 12px 6px; font-size:0.6rem; color:var(--r-mute);">Final pre-flight &mdash; review and confirm deployment.</div>
 
@@ -1841,7 +1843,7 @@ textarea.rs-fi { resize: vertical; min-height: 56px; height: 56px; line-height: 
 
         <!-- Deploy Button -->
         <div style="padding:10px 12px; border-top:1px solid rgba(255,255,255,0.06);">
-            <button class="rs-btn-tactile" id="rsDeployBtn"
+            <button type="button" class="rs-btn-tactile" id="rsDeployBtn"
                 style="width:100%; justify-content:center; background:rgba(0,196,154,0.15); border:1px solid rgba(0,196,154,0.35); color:var(--r-teal); padding:14px; font-size:0.75rem; letter-spacing:1px; opacity:.4; cursor:not-allowed;" disabled onclick="rsDeployExecute()">
                 <i class="fas fa-rocket"></i> <span id="rsDeployBtnText">COMMENCE MISSION DEPLOYMENT</span>
             </button>

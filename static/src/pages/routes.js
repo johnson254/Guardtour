@@ -233,7 +233,7 @@ function addPersonTag(containerId, id, label, type = 'person') {
     if(type === 'device') { span.style.background = 'rgba(0,196,154,0.15)'; span.style.color = 'var(--r-teal)'; span.style.borderColor = 'rgba(0,196,154,0.3)'; }
     
     const icon = type === 'device' ? 'fa-mobile-screen' : 'fa-user-shield';
-    span.innerHTML = `<i class="fas ${icon}" style="font-size:.55rem;"></i>${label}<button onclick="this.parentElement.remove();bpUpdatePreview();bpSetDirty();" title="Remove"><i class="fas fa-times"></i></button>`;
+    span.innerHTML = `<i class="fas ${icon}" style="font-size:.55rem;"></i>${label}<button type="button" onclick="this.parentElement.remove();bpUpdatePreview();bpSetDirty();" title="Remove"><i class="fas fa-times"></i></button>`;
     container.appendChild(span);
     if (id && containerId === 'bpGuardTags') {
         if (!assignedGuardIds.includes(Number(id))) assignedGuardIds.push(Number(id));
@@ -535,17 +535,18 @@ window.bpAddCp = function (data = {}) {
     const cpType   = data.checkpoint_type || data.type || 'nfc';
     const isGps    = cpType === 'gps' || (!data.nfc_tag && (data.lat || data.lng));
     const isPeer   = cpType === 'peer';
+    const isCustom = cpType === 'custom';
 
     const div = document.createElement('div');
     div.className = 'rs-cp-row';
     div.draggable = true;
-    div.dataset.cpType = isPeer ? 'peer' : isGps ? 'gps' : 'nfc';
+    div.dataset.cpType = isCustom ? 'custom' : (isPeer ? 'peer' : isGps ? 'gps' : 'nfc');
 
     div.addEventListener('dragstart', () => div.classList.add('dragging'));
     div.addEventListener('dragend',   () => { div.classList.remove('dragging'); bpRenumber(); });
 
-    const typeIcon = isPeer ? 'fa-user-shield' : isGps ? 'fa-map-pin' : 'fa-wifi';
-    const typeCol  = isPeer ? 'var(--r-violet)' : isGps ? 'var(--r-indigo)' : 'var(--r-crim)';
+    const typeIcon = isCustom ? 'fa-pen' : (isPeer ? 'fa-user-shield' : isGps ? 'fa-map-pin' : 'fa-wifi');
+    const typeCol  = isCustom ? 'var(--r-teal)' : (isPeer ? 'var(--r-violet)' : isGps ? 'var(--r-indigo)' : 'var(--r-crim)');
     const showOrder = isOrderEnforced();
 
     const rad  = data.radius || 50;
@@ -568,7 +569,7 @@ window.bpAddCp = function (data = {}) {
                             onblur="setTimeout(()=>this.parentElement.querySelector('.rs-suggest-list')?.classList.add('rs-hidden'),200)">
                         <div class="rs-suggest-list rs-hidden" style="top:24px;"></div>
                         <i class="fas fa-check-double rs-verified ${data.auditor_id ? '' : 'rs-hidden'}"></i>
-                        <button class="rs-tag-clear ${data.auditor_id ? '' : 'rs-hidden'}" onclick="bpClearTagField(this)" title="Clear field"><i class="fas fa-times"></i></button>
+                        <button type="button" class="rs-tag-clear ${data.auditor_id ? '' : 'rs-hidden'}" onclick="bpClearTagField(this)" title="Clear field"><i class="fas fa-times"></i></button>
                     </div>
                     <div style="opacity:0.15;display:flex;align-items:center;"><i class="fas fa-arrow-right-arrow-left" style="font-size:0.45rem;"></i></div>
                     <div style="position:relative; flex:1;">
@@ -578,7 +579,7 @@ window.bpAddCp = function (data = {}) {
                             onblur="setTimeout(()=>this.parentElement.querySelector('.rs-suggest-list')?.classList.add('rs-hidden'),200)">
                         <div class="rs-suggest-list rs-hidden" style="top:24px;"></div>
                         <i class="fas fa-check-double rs-verified ${(data.target_id || data.nfc_tag) ? '' : 'rs-hidden'}"></i>
-                        <button class="rs-tag-clear ${(data.target_id || data.nfc_tag) ? '' : 'rs-hidden'}" onclick="bpClearTagField(this)" title="Clear field"><i class="fas fa-times"></i></button>
+                        <button type="button" class="rs-tag-clear ${(data.target_id || data.nfc_tag) ? '' : 'rs-hidden'}" onclick="bpClearTagField(this)" title="Clear field"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
             ` : `
@@ -590,7 +591,7 @@ window.bpAddCp = function (data = {}) {
                         <div class="rs-suggest-list rs-hidden" style="top:24px;"></div>
                         <i class="fas fa-check-double rs-verified rs-hidden"></i>
                     </div>
-                    ${isGps ? `
+                    ${isGps || isCustom ? `
                         <input id="cp-lat-${idx}" type="number" step="any" class="rs-fi rs-fi-sm bp-cp-lat" style="width:48px; font-size:0.55rem; padding:2px 3px;" placeholder="Lat" value="${data.lat || ''}" oninput="bpUpdatePreview()">
                         <input id="cp-lng-${idx}" type="number" step="any" class="rs-fi rs-fi-sm bp-cp-lng" style="width:48px; font-size:0.55rem; padding:2px 3px;" placeholder="Lng" value="${data.lng || ''}" oninput="bpUpdatePreview()">
                     ` : `
@@ -601,7 +602,7 @@ window.bpAddCp = function (data = {}) {
                                 onblur="setTimeout(()=>this.parentElement.querySelector('.rs-suggest-list')?.classList.add('rs-hidden'),200)">
                             <div class="rs-suggest-list rs-hidden" style="top:24px;"></div>
                             <i class="fas fa-check-double rs-verified ${data.nfc_tag ? '' : 'rs-hidden'}"></i>
-                            <button class="rs-tag-clear ${data.nfc_tag ? '' : 'rs-hidden'}" onclick="bpClearTagField(this)" title="Clear value"><i class="fas fa-times"></i></button>
+                            <button type="button" class="rs-tag-clear ${data.nfc_tag ? '' : 'rs-hidden'}" onclick="bpClearTagField(this)" title="Clear value"><i class="fas fa-times"></i></button>
                         </div>
                         <label class="rs-cp-fetch-gps" data-fetched="${data.lat ? 'true' : 'false'}" title="Capture GPS on first tag scan">
                             <input type="checkbox" class="bp-cp-fetch-location" ${data.fetch_location_on_scan ? 'checked' : ''} onchange="bpToggleFetchGps(this)">
@@ -670,9 +671,9 @@ window.bpAddCp = function (data = {}) {
             <div id="cp-time-warn-${idx}" class="rs-hidden" style="font-size:0.45rem;color:var(--r-amber);display:flex;align-items:center;gap:3px;padding:1px 4px;"><i class="fas fa-triangle-exclamation"></i> <span></span></div>
         </div>
         <div class="rs-cp-actions" style="align-items:stretch;">
-            <button class="rs-cp-settings-toggle" title="Settings" onclick="bpToggleCpConfig(this)" style="border:none;background:none;color:var(--r-mute);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:0.6rem;transition:color .15s;" onmouseenter="this.style.color='var(--r-teal)'" onmouseleave="this.style.color='var(--r-mute)'"><i class="fas fa-sliders"></i></button>
-            <button class="rs-cp-del" title="Remove checkpoint" onclick="this.closest('.rs-cp-row').remove();bpRenumber();bpSetDirty();"><i class="fas fa-times"></i></button>
-            ${isPeer ? '' : `<button class="rs-cp-save" title="Save to library" onclick="bpLibrarySaveRow(this.closest('.rs-cp-row'))"><i class="fas fa-floppy-disk"></i></button>`}
+            <button type="button" class="rs-cp-settings-toggle" title="Settings" onclick="bpToggleCpConfig(this)" style="border:none;background:none;color:var(--r-mute);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:0.6rem;transition:color .15s;" onmouseenter="this.style.color='var(--r-teal)'" onmouseleave="this.style.color='var(--r-mute)'"><i class="fas fa-sliders"></i></button>
+            <button type="button" class="rs-cp-del" title="Remove checkpoint" onclick="this.closest('.rs-cp-row').remove();bpRenumber();bpSetDirty();"><i class="fas fa-times"></i></button>
+            ${isPeer ? '' : `<button type="button" class="rs-cp-save" title="Save to library" onclick="bpLibrarySaveRow(this.closest('.rs-cp-row'))"><i class="fas fa-floppy-disk"></i></button>`}
         </div>
     `;
 
@@ -1080,9 +1081,9 @@ window.qAddPoint = function (type) {
     const list = $('qPointsList');
     $('qPointsEmpty')?.remove();
     const idx = list.querySelectorAll('.q-point-card').length;
-    const icons = { nfc: 'fa-wifi', gps: 'fa-map-pin', peer: 'fa-user-shield' };
-    const cols  = { nfc: 'var(--r-crim)', gps: 'var(--r-indigo)', peer: 'var(--r-violet)' };
-    const names = { nfc: 'NFC', gps: 'GPS', peer: 'Peer' };
+    const icons = { nfc: 'fa-wifi', gps: 'fa-map-pin', peer: 'fa-user-shield', custom: 'fa-pen' };
+    const cols  = { nfc: 'var(--r-crim)', gps: 'var(--r-indigo)', peer: 'var(--r-violet)', custom: 'var(--r-teal)' };
+    const names = { nfc: 'NFC', gps: 'GPS', peer: 'Peer', custom: 'Custom' };
 
     const div = document.createElement('div');
     div.className = 'rs-cp-row q-point-card';
@@ -1096,7 +1097,7 @@ window.qAddPoint = function (type) {
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
             <div class="rs-cp-top-row">
-                ${type === 'gps' ? `
+                ${type === 'gps' || type === 'custom' ? `
                     <div style="position:relative; flex:1;">
                         <input class="rs-fi rs-fi-sm q-name" style="width:100%; font-size:0.62rem; padding:3px 6px;" placeholder="Point name" oninput="bpNameInput(this)">
                         <div class="rs-suggest-list rs-hidden" style="top:26px;left:0;right:0;"></div>
@@ -1159,7 +1160,7 @@ window.qAddPoint = function (type) {
             </div>
         </div>
         <div class="rs-cp-actions">
-            <button class="rs-cp-del" onclick="this.closest('.q-point-card').remove();if(!$('qPointsList').querySelectorAll('.q-point-card').length)qResetList();">
+            <button type="button" class="rs-cp-del" onclick="this.closest('.q-point-card').remove();if(!$('qPointsList').querySelectorAll('.q-point-card').length)qResetList();">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -1376,7 +1377,7 @@ window.auditAddTarget = function () {
             <input id="audit-target-time-${idx}" type="time" class="rs-fi rs-fi-sm audit-target-time" style="width:80px; font-size:0.62rem; padding:2px 5px;">
         </div>
         <div class="rs-cp-actions">
-            <button class="rs-cp-del" onclick="this.closest('.rs-cp-row').remove()"><i class="fas fa-times"></i></button>
+            <button type="button" class="rs-cp-del" onclick="this.closest('.rs-cp-row').remove()"><i class="fas fa-times"></i></button>
         </div>
     `;
     container.appendChild(div);
@@ -1776,7 +1777,7 @@ window.bpUpdatePreview = function () {
                     const label = isAuditor ? `<span style="color:var(--r-violet); font-size:0.5rem; margin-right:4px;">AUDITOR</span> ${t.dataset.label}` : t.dataset.label;
                     return `<div class="rs-manifest-item" style="background:rgba(255,255,255,0.02); border-radius:8px;">
                         <span style="display:flex;align-items:center;gap:6px; font-weight:700;"><i class="fas ${icon}" style="color:${col}; font-size:0.6rem;"></i>${label}</span>
-                        <button class="rs-manifest-remove" onclick="this.parentElement.remove();bpUpdatePreview();"><i class="fas fa-times"></i></button>
+                        <button type="button" class="rs-manifest-remove" onclick="this.parentElement.remove();bpUpdatePreview();"><i class="fas fa-times"></i></button>
                     </div>`;
                 }).join('');
             }
@@ -1786,7 +1787,7 @@ window.bpUpdatePreview = function () {
                     const col = 'var(--r-teal)';
                     return `<div class="rs-manifest-item" style="background:rgba(255,255,255,0.02); border-radius:8px;">
                         <span style="display:flex;align-items:center;gap:6px; font-weight:700;"><i class="fas ${icon}" style="color:${col}; font-size:0.6rem;"></i>${t.dataset.label}</span>
-                        <button class="rs-manifest-remove" onclick="this.parentElement.remove();bpUpdatePreview();"><i class="fas fa-times"></i></button>
+                        <button type="button" class="rs-manifest-remove" onclick="this.parentElement.remove();bpUpdatePreview();"><i class="fas fa-times"></i></button>
                     </div>`;
                 }).join('');
             }
@@ -1810,7 +1811,7 @@ window.bpUpdatePreview = function () {
                             <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                                 ${cp.type === 'peer' ? `${cp.auditor_id||'??'} ⇢ ${cp.target_id||'??'}` : (cp.name || 'Point '+(i+1))}
                             </span>
-                            <button class="rs-manifest-remove" onclick="bpRemoveCpAt(${i})"><i class="fas fa-trash-can" style="font-size:.6rem;"></i></button>
+                            <button type="button" class="rs-manifest-remove" onclick="bpRemoveCpAt(${i})"><i class="fas fa-trash-can" style="font-size:.6rem;"></i></button>
                         </div>
                         <div style="display:flex; gap:6px; font-size:.55rem; color:var(--r-mute); margin-top:1px;">
                             ${cp.planned_time ? `<span><i class="fas fa-clock"></i> ${cp.planned_time}</span>` : ''}
@@ -1933,7 +1934,7 @@ window.bpSaveRoute = async function (skipUI = false) {
             fetch_location_on_scan: cpFetchLoc,
             order:          i,
         };
-    }).filter(cp => cp.nfc_tag || (cp.lat !== null && cp.lng !== null) || (cp.auditor_id && cp.target_id));
+    }).filter(cp => cp.nfc_tag || (cp.lat !== null && cp.lng !== null) || (cp.auditor_id && cp.target_id) || cp.checkpoint_type === 'custom');
 
     // Validate no duplicate planned_times within this route
     const times = checkpoints.map(cp => cp.planned_time).filter(Boolean);

@@ -21,8 +21,12 @@
     </div>
     {% block content %}{% endblock %}
     <script>
-         const userData = JSON.parse(localStorage.getItem('gt_user') || '{}');
-         if (!userData.token) window.location.href = '/';
+         let userData = {};
+         try { userData = JSON.parse(localStorage.getItem('gt_user') || '{}'); } catch(e) {}
+         const publicPaths = ['/', '/login/', '/register/'];
+         if (!userData.token && !publicPaths.includes(window.location.pathname)) {
+             window.location.href = '/';
+         }
          const isSystemAdmin = userData.role === 'admin' && (userData.organization_id === null || userData.organization_id === undefined);
 
          if (typeof window.apiFetch === 'undefined') {

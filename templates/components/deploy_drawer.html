@@ -50,7 +50,7 @@ Self-contained: includes own CSS.
     <div class="dc-overlay-inner">
         <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);">
             <div class="dc-overlay-title"><i class="fas fa-shield-check" style="color:#d32f2f;"></i> <span id="dcDeployOvTitle">MISSION INIT</span></div>
-            <button class="dc-overlay-back" onclick="dcCancelDeploy()" style="font-size:0.55rem;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.color='rgba(255,255,255,0.45)';this.style.background='rgba(255,255,255,0.02)'"><i class="fas fa-times"></i> Close</button>
+            <button type="button" class="dc-overlay-back" onclick="dcCancelDeploy()" style="font-size:0.55rem;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.color='rgba(255,255,255,0.45)';this.style.background='rgba(255,255,255,0.02)'"><i class="fas fa-times"></i> Close</button>
         </div>
         <div class="dc-overlay-sub" id="dcDeployOvSub" style="padding:2px 0 4px;">Final pre-flight &mdash; review and confirm deployment.</div>
 
@@ -161,7 +161,7 @@ Self-contained: includes own CSS.
             </div>
         </div>
 
-        <button class="dc-deploy-launch" id="dcOvDeployBtn" disabled onclick="if(typeof dcExecuteDeploy==='function')dcExecuteDeploy()" style="background:linear-gradient(135deg,#d32f2f,#B71C1C);width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:0.85rem;font-weight:900;cursor:pointer;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.15s;">
+        <button type="button" class="dc-deploy-launch" id="dcOvDeployBtn" disabled onclick="if(typeof dcExecuteDeploy==='function')dcExecuteDeploy()" style="background:linear-gradient(135deg,#d32f2f,#B71C1C);width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:0.85rem;font-weight:900;cursor:pointer;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.15s;">
             <i class="fas fa-rocket"></i> <span id="dcOvDeployBtnText">COMMENCE MISSION DEPLOYMENT</span>
         </button>
     </div>

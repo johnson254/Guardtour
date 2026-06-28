@@ -825,8 +825,8 @@ function toast(msg, isErr) {
                     '<span style="font-size:0.5rem;color:rgba(255,255,255,0.3);flex:1;text-align:right;">Fallback when no TTS</span>' +
                 '</div>' +
                 '<div class="md-tts-actions">' +
-                    '<button class="dc-card-btn" style="font-size:0.5rem;padding:4px 10px;" onclick="dcResendTTS(' + assignIdForTTS + ')"><i class="fas fa-volume-high"></i> Send TTS</button>' +
-                    '<button class="dc-card-btn" style="font-size:0.5rem;padding:4px 10px;" onclick="dcSaveTtsReadout(' + routeIdForTTS + ',' + assignIdForTTS + ')"><i class="fas fa-floppy-disk"></i> Save</button>' +
+                    '<button type="button" class="dc-card-btn" style="font-size:0.5rem;padding:4px 10px;" onclick="dcResendTTS(' + assignIdForTTS + ')"><i class="fas fa-volume-high"></i> Send TTS</button>' +
+                    '<button type="button" class="dc-card-btn" style="font-size:0.5rem;padding:4px 10px;" onclick="dcSaveTtsReadout(' + routeIdForTTS + ',' + assignIdForTTS + ')"><i class="fas fa-floppy-disk"></i> Save</button>' +
                 '</div>' +
             '</div>';
         }
@@ -896,7 +896,7 @@ function toast(msg, isErr) {
                                 (cp.planned_time ? '<span class="md-cp-time"><i class="fas fa-clock"></i>' + cp.planned_time + '</span>' : '') +
                             '</div>' +
                             '<span class="md-cp-status" style="color:' + sColor + ';">' + sLabel + '</span>' +
-                            '<button class="md-cp-toggle" id="mdCpToggle_' + i + '" onclick="mdToggleCpConfig(' + i + ')" title="Edit checkpoint properties" ' + (isEditable ? '' : 'disabled') + '><i class="fas fa-sliders"></i></button>' +
+                            '<button type="button" class="md-cp-toggle" id="mdCpToggle_' + i + '" onclick="mdToggleCpConfig(' + i + ')" title="Edit checkpoint properties" ' + (isEditable ? '' : 'disabled') + '><i class="fas fa-sliders"></i></button>' +
                         '</div>' +
                         '<div class="md-cp-enf-wrap" id="mdCpSum_' + i + '">' +
                             mdCpEnfCard('bullseye','#d32f2f','Radius','Perimeter','rad',radVal,0,500,5,i) +
@@ -906,7 +906,7 @@ function toast(msg, isErr) {
                         /* TTS row */
                         '<div class="md-cp-tts-wrap">' +
                             '<input class="md-cp-tts-input" type="text" id="dcCpAnnounce_' + i + '" value="' + cpTtsText.replace(/"/g,'&quot;') + '" placeholder="' + cpTtsPlaceholder + '" ' + cpTtsDisabled + ' data-cp-idx="' + i + '" data-cp-name="' + cp.name.replace(/"/g,'&quot;') + '">' +
-                            '<button class="md-cp-tts-btn" onclick="dcCpResendTts(' + assignment.id + ',' + i + ')" title="Resend TTS for this checkpoint"><i class="fas fa-volume-high"></i> TTS</button>' +
+                            '<button type="button" class="md-cp-tts-btn" onclick="dcCpResendTts(' + assignment.id + ',' + i + ')" title="Resend TTS for this checkpoint"><i class="fas fa-volume-high"></i> TTS</button>' +
                         '</div>' +
                         /* Collapsible config panel with view/edit mode */
                         '<div class="md-cp-config" id="mdCpConfig_' + i + '" data-mode="view" data-planned="' + (cp.planned_time || '') + '" data-tol="' + tolVal + '">' +
@@ -930,12 +930,12 @@ function toast(msg, isErr) {
                             '</div>' +
                             '<div class="md-cp-config-actions" id="mdCpActions_' + i + '">' +
                                 '<div class="md-cp-view-actions" id="mdCpViewActs_' + i + '" style="display:flex;gap:4px;">' +
-                                    '<button class="md-cp-config-btn" onclick="mdToggleCpEditMode(' + i + ')" style="flex:1;"><i class="fas fa-pen"></i> Edit Values</button>' +
-                                    '<button class="md-cp-config-btn secondary" onclick="mdCpConfigClose(' + i + ')" style="flex:1;"><i class="fas fa-times"></i> Close</button>' +
+                                    '<button type="button" class="md-cp-config-btn" onclick="mdToggleCpEditMode(' + i + ')" style="flex:1;"><i class="fas fa-pen"></i> Edit Values</button>' +
+                                    '<button type="button" class="md-cp-config-btn secondary" onclick="mdCpConfigClose(' + i + ')" style="flex:1;"><i class="fas fa-times"></i> Close</button>' +
                                 '</div>' +
                                 '<div class="md-cp-edit-actions" id="mdCpEditActs_' + i + '" style="display:none;gap:4px;">' +
-                                    '<button class="md-cp-config-btn secondary" onclick="mdCpConfigCancel(' + i + ')" style="flex:1;"><i class="fas fa-times"></i> Cancel</button>' +
-                                    '<button class="md-cp-config-btn primary" onclick="mdCpConfigSave(' + i + ',' + (cpId || 'null') + ',' + routeIdForTTS + ')" style="flex:1;"><i class="fas fa-check"></i> Apply</button>' +
+                                    '<button type="button" class="md-cp-config-btn secondary" onclick="mdCpConfigCancel(' + i + ')" style="flex:1;"><i class="fas fa-times"></i> Cancel</button>' +
+                                    '<button type="button" class="md-cp-config-btn primary" onclick="mdCpConfigSave(' + i + ',' + (cpId || 'null') + ',' + routeIdForTTS + ')" style="flex:1;"><i class="fas fa-check"></i> Apply</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -955,19 +955,19 @@ function toast(msg, isErr) {
         // ── Actions ──
         var actionsHtml = '';
         if (isActive || isCompleted) {
-            actionsHtml = '<button class="dc-card-btn redeploy" onclick="dcStartRedeploy(' + assignment.id + ');dcCloseMissionDetail()">' +
+            actionsHtml = '<button type="button" class="dc-card-btn redeploy" onclick="dcStartRedeploy(' + assignment.id + ');dcCloseMissionDetail()">' +
                 '<i class="fas fa-redo"></i> Redeploy</button>';
             if (isActive) {
-                actionsHtml += '<button class="dc-card-btn danger" onclick="dcTerminate(' + assignment.id + ')">' +
+                actionsHtml += '<button type="button" class="dc-card-btn danger" onclick="dcTerminate(' + assignment.id + ')">' +
                     '<i class="fas fa-stop"></i> End Mission</button>';
             }
         } else {
-            actionsHtml = '<button class="dc-card-btn redeploy" onclick="dcStartRedeploy(' + assignment.id + ');dcCloseMissionDetail()">' +
+            actionsHtml = '<button type="button" class="dc-card-btn redeploy" onclick="dcStartRedeploy(' + assignment.id + ');dcCloseMissionDetail()">' +
                 '<i class="fas fa-play"></i> Deploy Now</button>' +
-                '<button class="dc-card-btn danger" onclick="dcTerminate(' + assignment.id + ')">' +
+                '<button type="button" class="dc-card-btn danger" onclick="dcTerminate(' + assignment.id + ')">' +
                 '<i class="fas fa-times"></i> Cancel</button>';
         }
-        actionsHtml += '<button class="dc-card-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);" onclick="dcCloseMissionDetail()">' +
+        actionsHtml += '<button type="button" class="dc-card-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);" onclick="dcCloseMissionDetail()">' +
             '<i class="fas fa-times"></i> Close</button>';
 
         // ── Assemble ──
@@ -1789,12 +1789,12 @@ function toast(msg, isErr) {
         var actions = '';
         var statusLabelFinal = (isActive && hasMisses) ? 'Violation Detected' : statusLabel;
 
-        var btnRedeploy = '<button class=\"dc-card-btn redeploy\" onclick=\"dcStartRedeploy(' + a.id + ')\"><i class=\"fas fa-redo\"></i> Redeploy</button>';
-        var btnProgress = '<button class=\"dc-card-btn\" onclick=\"dcViewProgress(' + a.id + ')\"><i class=\"fas fa-chart-bar\"></i> Progress</button>';
-        var btnEnd = '<button class=\"dc-card-btn danger\" onclick=\"dcTerminate(' + a.id + ')\"><i class=\"fas fa-stop\"></i> End</button>';
-        var btnActivate = '<button class=\"dc-card-btn redeploy\" onclick=\"dcActivate(' + a.id + ')\"><i class=\"fas fa-play\"></i> Activate</button>';
-        var btnCancel = '<button class=\"dc-card-btn danger\" onclick=\"dcTerminate(' + a.id + ')\"><i class=\"fas fa-times\"></i> Cancel</button>';
-        var btnReport = '<button class=\"dc-card-btn\" onclick=\"dcViewProgress(' + a.id + ')\"><i class=\"fas fa-file-alt\"></i> Report</button>';
+        var btnRedeploy = '<button type="button" class=\"dc-card-btn redeploy\" onclick=\"dcStartRedeploy(' + a.id + ')\"><i class=\"fas fa-redo\"></i> Redeploy</button>';
+        var btnProgress = '<button type="button" class=\"dc-card-btn\" onclick=\"dcViewProgress(' + a.id + ')\"><i class=\"fas fa-chart-bar\"></i> Progress</button>';
+        var btnEnd = '<button type="button" class=\"dc-card-btn danger\" onclick=\"dcTerminate(' + a.id + ')\"><i class=\"fas fa-stop\"></i> End</button>';
+        var btnActivate = '<button type="button" class=\"dc-card-btn redeploy\" onclick=\"dcActivate(' + a.id + ')\"><i class=\"fas fa-play\"></i> Activate</button>';
+        var btnCancel = '<button type="button" class=\"dc-card-btn danger\" onclick=\"dcTerminate(' + a.id + ')\"><i class=\"fas fa-times\"></i> Cancel</button>';
+        var btnReport = '<button type="button" class=\"dc-card-btn\" onclick=\"dcViewProgress(' + a.id + ')\"><i class=\"fas fa-file-alt\"></i> Report</button>';
 
         if (isActive) {
             actions = btnRedeploy + btnProgress + btnEnd;
@@ -1917,7 +1917,7 @@ function toast(msg, isErr) {
         span.className = 'dc-overlay-person-tag' + (type === 'device' ? ' device' : '');
         span.dataset.id = id;
         span.dataset.type = type;
-        span.innerHTML = `<span>${type === 'device' ? '<i class="fas fa-microchip"></i> ' : '<i class="fas fa-user-shield"></i> '}${label}</span><button onclick="this.parentElement.remove(); dcOvTagEntries = dcOvTagEntries.filter(x => !(x.id === ${id} && x.type === '${type}'));" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;margin:0;font-size:0.7rem;">&times;</button>`;
+        span.innerHTML = `<span>${type === 'device' ? '<i class="fas fa-microchip"></i> ' : '<i class="fas fa-user-shield"></i> '}${label}</span><button type="button" onclick="this.parentElement.remove(); dcOvTagEntries = dcOvTagEntries.filter(x => !(x.id === ${id} && x.type === '${type}'));" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;margin:0;font-size:0.7rem;">&times;</button>`;
         container.appendChild(span);
         dcOvTagEntries.push({ id: Number(id), type });
     }
@@ -2038,7 +2038,7 @@ function toast(msg, isErr) {
             return;
         }
         const typeOpts = [
-            {v:'nfc',l:'NFC'},{v:'gps',l:'GPS'},{v:'geo',l:'GEO'},{v:'peer',l:'Peer'}
+            {v:'nfc',l:'NFC'},{v:'gps',l:'GPS'},{v:'geo',l:'GEO'},{v:'peer',l:'Peer'},{v:'custom',l:'Custom'}
         ].map(o => `<option value="${o.v}">${o.l}</option>`).join('');
         container.innerHTML = cps.map((cp, i) => {
             const planned = cp.planned_time ? cp.planned_time.substring(0,5) : '';
@@ -2052,8 +2052,8 @@ function toast(msg, isErr) {
             const target = cp.target_id ?? '';
             const cpType = cp.checkpoint_type || 'gps';
             const showNfc = cpType === 'nfc';
-            const showLatLng = cpType === 'gps' || cpType === 'geo';
-            const showRadius = cpType === 'gps' || cpType === 'geo';
+            const showLatLng = cpType === 'gps' || cpType === 'geo' || cpType === 'custom';
+            const showRadius = cpType === 'gps' || cpType === 'geo' || cpType === 'custom';
             const showPeer = cpType === 'peer';
             return `<div class="dc-ov-cp-row" data-cp-idx="${i}">
                 <div class="dc-ov-cp-row-head">
@@ -2061,7 +2061,7 @@ function toast(msg, isErr) {
                     <select class="cp-type" onchange="dcOvUpdateCp(${i},'checkpoint_type',this.value);dcOvRenderCheckpoints(window['__dcOvCurrentCps'])">${typeOpts.replace(`value="${cpType}"`,`value="${cpType}" selected`)}</select>
                     <input class="cp-name" value="${escHtml(cp.name || '')}" placeholder="Name" onchange="dcOvUpdateCp(${i},'name',this.value)">
                     ${showNfc ? `<input class="cp-tag" value="${escHtml(nfcTag)}" placeholder="NFC UID" onchange="dcOvUpdateCp(${i},'nfc_tag',this.value)">` : ''}
-                    <button class="cp-del" onclick="dcOvRemoveCp(${i})" title="Remove checkpoint"><i class="fas fa-xmark"></i></button>
+                    <button type="button" class="cp-del" onclick="dcOvRemoveCp(${i})" title="Remove checkpoint"><i class="fas fa-xmark"></i></button>
                 </div>
                 <div class="dc-ov-cp-fields">
                     <input class="cp-time" type="time" value="${planned}" onchange="dcOvUpdateCp(${i},'planned_time',this.value)">

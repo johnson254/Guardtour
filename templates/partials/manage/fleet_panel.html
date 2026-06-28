@@ -1,7 +1,7 @@
 <div class="mg-panel active" id="mgPanelFleet">
 <div class="mg-panel-head">
     <h3 class="mg-panel-title"><i class="fas fa-microchip" style="color:var(--primary);margin-right:5px"></i>Fleet &amp; Asset Registry</h3>
-    <button class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgOpenModal('device')">
+    <button type="button" class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgOpenModal('device')">
         <i class="fas fa-plus"></i> Register Device
     </button>
 </div>
@@ -26,9 +26,9 @@
                 </div>
             </div>
             <div style="display:flex;gap:3px;padding:0 10px 8px;">
-                <button class="mg-filter-chip active" data-status="all" onclick="mgDeviceFilter('all',this)"
+                 <button type="button" class="mg-filter-chip active" data-status="all" onclick="mgDeviceFilter('all',this)"
                         hx-get="/api/devices-partial/" hx-target="#deviceList" hx-trigger="click" style="font-size:0.5rem;padding:3px 8px;">All</button>
-                <button class="mg-filter-chip" data-status="online" onclick="mgDeviceFilter('online',this)"
+                 <button type="button" class="mg-filter-chip" data-status="online" onclick="mgDeviceFilter('online',this)"
                         hx-get="/api/devices-partial/?status=online" hx-target="#deviceList" hx-trigger="click" style="font-size:0.5rem;padding:3px 8px;">Online</button>
             </div>
             <div class="mg-list" id="deviceList" style="padding:0 8px;">
@@ -62,28 +62,32 @@
                     <span class="mg-cp-panel-count" id="regCountStaged">0</span>
                 </div>
                 <div class="mg-cp-trigger-wrap">
-                    <button class="mg-cp-trigger" onclick="mgToggleCpAdders()">
+                    <button type="button" class="mg-cp-trigger" onclick="mgToggleCpAdders()">
                         <i class="fas fa-plus"></i> Add Checkpoint
                         <i class="fas fa-chevron-down" id="mgCpTriggerIcon" style="margin-left:auto;font-size:0.5rem;transition:transform .2s;"></i>
                     </button>
                 </div>
                 <div class="mg-cp-adders" id="mgCpAdders" style="display:none;">
                     <div class="mg-cp-adders-inner">
-                        <button class="mg-cp-add-btn" data-type="nfc" onclick="cbQuickAdd('nfc')">
+                        <button type="button" class="mg-cp-add-btn" data-type="nfc" onclick="cbQuickAdd('nfc')">
                             <span class="mg-cp-add-ico" style="background:rgba(211,47,47,0.12);color:#d32f2f;"><i class="fas fa-wifi"></i></span>
                             <span>NFC</span>
                         </button>
-                        <button class="mg-cp-add-btn" data-type="gps" onclick="cbQuickAdd('gps')">
+                        <button type="button" class="mg-cp-add-btn" data-type="gps" onclick="cbQuickAdd('gps')">
                             <span class="mg-cp-add-ico" style="background:rgba(108,142,239,0.12);color:#6C8EEF;"><i class="fas fa-map-pin"></i></span>
                             <span>GPS</span>
                         </button>
-                        <button class="mg-cp-add-btn" data-type="geo" onclick="cbQuickAdd('geo')">
+                        <button type="button" class="mg-cp-add-btn" data-type="geo" onclick="cbQuickAdd('geo')">
                             <span class="mg-cp-add-ico" style="background:rgba(168,85,247,0.12);color:#A855F7;"><i class="fas fa-draw-polygon"></i></span>
                             <span>Geo</span>
                         </button>
-                        <button class="mg-cp-add-btn" data-type="peer" onclick="cbQuickAdd('peer')">
+                        <button type="button" class="mg-cp-add-btn" data-type="peer" onclick="cbQuickAdd('peer')">
                             <span class="mg-cp-add-ico" style="background:rgba(245,158,11,0.12);color:#F59E0B;"><i class="fas fa-user-shield"></i></span>
                             <span>Peer</span>
+                        </button>
+                        <button type="button" class="mg-cp-add-btn" data-type="custom" onclick="cbQuickAdd('custom')">
+                            <span class="mg-cp-add-ico" style="background:rgba(45,212,191,0.12);color:#2dd4bf;"><i class="fas fa-pen"></i></span>
+                            <span>Custom</span>
                         </button>
                     </div>
                 </div>
@@ -97,10 +101,10 @@
                 </div>
             </div>
             <div class="mg-cp-panel-foot">
-                <button class="mg-btn mg-btn-sm mg-btn-teal" style="flex:1;" onclick="cbSaveInlineCheckpoints()">
+                <button type="button" class="mg-btn mg-btn-sm mg-btn-teal" style="flex:1;" onclick="cbSaveInlineCheckpoints()">
                     <i class="fas fa-cloud-arrow-up"></i> Save All to Server
                 </button>
-                <button class="mg-btn mg-btn-sm" onclick="cbClearStaged()" title="Clear staged"><i class="fas fa-trash-can"></i></button>
+                <button type="button" class="mg-btn mg-btn-sm" onclick="cbClearStaged()" title="Clear staged"><i class="fas fa-trash-can"></i></button>
             </div>
         </div>
     </div>

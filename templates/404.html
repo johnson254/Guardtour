@@ -1,4 +1,4 @@
-{% extends 'bare_base.html' %}
+{% extends base_template %}
 {% block content %}
 <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;padding:40px;">
     <div style="position:relative;margin-bottom:32px;">
@@ -11,7 +11,7 @@
         <a href="/dashboard/" class="action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
             <i class="fas fa-arrow-left"></i> Return to Operations
         </a>
-        <button onclick="history.back()" class="action-btn btn-secondary" style="display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;">
+        <button type="button" onclick="history.back()" class="action-btn btn-secondary" style="display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;">
             <i class="fas fa-undo"></i> Previous Page
         </button>
     </div>

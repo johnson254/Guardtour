@@ -518,19 +518,19 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
     <!-- VERTICAL STRATEGIC TOOLBOX -->
     <div class="tm-map-toolbar" id="tmMapToolbar">
         <div class="tm-label" style="text-align:center; margin-bottom:4px; font-size:0.5rem; opacity:0.5;">Draw</div>
-        <button class="tm-map-btn" id="tmBtnPatrol" onclick="tmStartDraw('patrol')">
+        <button type="button" class="tm-map-btn" id="tmBtnPatrol" onclick="tmStartDraw('patrol')">
             <i class="fas fa-map-pin"></i>
             <span class="tm-tool-tip">Patrol Anchor</span>
         </button>
-        <button class="tm-map-btn" id="tmBtnGeo" onclick="tmStartDraw('geofence')">
+        <button type="button" class="tm-map-btn" id="tmBtnGeo" onclick="tmStartDraw('geofence')">
             <i class="fas fa-draw-polygon"></i>
             <span class="tm-tool-tip">Polygon Fence</span>
         </button>
-        <button class="tm-map-btn" id="tmBtnCircle" onclick="tmStartDraw('circle')">
+        <button type="button" class="tm-map-btn" id="tmBtnCircle" onclick="tmStartDraw('circle')">
             <i class="fas fa-circle-dot"></i>
             <span class="tm-tool-tip">Radial Fence</span>
         </button>
-        <button class="tm-map-btn" id="tmBtnPoi" onclick="tmStartDraw('poi')">
+        <button type="button" class="tm-map-btn" id="tmBtnPoi" onclick="tmStartDraw('poi')">
             <i class="fas fa-location-dot"></i>
             <span class="tm-tool-tip">Point of Interest</span>
         </button>
@@ -538,11 +538,11 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
         <div class="tm-divider" style="margin: 8px 0; border-color:rgba(255,255,255,0.05);"></div>
         <div class="tm-label" style="text-align:center; margin-bottom:4px; font-size:0.5rem; opacity:0.5;">Intel</div>
 
-        <button class="tm-map-btn" id="tmBtnHistory" onclick="tmToggleHistory()">
+        <button type="button" class="tm-map-btn" id="tmBtnHistory" onclick="tmToggleHistory()">
             <i class="fas fa-route"></i>
             <span class="tm-tool-tip">Live Trails</span>
         </button>
-        <button class="tm-map-btn" id="tmBtnDevices" onclick="tmToggleDevices()">
+        <button type="button" class="tm-map-btn" id="tmBtnDevices" onclick="tmToggleDevices()">
             <i class="fas fa-microchip"></i>
             <span class="tm-tool-tip">Devices</span>
         </button>
@@ -557,16 +557,16 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
                     <i class="fas fa-satellite-dish"></i>
                     Tactical Overview
                 </div>
-                <button class="tm-sidebar-toggle" id="tmSidebarToggle" onclick="tmToggleSidebar()">
+                <button type="button" class="tm-sidebar-toggle" id="tmSidebarToggle" onclick="tmToggleSidebar()">
                     <i class="fas fa-chevron-up"></i> <span id="tmSidebarLabel">Open</span>
                 </button>
             </div>
             <div class="tm-tabs">
-                <button class="tm-tab active" onclick="tmTab('live', this)">Live</button>
-                <button class="tm-tab" onclick="tmTab('objects', this)">Objects</button>
-                <button class="tm-tab" onclick="tmTab('assets', this)">Assets</button>
-                <button class="tm-tab" onclick="tmTab('routes', this)">Routes</button>
-                <button class="tm-tab" onclick="tmTab('history', this)">History</button>
+                <button type="button" class="tm-tab active" onclick="tmTab('live', this)">Live</button>
+                <button type="button" class="tm-tab" onclick="tmTab('objects', this)">Objects</button>
+                <button type="button" class="tm-tab" onclick="tmTab('assets', this)">Assets</button>
+                <button type="button" class="tm-tab" onclick="tmTab('routes', this)">Routes</button>
+                <button type="button" class="tm-tab" onclick="tmTab('history', this)">History</button>
             </div>
         </div>
 
@@ -597,13 +597,13 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
         <!-- ══ OBJECTS panel ══ -->
         <div class="tm-panel" id="tmPanelObjects">
             <div class="tm-tool-row">
-                <button class="tm-tool-btn" onclick="tmStartDraw('poi')" aria-label="Draw Point of Interest" title="Draw Point of Interest"><i class="fas fa-location-dot"></i> POI</button>
-                <button class="tm-tool-btn" onclick="tmStartDraw('geofence')" aria-label="Draw Geofence Polygon" title="Draw Geofence Polygon"><i class="fas fa-draw-polygon"></i> Geofence</button>
-                <button class="tm-tool-btn" onclick="tmStartDraw('circle')" aria-label="Draw Circle Geofence" title="Draw Circle Geofence"><i class="fas fa-circle-dot"></i> Circle</button>
-                <button class="tm-tool-btn" onclick="tmStartDraw('patrol')" aria-label="Draw Patrol Point" title="Draw Patrol Point"><i class="fas fa-map-pin"></i> Patrol Pt</button>
+                <button type="button" class="tm-tool-btn" onclick="tmStartDraw('poi')" aria-label="Draw Point of Interest" title="Draw Point of Interest"><i class="fas fa-location-dot"></i> POI</button>
+                <button type="button" class="tm-tool-btn" onclick="tmStartDraw('geofence')" aria-label="Draw Geofence Polygon" title="Draw Geofence Polygon"><i class="fas fa-draw-polygon"></i> Geofence</button>
+                <button type="button" class="tm-tool-btn" onclick="tmStartDraw('circle')" aria-label="Draw Circle Geofence" title="Draw Circle Geofence"><i class="fas fa-circle-dot"></i> Circle</button>
+                <button type="button" class="tm-tool-btn" onclick="tmStartDraw('patrol')" aria-label="Draw Patrol Point" title="Draw Patrol Point"><i class="fas fa-map-pin"></i> Patrol Pt</button>
             </div>
             <div style="display:flex;gap:4px;margin-top:2px;">
-                <button class="tm-btn-sm" style="font-size:0.5rem;padding:5px;" onclick="tmFitObjects()"><i class="fas fa-expand"></i> Fit All Objects</button>
+                <button type="button" class="tm-btn-sm" style="font-size:0.5rem;padding:5px;" onclick="tmFitObjects()"><i class="fas fa-expand"></i> Fit All Objects</button>
             </div>
 
             <!-- Draw form (shown after placing on map) -->
@@ -700,15 +700,15 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
                 <div id="tmCoordsWrap" style="display:flex;gap:4px;margin-bottom:6px;">
                     <div style="flex:1;"><label class="tm-label">Lat</label><input type="text" id="tmObjLat" class="dc-fi" placeholder="0.00" readonly style="font-family:monospace;font-size:0.6rem;"></div>
                     <div style="flex:1;"><label class="tm-label">Lng</label><input type="text" id="tmObjLng" class="dc-fi" placeholder="0.00" readonly style="font-family:monospace;font-size:0.6rem;"></div>
-                    <button class="tm-btn" id="tmPickBtn" onclick="tmPickOnMap()" title="Pick from map" style="align-self:flex-end;padding:6px 10px;font-size:0.5rem;"><i class="fas fa-map-pin"></i> Pick</button>
+                    <button type="button" class="tm-btn" id="tmPickBtn" onclick="tmPickOnMap()" title="Pick from map" style="align-self:flex-end;padding:6px 10px;font-size:0.5rem;"><i class="fas fa-map-pin"></i> Pick</button>
                 </div>
                 <div id="tmPersonnelWrap">
                     <label class="tm-label">Assign Personnel (optional)</label>
                     <select id="tmObjPersonnel" class="dc-fi" multiple style="height:50px;"></select>
                 </div>
                 <div class="tm-tool-row" style="margin-top:4px;">
-                    <button class="tm-btn tm-btn-primary" onclick="tmSaveObject()"><i class="fas fa-check"></i> Save</button>
-                    <button class="tm-btn" onclick="tmCancelDraw()"><i class="fas fa-times"></i> Cancel</button>
+                    <button type="button" class="tm-btn tm-btn-primary" onclick="tmSaveObject()"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="tm-btn" onclick="tmCancelDraw()"><i class="fas fa-times"></i> Cancel</button>
                 </div>
             </div>
 
@@ -731,15 +731,16 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
                 </div>
                 <!-- Quick-add pills -->
                 <div style="display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0;">
-                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('nfc')"><i class="fas fa-wifi"></i> NFC</button>
-                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('gps')"><i class="fas fa-map-pin"></i> GPS</button>
-                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmStartDraw('geofence')"><i class="fas fa-draw-polygon"></i> Fence</button>
-                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('peer')"><i class="fas fa-user-shield"></i> Peer</button>
+                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('nfc')"><i class="fas fa-wifi"></i> NFC</button>
+                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('gps')"><i class="fas fa-map-pin"></i> GPS</button>
+                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmStartDraw('geofence')"><i class="fas fa-draw-polygon"></i> Fence</button>
+                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('peer')"><i class="fas fa-user-shield"></i> Peer</button>
+                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('custom')"><i class="fas fa-pen" style="color:var(--r-teal)"></i> Custom</button>
                 </div>
                 <!-- Save / Clear -->
                 <div style="display:flex;gap:4px;flex-shrink:0;">
-                    <button class="tm-btn tm-btn-primary" style="flex:3;padding:6px;font-size:0.55rem;" onclick="tmSaveCheckpoints()"><i class="fas fa-cloud-arrow-up"></i> Save All</button>
-                    <button class="tm-btn" style="flex:1;padding:6px;font-size:0.55rem;color:var(--r-mute);" onclick="tmClearStaged()"><i class="fas fa-trash-can"></i></button>
+                    <button type="button" class="tm-btn tm-btn-primary" style="flex:3;padding:6px;font-size:0.55rem;" onclick="tmSaveCheckpoints()"><i class="fas fa-cloud-arrow-up"></i> Save All</button>
+                    <button type="button" class="tm-btn" style="flex:1;padding:6px;font-size:0.55rem;color:var(--r-mute);" onclick="tmClearStaged()"><i class="fas fa-trash-can"></i></button>
                 </div>
             </div>
         </div>
@@ -764,7 +765,7 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
                 <label class="tm-label" for="tmHistoryDate">Date</label>
                 <input type="date" id="tmHistoryDate" class="dc-fi" onchange="tmLoadGuardHistory()">
             </div>
-            <button class="tm-btn tm-btn-green" onclick="tmLoadGuardHistory()">
+            <button type="button" class="tm-btn tm-btn-green" onclick="tmLoadGuardHistory()">
                 <i class="fas fa-search"></i> Load History
             </button>
             <hr class="tm-divider">

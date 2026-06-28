@@ -12,12 +12,23 @@ window.register = async function() {
     });
     const data = await res.json();
     if (res.ok) {
+      if (!data.role || !data.organization_name) {
+        const errEl = document.getElementById('errorMsg');
+        if (errEl) errEl.innerText = 'Incomplete profile data from server';
+        return;
+      }
       const orgId = Array.isArray(data.organization_id) ? data.organization_id[0] : data.organization_id;
-      localStorage.setItem('gt_user', JSON.stringify({
-        token: data.access, username, role: data.role,
-        userId: data.user?.id, organization_id: orgId,
-        organization_name: data.organization_name
-      }));
+      try {
+        localStorage.setItem('gt_user', JSON.stringify({
+          token: data.access, username, role: data.role,
+          userId: data.user?.id, organization_id: orgId,
+          organization_name: data.organization_name
+        }));
+      } catch (e) {
+        const errEl = document.getElementById('errorMsg');
+        if (errEl) errEl.innerText = 'Failed to save session locally';
+        return;
+      }
       window.location.href = '/dashboard/';
     } else {
       const errEl = document.getElementById('errorMsg');

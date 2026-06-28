@@ -67,8 +67,8 @@ function updateUsersList() {
         <td>${roleBadge}</td>
         <td>${u.organization_name || '<em>None</em>'}</td>
         <td>
-          <button onclick="showUserForm(true,'${u.id}')" style="margin-right:5px;padding:4px 8px;background:#2a2a35;color:white;border:none;border-radius:3px;cursor:pointer;">Edit</button>
-          <button onclick="deleteUser('${u.id}')" style="padding:4px 8px;background:#c62828;color:white;border:none;border-radius:3px;cursor:pointer;">Delete</button>
+          <button type="button" onclick="showUserForm(true,'${u.id}')" style="margin-right:5px;padding:4px 8px;background:#2a2a35;color:white;border:none;border-radius:3px;cursor:pointer;">Edit</button>
+          <button type="button" onclick="deleteUser('${u.id}')" style="padding:4px 8px;background:#c62828;color:white;border:none;border-radius:3px;cursor:pointer;">Delete</button>
         </td>
       </tr>`;
     });
@@ -89,8 +89,8 @@ function updateOrgsList() {
         <td>${o.name || 'Unnamed'}</td>
         <td>${new Date(o.created_at).toLocaleDateString()}</td>
         <td>
-          <button onclick="editOrganization('${o.id}')" style="margin-right:5px;padding:4px 8px;background:#2a2a35;color:white;border:none;border-radius:3px;cursor:pointer;">Edit</button>
-          <button onclick="deleteOrganization('${o.id}')" style="padding:4px 8px;background:#c62828;color:white;border:none;border-radius:3px;cursor:pointer;">Delete</button>
+          <button type="button" onclick="editOrganization('${o.id}')" style="margin-right:5px;padding:4px 8px;background:#2a2a35;color:white;border:none;border-radius:3px;cursor:pointer;">Edit</button>
+          <button type="button" onclick="deleteOrganization('${o.id}')" style="padding:4px 8px;background:#c62828;color:white;border:none;border-radius:3px;cursor:pointer;">Delete</button>
         </td>
       </tr>`;
     });

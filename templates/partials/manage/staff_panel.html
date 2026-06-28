@@ -2,11 +2,11 @@
 <div class="mg-panel-head">
     <h3 class="mg-panel-title"><i class="fas fa-users" style="color:var(--primary);margin-right:5px"></i>Staff &amp; Duty Board</h3>
     <div style="display:flex;gap:7px;">
-        <button class="mg-btn mg-btn-sm" onclick="mgCalToday()"><i class="fas fa-crosshairs"></i> Today</button>
-        <button class="mg-btn mg-btn-primary mg-btn-sm" onclick="mgOpenModal('guard')">
+        <button type="button" class="mg-btn mg-btn-sm" onclick="mgCalToday()"><i class="fas fa-crosshairs"></i> Today</button>
+        <button type="button" class="mg-btn mg-btn-primary mg-btn-sm" onclick="mgOpenModal('guard')">
             <i class="fas fa-plus"></i> Add Officer
         </button>
-        <button class="mg-btn mg-btn-primary mg-btn-sm" onclick="mgOpenModal('blueprint-shift')">
+        <button type="button" class="mg-btn mg-btn-primary mg-btn-sm" onclick="mgOpenModal('blueprint-shift')">
             <i class="fas fa-plus"></i> Assign
         </button>
     </div>
@@ -19,13 +19,13 @@
                 <div class="mg-search-wrap">
                     <i class="fas fa-search"></i>
                     <input id="guardSearch" placeholder="Search personnel…" oninput="mgFilterGuards();mgSearchShowClear(this)">
-                    <button class="mg-search-clear" id="guardSearchClear" onclick="mgClearSearch('guardSearch','guardSearchClear')"><i class="fas fa-xmark"></i></button>
+                    <button type="button" class="mg-search-clear" id="guardSearchClear" onclick="mgClearSearch('guardSearch','guardSearchClear')"><i class="fas fa-xmark"></i></button>
                 </div>
-                <button class="mg-filter-chip active" onclick="mgGuardFilter('all',this)">All</button>
-                <button class="mg-filter-chip" onclick="mgGuardFilter('guard',this)">Guards</button>
-                <button class="mg-filter-chip" onclick="mgGuardFilter('supervisor',this)">Supvs</button>
-                <button class="mg-filter-chip" onclick="mgGuardFilter('Day',this)"><i class="fas fa-sun"></i> Day</button>
-                <button class="mg-filter-chip" onclick="mgGuardFilter('Night',this)"><i class="fas fa-moon"></i> Night</button>
+                <button type="button" class="mg-filter-chip active" onclick="mgGuardFilter('all',this)">All</button>
+                <button type="button" class="mg-filter-chip" onclick="mgGuardFilter('guard',this)">Guards</button>
+                <button type="button" class="mg-filter-chip" onclick="mgGuardFilter('supervisor',this)">Supvs</button>
+                <button type="button" class="mg-filter-chip" onclick="mgGuardFilter('Day',this)"><i class="fas fa-sun"></i> Day</button>
+                <button type="button" class="mg-filter-chip" onclick="mgGuardFilter('Night',this)"><i class="fas fa-moon"></i> Night</button>
             </div>
             <div class="mg-list" id="guardList">
                 <div class="mg-empty"><i class="fas fa-user-slash"></i> Loading personnel…</div>
@@ -40,7 +40,7 @@
                     <span class="mg-lbl" style="margin:0; display:flex; align-items:center; gap:6px;">
                         <i class="fas fa-link" style="color:var(--primary-light);font-size:0.55rem;"></i> Shift Pairs
                     </span>
-                    <button class="mg-btn mg-btn-xs mg-btn-primary" onclick="mgTogglePairForm()" title="Bind two guards to one device as a shift pair" id="mgPairToggleBtn">
+                    <button type="button" class="mg-btn mg-btn-xs mg-btn-primary" onclick="mgTogglePairForm()" title="Bind two guards to one device as a shift pair" id="mgPairToggleBtn">
                         <i class="fas fa-plus"></i> Create Pair
                     </button>
                 </div>
@@ -89,8 +89,8 @@
                             <div><label class="mg-fi-label" style="font-size:0.5rem;">End</label><input type="datetime-local" id="mSpEnd" class="mg-fi" style="font-size:0.55rem;padding:4px 8px;height:28px;"></div>
                         </div>
                         <div style="display:flex; gap:6px; padding-top:4px;">
-                            <button class="mg-btn mg-btn-xs mg-btn-primary" onclick="mgSubmitPairForm()" style="flex:1;"><i class="fas fa-check"></i> Create Pair</button>
-                            <button class="mg-btn mg-btn-xs" onclick="mgTogglePairForm()" style="flex:1;">Cancel</button>
+                            <button type="button" class="mg-btn mg-btn-xs mg-btn-primary" onclick="mgSubmitPairForm()" style="flex:1;"><i class="fas fa-check"></i> Create Pair</button>
+                            <button type="button" class="mg-btn mg-btn-xs" onclick="mgTogglePairForm()" style="flex:1;">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -100,7 +100,7 @@
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.015); flex-shrink:0;">
                 <span class="mg-lbl" style="margin:0; background:rgba(211,47,47,0.1); padding:3px 12px; border-radius:60px; border:1px solid rgba(211,47,47,0.2); font-size:0.5rem;" id="mgShiftListTitle">Deployments</span>
-                <button class="mg-btn mg-btn-xs" onclick="mgRefreshBlueprintShift()">
+                <button type="button" class="mg-btn mg-btn-xs" onclick="mgRefreshBlueprintShift()">
                     <i class="fas fa-sync"></i> Sync
                 </button>
             </div>

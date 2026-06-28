@@ -533,7 +533,7 @@ Uses dcMd-* / dcDwell-* / dcTTS-* ID prefix, matches dispatch.html's JS.
 
 <div class="md-shell dc-mission-detail dc-hidden" id="dcMissionDetail">
     <div class="md-head">
-        <button class="md-back" onclick="dcCloseMissionDetail()" title="Back"><i class="fas fa-arrow-left"></i></button>
+        <button type="button" class="md-back" onclick="dcCloseMissionDetail()" title="Back"><i class="fas fa-arrow-left"></i></button>
         <div class="md-title" id="dcMdTitle">Mission Detail</div>
         <span class="dc-status" id="dcMdStatusBadge" style="font-size:0.58rem;padding:4px 12px;border-radius:999px;"></span>
     </div>
@@ -571,8 +571,8 @@ Uses dcMd-* / dcDwell-* / dcTTS-* ID prefix, matches dispatch.html's JS.
             <i class="fas fa-info-circle"></i> Per-checkpoint TTS is only available for missions that have <strong>not yet started</strong> or whose alert window has <strong>not elapsed</strong>. Previously deployed checkpoints use route-level TTS.
         </div>
         <div class="md-confirm-actions">
-            <button class="md-confirm-btn secondary" onclick="document.getElementById('dcTtsConfirm').style.display='none'"><i class="fas fa-times"></i> Cancel</button>
-            <button class="md-confirm-btn primary" id="dcTtsConfirmBtn"><i class="fas fa-paper-plane"></i> Send TTS</button>
+            <button type="button" class="md-confirm-btn secondary" onclick="document.getElementById('dcTtsConfirm').style.display='none'"><i class="fas fa-times"></i> Cancel</button>
+            <button type="button" class="md-confirm-btn primary" id="dcTtsConfirmBtn"><i class="fas fa-paper-plane"></i> Send TTS</button>
         </div>
     </div>
 </div>
@@ -587,8 +587,8 @@ Uses dcMd-* / dcDwell-* / dcTTS-* ID prefix, matches dispatch.html's JS.
             <i class="fas fa-info-circle"></i> Changes apply to the underlying blueprint route and affect <strong>future deployments</strong>. Running missions are not affected.
         </div>
         <div class="md-confirm-actions">
-            <button class="md-confirm-btn secondary" onclick="document.getElementById('dcCpEditConfirm').style.display='none'"><i class="fas fa-times"></i> Cancel</button>
-            <button class="md-confirm-btn primary" id="dcCpEditConfirmBtn"><i class="fas fa-check"></i> Apply Changes</button>
+            <button type="button" class="md-confirm-btn secondary" onclick="document.getElementById('dcCpEditConfirm').style.display='none'"><i class="fas fa-times"></i> Cancel</button>
+            <button type="button" class="md-confirm-btn primary" id="dcCpEditConfirmBtn"><i class="fas fa-check"></i> Apply Changes</button>
         </div>
     </div>
 </div>

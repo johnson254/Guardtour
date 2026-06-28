@@ -171,10 +171,10 @@ function mgRenderGuards(){
                 </div>
             </div>
             <div class="mg-card-actions" style="flex-direction:column;gap:4px;">
-                ${activeDeploy ? '<button class="mg-btn mg-btn-xs mg-btn-success" onclick="event.stopPropagation();window.location.href=\'/dispatch/\'" title="View Mission"><i class="fas fa-eye"></i></button>' : '<button class="mg-btn mg-btn-xs mg-btn-primary" onclick="event.stopPropagation();mgOpenModal(\'blueprint-shift\',null,' + g.id + ')" title="Assign to Mission"><i class="fas fa-plus"></i></button>'}
-                <button class="mg-btn mg-btn-xs ${isOnline?'mg-btn-success':'mg-btn'}" onclick="event.stopPropagation();mgToggleGuardStatus(${g.id},${!isOnline})" title="${isOnline?'Go Offline':'Mark Online'}"><i class="fas ${isOnline?'fa-power-off':'fa-plug'}"></i></button>
-                <button class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgEditGuard(${g.id})" title="Edit"><i class="fas fa-pen"></i></button>
-                <button class="mg-btn mg-btn-xs mg-btn-danger" onclick="event.stopPropagation();mgDelete('profiles',${g.id},'personnel')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                ${activeDeploy ? '<button type="button" class="mg-btn mg-btn-xs mg-btn-success" onclick="event.stopPropagation();window.location.href=\'/dispatch/\'" title="View Mission"><i class="fas fa-eye"></i></button>' : '<button type="button" class="mg-btn mg-btn-xs mg-btn-primary" onclick="event.stopPropagation();mgOpenModal(\'blueprint-shift\',null,' + g.id + ')" title="Assign to Mission"><i class="fas fa-plus"></i></button>'}
+                <button type="button" class="mg-btn mg-btn-xs ${isOnline?'mg-btn-success':'mg-btn'}" onclick="event.stopPropagation();mgToggleGuardStatus(${g.id},${!isOnline})" title="${isOnline?'Go Offline':'Mark Online'}"><i class="fas ${isOnline?'fa-power-off':'fa-plug'}"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgEditGuard(${g.id})" title="Edit"><i class="fas fa-pen"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs mg-btn-danger" onclick="event.stopPropagation();mgDelete('profiles',${g.id},'personnel')" title="Remove"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>`;
     }).join('');
@@ -342,8 +342,8 @@ function mgRenderShiftPairs(){
                     ${guards.length > 0 ? '<span style="opacity:0.4;">·</span> ' + guards.length + ' guard' + (guards.length > 1 ? 's' : '') : ''}
                 </div>
                 <div class="mg-pair-actions">
-                    <button class="mg-btn mg-btn-xs" onclick="mgOpenModal('blueprint-shift')" title="Assign guard"><i class="fas fa-user-plus"></i></button>
-                    <button class="mg-btn mg-btn-xs mg-btn-danger" onclick="mgUnpairDevice(${p.device_id})" title="Release all"><i class="fas fa-link-slash"></i></button>
+                    <button type="button" class="mg-btn mg-btn-xs" onclick="mgOpenModal('blueprint-shift')" title="Assign guard"><i class="fas fa-user-plus"></i></button>
+                    <button type="button" class="mg-btn mg-btn-xs mg-btn-danger" onclick="mgUnpairDevice(${p.device_id})" title="Release all"><i class="fas fa-link-slash"></i></button>
                 </div>
             </div>
         </div>`;
@@ -469,10 +469,10 @@ window.mgRenderBlueprintActiveDeployments = function(shifts){
             '</div></div>' +
             '<div class="mg-tl-actions">' +
             (s.is_active ?
-                '<button class="mg-btn mg-btn-xs mg-btn-danger" onclick="event.stopPropagation();mgEndShift(' + s.id + ')" title="End Mission"><i class="fas fa-stop"></i></button>' :
-                '<button class="mg-btn mg-btn-xs mg-btn-primary" onclick="event.stopPropagation();mgActivateUpcoming(' + s.id + ')" title="Deploy Now"><i class="fas fa-play"></i></button>'
+                '<button type="button" class="mg-btn mg-btn-xs mg-btn-danger" onclick="event.stopPropagation();mgEndShift(' + s.id + ')" title="End Mission"><i class="fas fa-stop"></i></button>' :
+                '<button type="button" class="mg-btn mg-btn-xs mg-btn-primary" onclick="event.stopPropagation();mgActivateUpcoming(' + s.id + ')" title="Deploy Now"><i class="fas fa-play"></i></button>'
             ) +
-            '<button class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgEditAssignmentCallsign(' + s.id + ')" title="Configure"><i class="fas fa-sliders"></i></button>' +
+            '<button type="button" class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgEditAssignmentCallsign(' + s.id + ')" title="Configure"><i class="fas fa-sliders"></i></button>' +
             '</div></div>';
     };
 
@@ -546,7 +546,7 @@ function mgRenderCallsigns(){
                         <td>${shiftBadge}</td>
                         <td>${missionStatus}</td>
                         <td style="text-align:right; padding-right:18px;">
-                            <button class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgEditCallsign(${cs.id})" title="Modify Assignment">
+                            <button type="button" class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgEditCallsign(${cs.id})" title="Modify Assignment">
                                 <i class="fas fa-user-gear"></i> Manage
                             </button>
                         </td>
@@ -706,10 +706,10 @@ function mgShowDayDetail(day){
             ${flexG.length ? '<div style="margin-top:6px;"><span class="mg-lbl" style="color:rgba(255,255,255,0.3);font-size:0.5rem;">Flex</span><div style="display:flex;gap:4px;flex-wrap:wrap;">' + flexG.map(function(g) { return '<span style="font-size:0.6rem;padding:2px 8px;background:rgba(255,255,255,0.04);border-radius:6px;color:rgba(255,255,255,0.4);">' + (g.first_name||g.username) + '</span>'; }).join('') + '</div></div>' : ''}
             ${deployHtml}
             <div style="margin-top:10px;display:flex;gap:6px;">
-                <button class="mg-btn mg-btn-sm mg-btn-primary" onclick="window.location.href='/dispatch/'">
+                <button type="button" class="mg-btn mg-btn-sm mg-btn-primary" onclick="window.location.href='/dispatch/'">
                     <i class="fas fa-rocket"></i> Dispatch
                 </button>
-                <button class="mg-btn mg-btn-sm" onclick="mgOpenModal('blueprint-shift')">
+                <button type="button" class="mg-btn mg-btn-sm" onclick="mgOpenModal('blueprint-shift')">
                     <i class="fas fa-plus"></i> New Assignment
                 </button>
             </div>
@@ -820,9 +820,9 @@ function mgRenderDevices(){
                 </div>
             </div>
             <div class="mg-card-actions" style="gap:3px;">
-                <button class="mg-btn mg-btn-xs" onclick="mgDeviceControls(${d.id}, this)" title="Configure" style="background:rgba(108,142,239,0.12);color:#6C8EEF;border-color:rgba(108,142,239,0.15);"><i class="fas fa-sliders"></i></button>
-                <button class="mg-btn mg-btn-xs" onclick="mgSwapOperator(${d.id},'${(d.device_name||d.device_id||'Device').replace(/'/g,"\\'")}')" title="Swap Operator" style="background:rgba(245,166,35,0.12);color:#F5A623;border-color:rgba(245,166,35,0.15);"><i class="fas fa-exchange-alt"></i></button>
-                <button class="mg-btn mg-btn-xs mg-btn-danger" onclick="mgDelete('devices',${d.id},'devices')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs" onclick="mgDeviceControls(${d.id}, this)" title="Configure" style="background:rgba(108,142,239,0.12);color:#6C8EEF;border-color:rgba(108,142,239,0.15);"><i class="fas fa-sliders"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs" onclick="mgSwapOperator(${d.id},'${(d.device_name||d.device_id||'Device').replace(/'/g,"\\'")}')" title="Swap Operator" style="background:rgba(245,166,35,0.12);color:#F5A623;border-color:rgba(245,166,35,0.15);"><i class="fas fa-exchange-alt"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs mg-btn-danger" onclick="mgDelete('devices',${d.id},'devices')" title="Remove"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>`;
     });
@@ -866,7 +866,7 @@ window.mgDeviceControls = function(deviceId, btn) {
     html += '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:rgba(0,0,0,0.12);">';
     html +=   '<div style="width:36px;height:36px;border-radius:10px;background:' + onlineBg + ';color:' + onlineColor + ';display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;"><i class="fas fa-mobile-screen"></i></div>';
     html +=   '<div style="flex:1;min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#fff;">' + devName + '</div><div style="font-size:0.58rem;color:rgba(255,255,255,0.35);margin-top:1px;">' + callsign + (d.manufacturer ? ' &middot; ' + d.manufacturer : '') + (d.model ? ' ' + d.model : '') + ' &middot; ' + (d.is_online ? 'Online' : 'Offline') + '</div></div>';
-    html +=   '<button onclick="mgDcClose()" style="width:28px;height:28px;border-radius:7px;border:none;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;transition:background .15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.06)\'"><i class="fas fa-xmark"></i></button>';
+    html +=   '<button type="button" onclick="mgDcClose()" style="width:28px;height:28px;border-radius:7px;border:none;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;transition:background .15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.06)\'"><i class="fas fa-xmark"></i></button>';
     html += '</div>';
     // Body
     html += '<div style="flex:1;overflow-y:auto;padding:18px 20px 14px;">';
@@ -885,7 +885,7 @@ window.mgDeviceControls = function(deviceId, btn) {
 
     // Credentials & Assignment
     html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-key" style="color:rgba(255,255,255,0.3);"></i> Credentials &amp; Assignment</div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Login Code</span><input class="mg-dc-select" id="dcLoginCode_' + deviceId + '" value="' + (d.assigned_callsign||d.callsign||d.device_id||'') + '" placeholder="ORG-NN (e.g. TCN-01)" style="height:32px;font-size:0.7rem;"><button class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-sm" onclick="mgDcGenLoginCode(' + deviceId + ')" style="flex-shrink:0;"><i class="fas fa-magic"></i></button></div>';
+    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Login Code</span><input class="mg-dc-select" id="dcLoginCode_' + deviceId + '" value="' + (d.assigned_callsign||d.callsign||d.device_id||'') + '" placeholder="ORG-NN (e.g. TCN-01)" style="height:32px;font-size:0.7rem;"><button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-sm" onclick="mgDcGenLoginCode(' + deviceId + ')" style="flex-shrink:0;"><i class="fas fa-magic"></i></button></div>';
     html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Password</span><input class="mg-dc-select" id="dcPassword_' + deviceId + '" placeholder="Leave blank to keep current" value="" type="password" style="height:32px;font-size:0.7rem;"></div>';
     html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Operator</span><select class="mg-dc-select" id="dcOfficer_' + deviceId + '" style="height:32px;font-size:0.7rem;"><option value="">— Unassigned —</option>' + guardOpts + '</select></div>';
     html += '</div>';
@@ -894,7 +894,7 @@ window.mgDeviceControls = function(deviceId, btn) {
     // GPS Controls
     html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-satellite" style="color:#6C8EEF;"></i> GPS Fine-Tuning</div>';
     html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Accuracy</span><input type="range" class="mg-dc-slider" id="dcGpsAcc_' + deviceId + '" min="1" max="50" step="1" value="' + gpsAcc + '" oninput="var l=$(\'dcGpsAccVal_' + deviceId + '\');if(l)l.textContent=this.value+\'m\'"><span class="mg-dc-val" id="dcGpsAccVal_' + deviceId + '">' + gpsAcc + 'm</span></div>';
-    html += '<div style="display:flex;gap:6px;margin-top:8px;"><button class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestGps(' + deviceId + ')"><i class="fas fa-location-crosshairs"></i> Request GPS Fix</button><button class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-sm" onclick="mgDcSetAccuracy(' + deviceId + ')"><i class="fas fa-check"></i> Set Threshold</button></div>';
+    html += '<div style="display:flex;gap:6px;margin-top:8px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestGps(' + deviceId + ')"><i class="fas fa-location-crosshairs"></i> Request GPS Fix</button><button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-sm" onclick="mgDcSetAccuracy(' + deviceId + ')"><i class="fas fa-check"></i> Set Threshold</button></div>';
     var gpsStatus = (d.last_latitude && d.last_longitude) ? 'Last: ' + parseFloat(d.last_latitude).toFixed(5) + ', ' + parseFloat(d.last_longitude).toFixed(5) : 'No recent GPS data';
     if (d.last_gps_accuracy) gpsStatus += ' &middot; Acc: ' + d.last_gps_accuracy + 'm';
     html += '<div class="mg-dc-status" id="dcGpsStatus_' + deviceId + '" style="margin-top:6px;">' + gpsStatus + '</div></div>';
@@ -902,7 +902,7 @@ window.mgDeviceControls = function(deviceId, btn) {
 
     // NFC Controls
     html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-rss" style="color:#d32f2f;"></i> NFC Scan</div>';
-    html += '<div style="display:flex;gap:6px;"><button class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestNfc(' + deviceId + ')"><i class="fas fa-wifi"></i> Request NFC Scan</button></div>';
+    html += '<div style="display:flex;gap:6px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestNfc(' + deviceId + ')"><i class="fas fa-wifi"></i> Request NFC Scan</button></div>';
     var nfcStatus = d.last_nfc_scan_uid ? 'Last scan: ' + d.last_nfc_scan_uid + (d.last_nfc_scan ? ' &middot; ' + new Date(d.last_nfc_scan).toLocaleTimeString() : '') : 'No NFC scans recorded';
     html += '<div class="mg-dc-status" id="dcNfcStatus_' + deviceId + '" style="margin-top:6px;">' + nfcStatus + '</div></div>';
     html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
@@ -933,9 +933,9 @@ window.mgDeviceControls = function(deviceId, btn) {
     html +=   '</div>';
     if (hasPending) {
         if (!ttsAcked) {
-            html += '<button class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-xs" onclick="mgDcResendTts(' + deviceId + ')" title="Resend pending TTS" style="padding:3px 8px;font-size:0.55rem;"><i class="fas fa-rotate"></i> Resend</button>';
+            html += '<button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-xs" onclick="mgDcResendTts(' + deviceId + ')" title="Resend pending TTS" style="padding:3px 8px;font-size:0.55rem;"><i class="fas fa-rotate"></i> Resend</button>';
         }
-        html += '<button class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-xs" onclick="mgDcDismissPending(' + deviceId + ')" title="Dismiss pending TTS" style="padding:3px 8px;font-size:0.55rem;background:rgba(255,255,255,0.06);"><i class="fas fa-xmark"></i></button>';
+        html += '<button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-xs" onclick="mgDcDismissPending(' + deviceId + ')" title="Dismiss pending TTS" style="padding:3px 8px;font-size:0.55rem;background:rgba(255,255,255,0.06);"><i class="fas fa-xmark"></i></button>';
     }
     html += '</div>';
 
@@ -944,14 +944,14 @@ window.mgDeviceControls = function(deviceId, btn) {
     html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Rate</span><input type="range" class="mg-dc-slider" id="dcTtsRate_' + deviceId + '" min="0.5" max="2.0" step="0.1" value="' + (d.tts_rate !== undefined && d.tts_rate !== null ? d.tts_rate : 1.0) + '" oninput="var l=$(\'dcTtsRateVal_' + deviceId + '\');if(l)l.textContent=parseFloat(this.value).toFixed(1)"><span class="mg-dc-val" id="dcTtsRateVal_' + deviceId + '">' + (d.tts_rate !== undefined && d.tts_rate !== null ? d.tts_rate : 1.0).toFixed(1) + '</span></div>';
     html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Pitch</span><input type="range" class="mg-dc-slider" id="dcTtsPitch_' + deviceId + '" min="0.5" max="2.0" step="0.1" value="' + (d.tts_pitch !== undefined && d.tts_pitch !== null ? d.tts_pitch : 1.0) + '" oninput="var l=$(\'dcTtsPitchVal_' + deviceId + '\');if(l)l.textContent=parseFloat(this.value).toFixed(1)"><span class="mg-dc-val" id="dcTtsPitchVal_' + deviceId + '">' + (d.tts_pitch !== undefined && d.tts_pitch !== null ? d.tts_pitch : 1.0).toFixed(1) + '</span></div>';
     html += '<textarea class="mg-dc-textarea" id="dcTtsMsg_' + deviceId + '" rows="2" placeholder="Type a TTS message to send to this device…" style="font-size:0.7rem;"></textarea>';
-    html += '<div style="display:flex;gap:6px;margin-top:4px;"><button class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcSendTts(' + deviceId + ')"><i class="fas fa-paper-plane"></i> Send TTS</button></div>';
+    html += '<div style="display:flex;gap:6px;margin-top:4px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcSendTts(' + deviceId + ')"><i class="fas fa-paper-plane"></i> Send TTS</button></div>';
     html += '<div class="mg-dc-status" id="dcTtsStatus_' + deviceId + '" style="margin-top:6px;"></div></div>';
     html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
 
     // Save / Close
     html += '<div style="display:flex;gap:8px;padding-top:4px;">';
-    html +=   '<button class="mg-dc-btn mg-dc-btn-primary" style="flex:1;padding:8px 14px;font-size:0.7rem;" onclick="mgDcSaveDevice(' + deviceId + ')"><i class="fas fa-floppy-disk"></i> Save Changes</button>';
-    html +=   '<button class="mg-dc-btn mg-dc-btn-secondary" style="flex:1;padding:8px 14px;font-size:0.7rem;" onclick="mgDcClose()"><i class="fas fa-xmark"></i> Cancel</button>';
+    html +=   '<button type="button" class="mg-dc-btn mg-dc-btn-primary" style="flex:1;padding:8px 14px;font-size:0.7rem;" onclick="mgDcSaveDevice(' + deviceId + ')"><i class="fas fa-floppy-disk"></i> Save Changes</button>';
+    html +=   '<button type="button" class="mg-dc-btn mg-dc-btn-secondary" style="flex:1;padding:8px 14px;font-size:0.7rem;" onclick="mgDcClose()"><i class="fas fa-xmark"></i> Cancel</button>';
     html += '</div></div>';
 
     $('mgDcDropdownBody').innerHTML = html;
@@ -1306,8 +1306,8 @@ window.mgSwapOperator = function(deviceId, deviceName) {
             ${guardOpts}
         </select>
         <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
-            <button class="mg-btn mg-btn-sm" onclick="$('mgSwapOverlay').classList.add('mg-hidden')">Cancel</button>
-            <button class="mg-btn mg-btn-sm" style="background:var(--primary); color:#fff;" onclick="mgConfirmSwap()">Swap</button>
+            <button type="button" class="mg-btn mg-btn-sm" onclick="$('mgSwapOverlay').classList.add('mg-hidden')">Cancel</button>
+            <button type="button" class="mg-btn mg-btn-sm" style="background:var(--primary); color:#fff;" onclick="mgConfirmSwap()">Swap</button>
         </div>
     `;
     $('mgSwapOverlay').classList.remove('mg-hidden');
@@ -1577,8 +1577,8 @@ function mgRenderRouteHealth(){
             </div>
             <span class="mg-badge ${isDeployed?'mg-b-active':'mg-b-off'}" style="min-width:60px;text-align:center;">${isDeployed?'Live':'Saved'}</span>
             <div style="display:flex;gap:5px;">
-                <button class="mg-btn mg-btn-sm" onclick="window.location.href='/routes/'" title="Edit"><i class="fas fa-pen"></i></button>
-                <button class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgQuickDeploy(${r.id})" title="Deploy"><i class="fas fa-rocket"></i></button>
+                <button type="button" class="mg-btn mg-btn-sm" onclick="window.location.href='/routes/'" title="Edit"><i class="fas fa-pen"></i></button>
+                <button type="button" class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgQuickDeploy(${r.id})" title="Deploy"><i class="fas fa-rocket"></i></button>
             </div>
         </div>`;
     }).join('');
@@ -1810,7 +1810,7 @@ window.mgOpenModal=function(type, existing=null){
             <label class="mg-fi-label" for="mDid">Device Login Code *</label>
             <div style="display:flex; gap:8px;">
                 <input id="mDid" class="mg-fi" placeholder="ORG-NN (e.g. TCN-01)" value="${existing?.assigned_callsign || existing?.callsign || ''}" style="margin-bottom:0; flex:1;">
-                <button class="mg-btn mg-btn-sm" onclick="mgGenerateLoginCode()" style="white-space:nowrap; height:38px;">
+                <button type="button" class="mg-btn mg-btn-sm" onclick="mgGenerateLoginCode()" style="white-space:nowrap; height:38px;">
                     <i class="fas fa-magic"></i> Generate
                 </button>
             </div>
@@ -1822,7 +1822,7 @@ window.mgOpenModal=function(type, existing=null){
             <label class="mg-fi-label" for="mDpwd">Device Password</label>
             <div style="display:flex; gap:8px;">
                 <input id="mDpwd" class="mg-fi" type="text" placeholder="Auto-generated if left blank" value="" style="margin-bottom:0; flex:1;">
-                <button class="mg-btn mg-btn-sm" onclick="mgGeneratePassword()" type="button" style="white-space:nowrap; height:38px;">
+                <button type="button" style="white-space:nowrap; height:38px;">
                     <i class="fas fa-key"></i> Generate
                 </button>
             </div>
@@ -1901,7 +1901,7 @@ window.mgOpenModal=function(type, existing=null){
                         <select id="mCpWindow" class="mg-fi"><option value="5">5 Minutes</option><option value="10">10 Minutes</option></select>
                     </div>
                     <div style="display:flex; align-items:flex-end; padding-bottom:10px;">
-                        <button class="mg-btn mg-btn-primary mg-btn-sm" style="width:100%;" onclick="mgStartRemoteCapture()">
+                        <button type="button" class="mg-btn mg-btn-primary mg-btn-sm" style="width:100%;" onclick="mgStartRemoteCapture()">
                             <i class="fas fa-satellite-dish"></i> Open Window
                         </button>
                     </div>
@@ -2754,7 +2754,7 @@ function populateDeviceCallsigns() {
 };
 
 function updateTypeCounts() {
-    const counts = { nfc:0, gps:0, geo:0, peer:0 };
+    const counts = { nfc:0, gps:0, geo:0, peer:0, custom:0 };
     inlineCps.forEach(cp => { const t = cp.checkpoint_type || cp.type; if(counts[t] !== undefined) counts[t]++; });
     $$('.cb-shape-pill').forEach(pill => {
         const type = pill.dataset.type;
@@ -3149,8 +3149,8 @@ window.addRegistryRow = function(type, data) {
     if (empty) empty.style.display = 'none';
 
     var idx = list.querySelectorAll('.cb-reg-row').length;
-    var icons = { nfc:'fa-wifi', gps:'fa-map-pin', geo:'fa-draw-polygon', peer:'fa-user-shield' };
-    var cols  = { nfc:'var(--r-crim)', gps:'var(--r-indigo)', geo:'var(--r-violet)', peer:'var(--r-violet)' };
+    var icons = { nfc:'fa-wifi', gps:'fa-map-pin', geo:'fa-draw-polygon', peer:'fa-user-shield', custom:'fa-pen' };
+    var cols  = { nfc:'var(--r-crim)', gps:'var(--r-indigo)', geo:'var(--r-violet)', peer:'var(--r-violet)', custom:'var(--r-teal)' };
     var col   = cols[type] || 'var(--r-crim)';
     var isSaved = !!data.id && data.id > 0;
     var name   = data.name || '';
@@ -3168,7 +3168,8 @@ window.addRegistryRow = function(type, data) {
     var infoText = type === 'nfc' ? (tag ? tag : '\u2014') :
                    type === 'gps' ? (lat && lng ? parseFloat(lat).toFixed(5) + ', ' + parseFloat(lng).toFixed(5) : '\u2014') :
                    type === 'geo' ? (lat && lng ? parseFloat(lat).toFixed(5) + ', ' + parseFloat(lng).toFixed(5) : '\u2014') :
-                   type === 'peer' ? (auditor && target ? auditor + ' \u2194 ' + target : '\u2014') : '\u2014';
+                   type === 'peer' ? (auditor && target ? auditor + ' \u2194 ' + target : '\u2014') :
+                   type === 'custom' ? (lat && lng ? parseFloat(lat).toFixed(5) + ', ' + parseFloat(lng).toFixed(5) : '\u2014') : '\u2014';
 
     // Build color-coded settings pills for collapsed state
     var settingDots = [];
@@ -3188,18 +3189,24 @@ window.addRegistryRow = function(type, data) {
     var fieldArea = type === 'nfc' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Point Name</label><input class="rs-fi rs-fi-sm cp-inline-name" value="' + name + '" placeholder="e.g. Main Gate Checkpoint"></div>',
-            '<div class="cb-reg-field"><label class="rs-lbl">NFC UID</label><div style="display:flex;gap:4px;"><input class="rs-fi rs-fi-sm cp-inline-tag" value="' + tag + '" placeholder="UID or scan" style="flex:1;font-family:monospace;"><button class="cb-r-btn" title="Scan" onclick="cbOpenScanWindow(this)"><i class="fas fa-tower-broadcast"></i></button></div></div>',
+            '<div class="cb-reg-field"><label class="rs-lbl">NFC UID</label><div style="display:flex;gap:4px;"><input class="rs-fi rs-fi-sm cp-inline-tag" value="' + tag + '" placeholder="UID or scan" style="flex:1;font-family:monospace;"><button type="button" class="cb-r-btn" title="Scan" onclick="cbOpenScanWindow(this)"><i class="fas fa-tower-broadcast"></i></button></div></div>',
         '</div>'
     ].join('') : type === 'gps' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Point Name</label><input class="rs-fi rs-fi-sm cp-inline-name" value="' + name + '" placeholder="e.g. North Perimeter"></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:4px;align-items:center;"><input class="rs-fi rs-fi-sm cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:110px;"><button class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:4px;align-items:center;"><input class="rs-fi rs-fi-sm cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:110px;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)"><i class="fas fa-map-pin"></i></button></div></div>',
             '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi rs-fi-sm cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="width:110px;"></div>',
         '</div>'
     ].join('') : type === 'geo' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Zone Name</label><input class="rs-fi rs-fi-sm cp-inline-name" value="' + name + '" placeholder="e.g. Restricted Area"></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:4px;align-items:center;"><input class="rs-fi rs-fi-sm cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:110px;"><button class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:4px;align-items:center;"><input class="rs-fi rs-fi-sm cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:110px;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi rs-fi-sm cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="width:110px;"></div>',
+        '</div>'
+    ].join('') : type === 'custom' ? [
+        '<div class="cb-reg-field-row">',
+            '<div class="cb-reg-field"><label class="rs-lbl">Point Name</label><input class="rs-fi rs-fi-sm cp-inline-name" value="' + name + '" placeholder="e.g. Custom Point"></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:4px;align-items:center;"><input class="rs-fi rs-fi-sm cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:110px;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)"><i class="fas fa-map-pin"></i></button></div></div>',
             '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi rs-fi-sm cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="width:110px;"></div>',
         '</div>'
     ].join('') : [
@@ -3275,8 +3282,8 @@ window.addRegistryRow = function(type, data) {
         '</div>',
         '<div class="cb-reg-actions">',
             (isSaved ? '<span class="cb-reg-saved" title="Saved"><i class="fas fa-database"></i></span>' : ''),
-            '<button class="cb-r-btn" title="Duplicate" onclick="duplicateRegistryRow(this)" style="color:rgba(255,255,255,0.2);"><i class="fas fa-copy"></i></button>',
-            '<button class="cb-r-btn cb-r-del" title="Remove" onclick="removeRegistryRow(this)"><i class="fas fa-times"></i></button>',
+            '<button type="button" class="cb-r-btn" title="Duplicate" onclick="duplicateRegistryRow(this)" style="color:rgba(255,255,255,0.2);"><i class="fas fa-copy"></i></button>',
+            '<button type="button" class="cb-r-btn cb-r-del" title="Remove" onclick="removeRegistryRow(this)"><i class="fas fa-times"></i></button>',
         '</div>'
     ].join('');
 
@@ -3532,7 +3539,7 @@ window.removeRegistryRow = function(btn) {
         if (!isSaved) {
             var undoToast = document.createElement('div');
             undoToast.className = 'mg-toast undo-toast';
-            undoToast.innerHTML = '<span class="td"></span>' + removedType.toUpperCase() + ' removed <button class="mg-undo-btn" onclick="undoRemoveRegistryRow(this)">Undo</button>';
+            undoToast.innerHTML = '<span class="td"></span>' + removedType.toUpperCase() + ' removed <button type="button" class="mg-undo-btn" onclick="undoRemoveRegistryRow(this)">Undo</button>';
             $('mgToasts').appendChild(undoToast);
             undoToast._removedHTML = removedHTML;
             undoToast._removedType = removedType;
@@ -3613,7 +3620,7 @@ function renumberRegistryRows() {
 
 /* ── Update type count badges on quick-add pills ── */
 function updateRegistryStats() {
-    var counts = { nfc:0, gps:0, geo:0, peer:0 };
+    var counts = { nfc:0, gps:0, geo:0, peer:0, custom:0 };
     $$('#cpRegistry .cb-reg-row').forEach(function(r) {
         var t = r.dataset.cpType;
         if (counts.hasOwnProperty(t)) counts[t]++;
@@ -3738,7 +3745,7 @@ window.mgLoadSavedCps = function() {
     var saved = allAssets.filter(function(a) {
         var t = a.type || a.checkpoint_type || '';
         // Include all checkpoint types — NFC may not have geometry
-        return ['nfc','gps','geo','peer','poi','geofence'].indexOf(t) !== -1;
+        return ['nfc','gps','geo','peer','custom','poi','geofence'].indexOf(t) !== -1;
     });
     saved.forEach(function(a) {
         var t = a.type === 'geofence' ? 'geo' : (a.type === 'poi' ? (a.radius ? 'geo' : 'nfc') : (a.checkpoint_type || a.type || 'nfc'));
