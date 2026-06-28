@@ -1101,7 +1101,7 @@ class ScanRecordViewSet(viewsets.ModelViewSet):
         # The scan endpoint is not standard CRUD — the device sends device_id + password
         # + nfc_value, and process_scan() resolves the checkpoint, guard, route, etc.
         # Bypass serializer validation entirely and build the record from process_scan.
-        from .scan_service import process_scan
+        from ..scan_service import process_scan
         client_ts_str = request.data.get('client_timestamp')
         client_timestamp = None
         if client_ts_str:
@@ -2260,7 +2260,7 @@ def mission_status(request, assignment_id):
     """Return the current staging status for a single assignment — next checkpoint,
     time remaining, dwell state, missed windows. Used by both the Android app
     and the dispatch frontend."""
-    from .scan_service import get_mission_status
+    from ..scan_service import get_mission_status
     try:
         assignment = ShiftAssignment.objects.get(id=assignment_id, is_active=True, is_completed=False)
     except ShiftAssignment.DoesNotExist:
@@ -2292,7 +2292,7 @@ def transfer_shift(request):
       - assignment_id (required): current active assignment to transfer
       - new_guard_id (required): target guard supervisor ID
     """
-    from .scan_service import transfer_shift as transfer_shift_logic
+    from ..scan_service import transfer_shift as transfer_shift_logic
 
     assignment_id = request.data.get('assignment_id')
     new_guard_id = request.data.get('new_guard_id')
@@ -2325,7 +2325,7 @@ def route_gap_analysis_view(request, assignment_id):
 
     Used by the dispatcher dashboard to highlight skipped points.
     """
-    from .scan_service import route_gap_analysis
+    from ..scan_service import route_gap_analysis
 
     try:
         assignment = ShiftAssignment.objects.get(id=assignment_id, is_active=True)
@@ -2354,7 +2354,7 @@ def gps_batch_sync(request):
 
     Returns corrected trail data for the device.
     """
-    from .scan_service import correct_gps_trail
+    from ..scan_service import correct_gps_trail
     device_id = request.data.get('device_id')
     password = request.data.get('password')
     points = request.data.get('points', [])
@@ -2454,8 +2454,8 @@ def scan_batch_sync(request):
 
     Expected body: { device_id, password, scans: [{ nfc_value, recorded_at, lat?, lng?, raw_nfc? }] }
     """
-    from .serializers import ScanRecordSerializer
-    from .scan_service import process_scan
+    from ..serializers import ScanRecordSerializer
+    from ..scan_service import process_scan
     device_id = request.data.get('device_id')
     password = request.data.get('password')
     scans = request.data.get('scans', [])
@@ -2529,7 +2529,7 @@ def device_trails(request, device_id):
       - corrected: if 'true', return corrected positions
       - since: ISO datetime, only return points after this
     """
-    from .scan_service import correct_gps_trail
+    from ..scan_service import correct_gps_trail
     device = Device.objects.filter(device_id=device_id).first()
     if not device:
         return Response({'detail': 'Device not found'}, status=404)
