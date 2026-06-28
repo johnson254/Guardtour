@@ -18,10 +18,34 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-left: 16px;
-  padding-left: 16px;
-  border-left: 1px solid var(--r-line);
 }
+
+/* ── Org bar (top info strip) ─────────────────────────── */
+.org-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, rgba(20, 20, 30, 0.88) 0%, rgba(14, 14, 22, 0.92) 100%);
+    border: 1px solid var(--r-line);
+    border-radius: var(--r-rad);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    flex-shrink: 0;
+}
+.org-bar-left { display: flex; align-items: center; gap: 12px; }
+.org-bar-avatar {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #b71c1c, #d32f2f);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--r-glow-crim);
+    font-size: 14px; color: white;
+}
+.org-bar-name { font-weight: 800; font-size: 0.9rem; }
+.org-bar-detail { font-size: 0.65rem; color: var(--r-mute); margin-top: 2px; }
+.org-bar-right { display: flex; gap: 8px; flex-wrap: wrap; }
 .org-stat {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--r-line);
