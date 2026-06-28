@@ -73,6 +73,7 @@ urlpatterns = [
 
     # Resend TTS announcement for a deployment
     path('resend-tts/', views.resend_tts, name='resend_tts'),
+    path('map-residency/', views.map_residency_events, name='map_residency_events'),
 
     # Offline sync: batch GPS + scan upload
     path('gps-batch/', views.gps_batch_sync, name='gps_batch_sync'),

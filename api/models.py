@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 
 class Organization(models.Model):
@@ -382,6 +383,12 @@ class ScanRecord(models.Model):
     # Validity scoring
     validity_score = models.FloatField(null=True, blank=True, help_text="0.0-1.0 probability that this scan is legitimate")
     validity_reason = models.CharField(max_length=300, null=True, blank=True, help_text="Human-readable explanation of the score")
+    verification_notes = models.TextField(null=True, blank=True, help_text="Machine-readable verification notes (pipe-separated tags)")
+    dwell_valid = models.BooleanField(default=False, help_text="True if dwell trail met checkpoint.dwell_time requirement")
+    anomaly_flags = models.JSONField(null=True, blank=True, default=list, help_text="List of anomaly codes detected during dwell trail walk")
+    sensor_aided = models.BooleanField(default=False, help_text="True if sensor context upgraded a weak NFC score")
+    time_drift_suspicious = models.BooleanField(default=False, help_text="True if client timestamp drift exceeded threshold")
+    sensor_context = models.JSONField(null=True, blank=True, help_text="Sensor context from device (pir, accel, proximity, gps_trail)")
 
     out_of_sequence = models.BooleanField(default=False, help_text="True if scanned in wrong order per route sequence")
     insufficient_dwell_time = models.BooleanField(default=False, help_text="True if guard left before dwell_time elapsed")
@@ -405,6 +412,13 @@ class ShiftAssignment(models.Model):
     shift_type = models.CharField(max_length=10, choices=GuardSupervisor.SHIFT_CHOICES)
     is_active = models.BooleanField(default=True)
     is_completed = models.BooleanField(default=False, help_text="True when all checkpoints have been scanned")
+    mission_stage = models.CharField(
+        max_length=20,
+        choices=[('assigned', 'Assigned'), ('deployed', 'Deployed'), ('active', 'Active'), ('completing', 'Completing'), ('completed', 'Completed'), ('cancelled', 'Cancelled')],
+        default='assigned',
+        blank=True,
+        help_text="Lifecycle stage of the mission"
+    )
     status = models.CharField(
         max_length=20,
         choices=[('active', 'Active'), ('completed', 'Completed'), ('emergency_active', 'Emergency Active'), ('cancelled', 'Cancelled'), ('handover', 'Handed Over')],
@@ -554,3 +568,95 @@ class DeviceTrail(models.Model):
 
     def __str__(self):
         return f"{self.device.device_id or self.device.device_name} @ ({self.lat:.4f}, {self.lng:.4f})"
+
+
+class DeviceSession(models.Model):
+    STATE_AUTHENTICATED = 'authenticated'
+    STATE_ON_ROUTE = 'on_route'
+    STATE_CHECKPOINT_DUE = 'checkpoint_due'
+    STATE_COMPLETING = 'completing'
+    STATE_COMPLETED = 'completed'
+    STATE_EMERGENCY_PAUSE = 'emergency_pause'
+    STATE_OFFLINE_BUFFERING = 'offline_buffering'
+    STATE_SESSION_EXPIRED = 'session_expired'
+
+    STATE_CHOICES = [
+        (STATE_AUTHENTICATED, 'Authenticated'),
+        (STATE_ON_ROUTE, 'On Route'),
+        (STATE_CHECKPOINT_DUE, 'Checkpoint Due'),
+        (STATE_COMPLETING, 'Completing'),
+        (STATE_COMPLETED, 'Completed'),
+        (STATE_EMERGENCY_PAUSE, 'Emergency Pause'),
+        (STATE_OFFLINE_BUFFERING, 'Offline Buffering'),
+        (STATE_SESSION_EXPIRED, 'Session Expired'),
+    ]
+
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='sessions')
+    assignment = models.ForeignKey(ShiftAssignment, on_delete=models.SET_NULL, null=True, blank=True, related_name='device_sessions')
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default=STATE_AUTHENTICATED)
+    telemetry_interval_ms = models.IntegerField(default=60000)
+    constellation_required = models.BooleanField(default=False)
+    sensor_activation = models.CharField(max_length=20, default='none', choices=[('none', 'None'), ('pir_plus_accel', 'PIR + Accelerometer'), ('accel_only', 'Accelerometer Only')])
+    expected_checkpoint_radius = models.IntegerField(default=5)
+    tolerance_window_min = models.IntegerField(default=15)
+    entered_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    battery_pct_at_enter = models.SmallIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-entered_at']
+        indexes = [
+            models.Index(fields=['device', 'is_active']),
+            models.Index(fields=['state']),
+        ]
+
+    def __str__(self):
+        return f"{self.device.device_id} [{self.state}]"
+
+    @property
+    def telemetry_dict(self):
+        return {
+            'gps_interval_ms': self.telemetry_interval_ms,
+            'constellation_required': self.constellation_required,
+            'sensor_activation': self.sensor_activation,
+            'accuracy_min_meters': 10,
+        }
+
+
+class MissionStateLog(models.Model):
+    assignment = models.ForeignKey(ShiftAssignment, on_delete=models.CASCADE, related_name='state_logs')
+    from_stage = models.CharField(max_length=20, blank=True, default='')
+    to_stage = models.CharField(max_length=20)
+    reason = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True)
+    scan = models.ForeignKey(ScanRecord, on_delete=models.SET_NULL, null=True, blank=True)
+    metadata_json = models.JSONField(null=True, blank=True, default=dict)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['assignment', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"Assignment {self.assignment_id}: {self.from_stage} -> {self.to_stage}"
+
+
+class AlertRule(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='alert_rules')
+    session_state = models.CharField(max_length=20, choices=DeviceSession.STATE_CHOICES)
+    first_alert_minutes = models.IntegerField(default=15)
+    repeat_minutes = models.IntegerField(default=15)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('organization', 'session_state')]
+        ordering = ['session_state']
+
+    def __str__(self):
+        return f"{self.organization.name} / {self.session_state}: {self.first_alert_minutes}min + {self.repeat_minutes}min repeat"

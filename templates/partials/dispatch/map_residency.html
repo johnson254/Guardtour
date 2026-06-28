@@ -1,0 +1,14 @@
+{% if events %}
+<div class="map-residency-list">
+  {% for event in events %}
+  <div class="residency-item" data-checkpoint-id="{{ event.checkpoint_id }}" data-device-id="{{ event.device_id }}">
+    <span class="residency-device">{{ event.device_label }}</span>
+    <span class="residency-checkpoint">{{ event.checkpoint_name }}</span>
+    <span class="residency-state">{{ event.state }}</span>
+    <span class="residency-confidence">{{ event.confidence|floatformat:2 }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="map-residency-empty">No active residency events</div>
+{% endif %}
