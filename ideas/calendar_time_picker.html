@@ -356,9 +356,9 @@ API:
         <span class="ctp-header-label"><i class="fas fa-calendar-alt"></i> Select Date</span>
       </div>
       <div class="ctp-nav-row">
-        <button class="ctp-nav-btn" id="ctpPrevBtn" title="Previous month"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" class="ctp-nav-btn" id="ctpPrevBtn" title="Previous month"><i class="fas fa-chevron-left"></i></button>
         <span class="ctp-month-label" id="ctpMonthLabel">Month YYYY</span>
-        <button class="ctp-nav-btn" id="ctpNextBtn" title="Next month"><i class="fas fa-chevron-right"></i></button>
+        <button type="button" class="ctp-nav-btn" id="ctpNextBtn" title="Next month"><i class="fas fa-chevron-right"></i></button>
       </div>
       <div class="ctp-dow-row">
         <span class="ctp-dow">Su</span>
@@ -377,11 +377,11 @@ API:
         <span style="font-size:0.6rem;color:rgba(255,255,255,0.25);" id="ctpTimeDisplay">--:--</span>
       </div>
       <div class="ctp-quick-row" id="ctpQuickRow">
-        <button class="ctp-quick-btn" data-quick="now"><i class="fas fa-crosshairs" style="font-size:0.5rem;"></i> Now</button>
-        <button class="ctp-quick-btn" data-quick="+15">+15m</button>
-        <button class="ctp-quick-btn" data-quick="+30">+30m</button>
-        <button class="ctp-quick-btn" data-quick="+60">+1h</button>
-        <button class="ctp-quick-btn" data-quick="eos">End Shift</button>
+        <button type="button" class="ctp-quick-btn" data-quick="now"><i class="fas fa-crosshairs" style="font-size:0.5rem;"></i> Now</button>
+        <button type="button" class="ctp-quick-btn" data-quick="+15">+15m</button>
+        <button type="button" class="ctp-quick-btn" data-quick="+30">+30m</button>
+        <button type="button" class="ctp-quick-btn" data-quick="+60">+1h</button>
+        <button type="button" class="ctp-quick-btn" data-quick="eos">End Shift</button>
       </div>
       <div class="ctp-preset-row" id="ctpPresetRow"></div>
       <div class="ctp-manual-row">
@@ -392,7 +392,7 @@ API:
   </div>
   <div class="ctp-footer">
     <div class="ctp-summary" id="ctpSummary">Select a date and time</div>
-    <button class="ctp-action-btn" id="ctpConfirmBtn" disabled>
+    <button type="button" class="ctp-action-btn" id="ctpConfirmBtn" disabled>
       <i class="fas fa-check"></i> Confirm
     </button>
   </div>
@@ -507,7 +507,7 @@ API:
     var html = '';
     slots.forEach(function(t) {
       var selected = state.selectedTime === t ? ' selected' : '';
-      html += '<button class="ctp-preset-btn' + selected + '" data-time="' + t + '">' + t + '</button>';
+      html += '<button type="button" class="ctp-preset-btn' + selected + '" data-time="' + t + '">' + t + '</button>';
     });
     els.presetRow.innerHTML = html;
   }

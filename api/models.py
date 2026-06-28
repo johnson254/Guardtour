@@ -286,6 +286,7 @@ class Checkpoint(models.Model):
         ('nfc', 'NFC'),
         ('gps', 'GPS'),
         ('peer', 'Peer'),
+        ('custom', 'Custom'),
         ('geo', 'Geofence'),
     ]
 
@@ -330,6 +331,8 @@ class Checkpoint(models.Model):
             self.nfc_tag = None
             self.lat = None
             self.lng = None
+        if self.checkpoint_type == 'custom':
+            self.nfc_tag = None
         if self.checkpoint_type == 'geo':
             self.nfc_tag = None
 
@@ -340,6 +343,14 @@ class Checkpoint(models.Model):
                 dupes = dupes.exclude(pk=self.pk)
             if dupes.exists():
                 raise ValidationError({'planned_time': f'Another checkpoint in this route already has planned time {self.planned_time}.'})
+
+        # Prevent duplicate order within same route
+        if self.route_id and self.order is not None:
+            dupes = Checkpoint.objects.filter(route_id=self.route_id, order=self.order)
+            if self.pk:
+                dupes = dupes.exclude(pk=self.pk)
+            if dupes.exists():
+                raise ValidationError({'order': f'Duplicate order {self.order} for this route.'})
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -408,7 +419,7 @@ class ShiftAssignment(models.Model):
         if self.guard_supervisor and self.scheduled_start and self.scheduled_end:
             overlapping = ShiftAssignment.objects.filter(
                 guard_supervisor=self.guard_supervisor,
-                is_active=True,
+                status__in=['active', 'emergency_active', 'handover'],
                 scheduled_start__lt=self.scheduled_end,
                 scheduled_end__gt=self.scheduled_start,
             )

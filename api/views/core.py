@@ -1,9 +1,10 @@
 from rest_framework import viewsets, filters, status, serializers
 from django.db.models import Q
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django.contrib.auth.models import User
 from api.models import Organization, Admin, Dispatcher, GuardSupervisor, Device, PatrolRoute, Checkpoint, ScanRecord, ShiftAssignment, MapObject, IncidentReport, OperatorAlert, DeviceProvisioning, CallSign, DeviceTrail
 from django.db.models import F as models_F
+from django.db import transaction
 
 from api.serializers import (UserSerializer, GuardSupervisorSerializer, DeviceSerializer, PatrolRouteSerializer, 
                          CheckpointSerializer, ScanRecordSerializer, ShiftAssignmentSerializer, CallSignSerializer, OrganizationSerializer, 
@@ -45,12 +46,17 @@ def _deactivate_assignments(queryset):
         .values_list('guard_supervisor_id', flat=True)
     )
     queryset.update(is_active=False, ended_at=now)
-    for gid in guard_ids:
-        still_active = ShiftAssignment.objects.filter(
-            guard_supervisor_id=gid, is_active=True
-        ).exists()
-        if not still_active:
-            GuardSupervisor.objects.filter(id=gid, is_on_shift=True).update(is_on_shift=False)
+    if guard_ids:
+        active_guard_ids = set(
+            ShiftAssignment.objects.filter(
+                guard_supervisor_id__in=guard_ids, is_active=True
+            ).values_list('guard_supervisor_id', flat=True)
+        )
+        inactive_guard_ids = guard_ids - active_guard_ids
+        if inactive_guard_ids:
+            GuardSupervisor.objects.filter(
+                id__in=inactive_guard_ids, is_on_shift=True
+            ).update(is_on_shift=False)
 
 
 def _haversine_meters(lat1, lng1, lat2, lng2):
@@ -78,6 +84,10 @@ def _point_in_polygon(lat, lng, polygon):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
+    """Register a new user with username, password, email, and role.
+
+    Default role is 'dispatcher'. Creates a Django User and associated profile.
+    """
     username = request.data.get('username')
     password = request.data.get('password')
     email = request.data.get('email')
@@ -216,11 +226,82 @@ def login(request):
     django_login(request, user)
     
     return Response({'refresh': str(refresh), 'access': str(refresh.access_token), 'user': UserSerializer(user).data,
-                     'role': role, 'organization_id': organization_id, 'organization_name': organization_name})
+                     'role': role, 'organization_id': organization_id, 'organization_name': organization_name,
+                     'identity': _build_operator_identity(user)})
+
+
+def _build_operator_identity(user):
+    """Build a null-safe identity object for the mobile app.
+
+    Exposes device, callsign, telephony, and location fields the app expects.
+    Returns deterministic string fallbacks instead of null for missing fields.
+    Covers all three user types: guardsupervisor, dispatcher, admin.
+    """
+    device_id = ''
+    device_callsign = ''
+    last_latitude = ''
+    last_longitude = ''
+    last_seen = ''
+    guard_callsign = ''
+    guard_shift = ''
+    sim_phone_number = ''
+    imei = ''
+    imsi = ''
+
+    if hasattr(user, 'guardsupervisor'):
+        guard = user.guardsupervisor
+        guard_callsign = guard.callsign or ''
+        guard_shift = guard.shift or 'Day'
+        # Find device via active callsign assignment
+        cs = CallSign.objects.filter(current_guard=guard).select_related('device').first()
+        if cs:
+            device_callsign = cs.callsign or ''
+            if cs.device:
+                d = cs.device
+                device_id = d.device_id or ''
+                sim_phone_number = d.sim_phone_number or ''
+                imei = d.imei or ''
+                imsi = d.imsi or ''
+                last_latitude = str(d.last_latitude) if d.last_latitude is not None else ''
+                last_longitude = str(d.last_longitude) if d.last_longitude is not None else ''
+                last_seen = d.last_seen.isoformat() if d.last_seen else ''
+    elif hasattr(user, 'dispatcher_profile'):
+        dispatcher = user.dispatcher_profile
+        # Dispatcher: use most-recent callsign for their org
+        cs = CallSign.objects.filter(organization=dispatcher.organization).select_related('device').order_by('-id').first()
+        if cs:
+            device_callsign = cs.callsign or ''
+            if cs.device:
+                d = cs.device
+                device_id = d.device_id or ''
+                sim_phone_number = d.sim_phone_number or ''
+                imei = d.imei or ''
+                imsi = d.imsi or ''
+                last_latitude = str(d.last_latitude) if d.last_latitude is not None else ''
+                last_longitude = str(d.last_longitude) if d.last_longitude is not None else ''
+                last_seen = d.last_seen.isoformat() if d.last_seen else ''
+
+    return {
+        'device_id': device_id,
+        'device_callsign': device_callsign,
+        'last_latitude': last_latitude,
+        'last_longitude': last_longitude,
+        'last_seen': last_seen,
+        'guard_callsign': guard_callsign,
+        'guard_shift': guard_shift,
+        'sim_phone_number': sim_phone_number,
+        'imei': imei,
+        'imsi': imsi,
+    }
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_device(request):
+    """Register or re-register a device by operator_id.
+
+    Looks up existing device by operator_id. Accepts optional hardware_info dict
+    (imei, imsi, sim_phone_number, os_version, manufacturer, model).
+    """
     operator_id = request.data.get('operator_id')
     hardware_info = request.data.get('hardware_info', {})
 
@@ -257,10 +338,9 @@ def register_device(request):
     })
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def provision_device(request):
-    """Provision a hardware device to a guard callsign (callsign) and create an active ShiftAssignment.
-
-
+    """Provision a hardware device to a guard callsign and create an active ShiftAssignment.
 
     Android is expected to POST the real hardware_id (device_id). If we previously created a placeholder device
     without hardware_id, bind it here.
@@ -276,42 +356,43 @@ def provision_device(request):
     guard = get_object_or_404(GuardSupervisor, id=guard_id)
     org = guard.organization
 
-    # Use get_or_create to allow "pre-registration" from the dashboard
-    # even before the physical device has installed the app and connected.
-    device, created = Device.objects.get_or_create(
-        device_id=device_id,
-        defaults={'device_name': f"Device-{device_id[-4:]}", 'organization': org}
-    )
+    with transaction.atomic():
+        # Use get_or_create to allow "pre-registration" from the dashboard
+        # even before the physical device has installed the app and connected.
+        device, created = Device.objects.get_or_create(
+            device_id=device_id,
+            defaults={'device_name': f"Device-{device_id[-4:]}", 'organization': org}
+        )
 
-    if created and not device.callsign and org:
-        device.callsign = guard.callsign if guard.callsign else generate_operator_id(org)
+        if created and not device.callsign and org:
+            device.callsign = guard.callsign if guard.callsign else generate_operator_id(org)
+            device.save()
+
+        # Sync to CallSign Model (The Source of Truth)
+        cs, _ = CallSign.objects.get_or_create(device=device, organization=org)
+        cs.callsign = device.callsign
+        cs.current_guard = guard
+        cs.active_shift = guard.shift
+        cs.save()
+
+        # Assign the hardware's callsign to the guard's profile
+        if device.callsign:
+            guard.callsign = device.callsign
+            guard.save(update_fields=['callsign'])
+
+        device.is_online = True
+        device.last_seen = timezone.now()
         device.save()
 
-    # Sync to CallSign Model (The Source of Truth)
-    cs, _ = CallSign.objects.get_or_create(device=device, organization=org)
-    cs.callsign = device.callsign
-    cs.current_guard = guard
-    cs.active_shift = guard.shift
-    cs.save()
-
-    # Assign the hardware's callsign to the guard's profile
-    if device.callsign:
-        guard.callsign = device.callsign
-        guard.save(update_fields=['callsign'])
-
-    device.is_online = True
-    device.last_seen = timezone.now()
-    device.save()
-
-    # Bind provisioning
-    DeviceProvisioning.objects.update_or_create(
-        device=device,
-        guard=guard,
-        defaults={
-            'callsign_snapshot': device.callsign,
-            'organization': org,
-        }
-    )
+        # Bind provisioning
+        DeviceProvisioning.objects.update_or_create(
+            device=device,
+            guard=guard,
+            defaults={
+                'callsign_snapshot': device.callsign,
+                'organization': org,
+            }
+        )
 
     # Create new active assignment (route left null/unassigned)
     ShiftAssignment.objects.create(
@@ -435,7 +516,6 @@ def _heartbeat_lead_time_reminder(device, active_assignments, now):
         device.tts_pending_rate = route.tts_rate
         device.tts_pending_pitch = route.tts_pitch
         device.tts_pending_at = now
-        device.save(update_fields=['last_reminder_at', 'tts_acked', 'tts_pending', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_pending_at'])
         return {
             'tts_pending': msg,
             'tts_pending_voice': route.tts_voice or device.tts_voice or 'en-US',
@@ -467,7 +547,6 @@ def _heartbeat_geofence_tts(device, lat, lng, now):
         if not inside and gf_key in gf_states:
             del gf_states[gf_key]
             device.geofence_states = gf_states
-            device.save(update_fields=['geofence_states'])
         elif inside and gf_key not in gf_states and not device.tts_pending:
             gf_states[gf_key] = now.isoformat()
             device.geofence_states = gf_states
@@ -477,7 +556,6 @@ def _heartbeat_geofence_tts(device, lat, lng, now):
             device.tts_pending_rate = device.tts_rate
             device.tts_pending_pitch = device.tts_pitch
             device.tts_pending_at = now
-            device.save(update_fields=['geofence_states', 'tts_acked', 'tts_pending', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_pending_at'])
             return {
                 'tts_pending': gf.entry_msg,
                 'tts_pending_voice': device.tts_voice or 'en-US',
@@ -558,6 +636,11 @@ def _heartbeat_peer_mode(device, active_assignments):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def heartbeat(request):
+    """Device heartbeat endpoint. Authenticates device_id + password.
+
+    Updates online status, last_seen, GPS, battery. Processes NFC fetch directives,
+    TTS delivery, geofence checks, and active mission state.
+    """
     device_id = request.data.get('device_id')
     password = request.data.get('password')
 
@@ -597,6 +680,8 @@ def heartbeat(request):
         'battery_pct', 'last_latitude', 'last_longitude', 'last_gps_accuracy',
         'last_seen', 'is_online', 'nfc_fetch_requested', 'gps_fetch_requested',
         'gps_accuracy_threshold', 'peer_session_key',
+        'geofence_states', 'last_reminder_at', 'tts_acked', 'tts_pending',
+        'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_pending_at',
     ])
     return Response(directives)
 
@@ -829,10 +914,17 @@ class DeviceViewSet(viewsets.ModelViewSet):
             is_active=False, ended_at=now
         )
         # Re-check guards whose assignments were bulk-closed (signal doesn't fire on update())
-        for gid in old_guard_ids:
-            still_active = ShiftAssignment.objects.filter(guard_supervisor_id=gid, is_active=True).exclude(device=device).exists()
-            if not still_active:
-                GuardSupervisor.objects.filter(id=gid, is_on_shift=True).update(is_on_shift=False)
+        if old_guard_ids:
+            still_active_guard_ids = set(
+                ShiftAssignment.objects.filter(
+                    guard_supervisor_id__in=old_guard_ids, is_active=True
+                ).exclude(device=device).values_list('guard_supervisor_id', flat=True)
+            )
+            inactive_guard_ids = old_guard_ids - still_active_guard_ids
+            if inactive_guard_ids:
+                GuardSupervisor.objects.filter(
+                    id__in=inactive_guard_ids, is_on_shift=True
+                ).update(is_on_shift=False)
 
         # 2. Update the device's callsign to match the guard's current callsign
         if guard.callsign:
@@ -1058,7 +1150,11 @@ class CheckpointViewSet(viewsets.ModelViewSet):
 
 class ScanRecordViewSet(viewsets.ModelViewSet):
     serializer_class = ScanRecordSerializer
-    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     def get_queryset(self):
         user = self.request.user
@@ -1361,6 +1457,11 @@ class OperatorAlertViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 def admin_stats(request):
+    """Return aggregate system stats for admin dashboard.
+
+    Includes total users, devices, routes, and today's scan/shift counts.
+    Restricted to superusers and admin profiles.
+    """
     if not (request.user.is_superuser or hasattr(request.user, 'admin_profile')):
         return Response({'error': 'Unauthorized'}, status=403)
     
@@ -1692,51 +1793,52 @@ def assign_guard_to_blueprint_shift(request):
     if route.assigned_guards.exists() and not route.assigned_guards.filter(id=guard.id).exists():
         return Response({'detail': 'Guard not eligible for this blueprint'}, status=400)
 
-    # Resolve device
-    device = None
-    if device_id:
-        device = get_object_or_404(Device, id=device_id)
-        # Bind provisioning to guard
-        cs, _ = CallSign.objects.get_or_create(device=device, organization=guard.organization)
-        cs.callsign = cs.callsign or device.callsign
-        cs.current_guard = guard
-        cs.active_shift = shift_type if shift_type in ['Day', 'Night', 'Flex'] else guard.shift
-        cs.save()
+    with transaction.atomic():
+        # Resolve device
+        device = None
+        if device_id:
+            device = get_object_or_404(Device, id=device_id)
+            # Bind provisioning to guard
+            cs, _ = CallSign.objects.get_or_create(device=device, organization=guard.organization)
+            cs.callsign = cs.callsign or device.callsign
+            cs.current_guard = guard
+            cs.active_shift = shift_type if shift_type in ['Day', 'Night', 'Flex'] else guard.shift
+            cs.save()
 
-        guard.callsign = cs.callsign
-        guard.save(update_fields=['callsign'])
+            guard.callsign = cs.callsign
+            guard.save(update_fields=['callsign'])
 
-        DeviceProvisioning.objects.update_or_create(
+            DeviceProvisioning.objects.update_or_create(
+                device=device,
+                guard=guard,
+                defaults={
+                    'callsign_snapshot': cs.callsign,
+                    'organization': guard.organization,
+                }
+            )
+
+            device.is_online = True
+            device.last_seen = timezone.now()
+            device.save(update_fields=['is_online', 'last_seen'])
+
+        else:
+            # Use currently bound device for this guard if present
+            cs = CallSign.objects.filter(current_guard=guard).select_related('device').first()
+            if cs and cs.device_id:
+                device = cs.device
+
+        ShiftAssignment.objects.create(
+            dispatcher=user,
+            guard_supervisor=guard,
             device=device,
-            guard=guard,
-            defaults={
-                'callsign_snapshot': cs.callsign,
-                'organization': guard.organization,
-            }
+            route=route,
+            scheduled_date=scheduled_date or route.scheduled_date or timezone.now().date(),
+            scheduled_start=scheduled_start,
+            scheduled_end=scheduled_end,
+            shift_type=shift_type,
+            is_active=True,
+            is_completed=False,
         )
-
-        device.is_online = True
-        device.last_seen = timezone.now()
-        device.save(update_fields=['is_online', 'last_seen'])
-
-    else:
-        # Use currently bound device for this guard if present
-        cs = CallSign.objects.filter(current_guard=guard).select_related('device').first()
-        if cs and cs.device_id:
-            device = cs.device
-
-    ShiftAssignment.objects.create(
-        dispatcher=user,
-        guard_supervisor=guard,
-        device=device,
-        route=route,
-        scheduled_date=scheduled_date or route.scheduled_date or timezone.now().date(),
-        scheduled_start=scheduled_start,
-        scheduled_end=scheduled_end,
-        shift_type=shift_type,
-        is_active=True,
-        is_completed=False,
-    )
 
     return Response({'status': 'assigned', 'guard_id': guard.id, 'route_id': route.id, 'shift_type': shift_type}, status=201)
 
@@ -1775,13 +1877,19 @@ def dashboard_page(request):
     else:
         on_duty_qs = GuardSupervisor.objects.filter(is_on_shift=True)
 
+    # Prefetch CallSign + device to avoid N+1
     on_duty_guards = []
+    guard_ids = list(on_duty_qs.values_list('id', flat=True))
+    cs_map = {
+        cs.current_guard_id: cs
+        for cs in CallSign.objects.filter(current_guard_id__in=guard_ids).select_related('device')
+    }
     for g in on_duty_qs:
         device = None
         battery = None
         device_online = False
         device_name = None
-        cs = CallSign.objects.filter(current_guard=g).select_related('device').first()
+        cs = cs_map.get(g.id)
         if cs and cs.device:
             device = cs.device
             device_name = device.device_id or device.device_name
@@ -1925,7 +2033,7 @@ def dispatch_page(request):
 
 @api_view(['POST'])
 def end_shift(request, pk):
-    """Terminate a shift assignment. Returns JSON; frontend redirects client-side if needed."""
+    """Terminate a shift assignment. Marks device offline if no other active shifts reference it."""
     assignment = get_object_or_404(ShiftAssignment, pk=pk)
     assignment.is_active = False
     assignment.ended_at = timezone.now()
@@ -1934,6 +2042,15 @@ def end_shift(request, pk):
     if assignment.guard_supervisor:
         assignment.guard_supervisor.is_on_shift = False
         assignment.guard_supervisor.save(update_fields=['is_on_shift'])
+
+    # Mark device offline only when no other active shifts reference it
+    if assignment.device:
+        has_other_active = ShiftAssignment.objects.filter(
+            device=assignment.device, is_active=True, is_completed=False
+        ).exclude(pk=assignment.pk).exists()
+        if not has_other_active:
+            assignment.device.is_online = False
+            assignment.device.save(update_fields=['is_online'])
 
     return Response({'status': 'ended', 'assignment_id': assignment.id})
 
@@ -1958,18 +2075,22 @@ def admin_panel_page(request):
     return render(request, 'admin_panel.html')
 
 def login_page(request):
+    """Render the login page."""
     return render(request, 'login.html')
 
 def register_page(request):
+    """Render the registration page."""
     return render(request, 'register.html')
 
 
 def logout_view(request):
-    """Logout and redirect to login."""
+    """Logout, clear JWT cookie, and redirect to login."""
     from django.contrib.auth import logout
     from django.shortcuts import redirect
     logout(request)
-    return redirect('/')
+    response = redirect('/')
+    response.delete_cookie('gt_access_token')
+    return response
 
 
 def custom_404(request, exception=None):
@@ -2607,9 +2728,9 @@ def device_recent_scans(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminUser])
 def seed_attendance(request):
-    """Generate realistic attendance data for testing the analytics/reports pages."""
+    """Generate realistic attendance data for testing the analytics/reports pages. Admin only."""
     from datetime import date, timedelta
 
     days = int(request.data.get('days', 30))

@@ -11,6 +11,7 @@ urlpatterns = [
 
     # Authentication Page Views
     path('', api_views.login_page, name='login'),
+    path('login/', api_views.login_page, name='login_page'),
     path('register/', api_views.register_page, name='register'),
 
     # Operational Hub Page Views

@@ -29,7 +29,7 @@ def _resolve_checkpoints(user):
     org = _resolve_org(user)
     qs = MapObject.objects.filter(
         Q(type__in=['nfc', 'gps', 'geo', 'peer', 'poi', 'geofence']) |
-        Q(checkpoint_type__in=['nfc', 'gps', 'geo', 'peer'])
+        Q(checkpoint_type__in=['nfc', 'gps', 'geo', 'peer', 'custom'])
     )
     if org:
         qs = qs.filter(organization=org)

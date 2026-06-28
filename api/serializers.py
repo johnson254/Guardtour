@@ -186,6 +186,9 @@ class CheckpointSerializer(serializers.ModelSerializer):
     asset_class = serializers.CharField(default='checkpoint', read_only=True)
     type = serializers.CharField(default='poi', read_only=True)
     geometry = serializers.SerializerMethodField()
+    route = serializers.PrimaryKeyRelatedField(
+        queryset=PatrolRoute.objects.all(), required=False, allow_null=True
+    )
 
     def get_organization_name(self, obj):
         if obj.organization:

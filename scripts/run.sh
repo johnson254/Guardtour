@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$REPO_ROOT"
 FRONTEND_DIR="$BACKEND_DIR/static"
-VENV_DIR="$BACKEND_DIR/.venv"
+VENV_DIR="/home/jay/Desktop/projects/venv"
 LOG_DIR="$REPO_ROOT/.logs"
 
 PY="${VENV_DIR}/bin/python"
