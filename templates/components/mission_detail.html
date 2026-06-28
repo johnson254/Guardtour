@@ -1,0 +1,653 @@
+{% comment %}
+Mission Detail Component — live countdown, TTS resend, checkpoint timeline
+Uses dcMd-* / dcDwell-* / dcTTS-* ID prefix, matches dispatch.html's JS.
+
+  Include: {% include "components/mission_detail.html" %}
+  Requires: dispatch.html's JS functions (dcShowMissionDetail sets content)
+  Provides: Live countdown ticker via MissionDetailComponent
+{% endcomment %}
+<style>
+/* ── Shell ───────────────────────────────────── */
+.md-shell {
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 4px 0;
+}
+.md-head {
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.md-back {
+    width: 32px; height: 32px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.35);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; transition: all 0.2s; flex-shrink: 0;
+}
+.md-back:hover { background: rgba(255,255,255,0.06); color: white; }
+.md-title { font-size: 0.9rem; font-weight: 900; color: white; flex: 1; }
+.md-body { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Info grid ────────────────────────────────── */
+.md-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+.md-card {
+    position: relative;
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+}
+.md-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 10px 10px 0 0;
+    opacity: 0.3;
+}
+.md-card:hover { border-color: rgba(255,255,255,0.08); }
+.md-card-lbl {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 0.48rem; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px;
+}
+.md-card-lbl i { font-size: 0.4rem; opacity: 0.5; }
+.md-card-val {
+    font-size: 0.72rem; font-weight: 800; color: white;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.md-card-sub {
+    font-size: 0.5rem; color: rgba(255,255,255,0.2);
+    margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Card accent colors */
+.md-card.guard::before { background: #5DCAA5; }
+.md-card.device::before { background: #6C8EEF; }
+.md-card.route::before { background: #EF9F27; }
+.md-card.shift::before { background: #A855F7; }
+.md-card.started::before { background: #d32f2f; }
+.md-card.schedule::before { background: rgba(255,255,255,0.3); }
+.md-card.logic::before { background: #F472B6; }
+.md-card.cp-count::before { background: #34D399; }
+.md-card.operator::before { background: #F59E0B; }
+
+/* ── Progress section ─────────────────────────── */
+.md-progress-box {
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+}
+.md-progress-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.55rem; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+}
+.md-progress-head i { font-size: 0.5rem; }
+
+/* Summary bar */
+.md-summary {
+    display: flex; gap: 8px; margin-bottom: 10px;
+}
+.md-summary-pill {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 0.58rem; font-weight: 800;
+}
+.md-summary-pill.hit { background: rgba(93,202,165,0.1); color: #5DCAA5; }
+.md-summary-pill.miss { background: rgba(211,47,47,0.1); color: #d32f2f; }
+.md-summary-pill.pending { background: rgba(108,142,239,0.1); color: #6C8EEF; }
+.md-summary-pill i { font-size: 0.5rem; }
+
+/* Progress bars */
+.dc-progress-track {
+    height: 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    overflow: hidden; margin: 4px 0 12px 0;
+}
+.dc-progress-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #5DCAA5, #6C8EEF);
+    transition: width 0.5s ease;
+}
+.dc-progress-fill.complete { background: linear-gradient(90deg, #5DCAA5, #00E676); }
+.md-progress-striped {
+    display: flex; height: 4px; gap: 2px; border-radius: 4px; overflow: hidden;
+}
+
+/* ── Live objective block ─────────────────────── */
+.md-live {
+    border: 1px solid rgba(93,202,165,0.2);
+    border-radius: 10px; padding: 14px;
+    background: rgba(93,202,165,0.03);
+    transition: border-color 0.3s;
+}
+.md-live.missed { border-color: rgba(211,47,47,0.3); background: rgba(211,47,47,0.04); }
+.md-live-head {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+.md-live-name {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 800; font-size: 0.7rem; color: #5DCAA5;
+}
+.md-live-eta {
+    font-weight: 900; font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 80px; text-align: right;
+}
+.md-live-info {
+    display: flex; gap: 14px; font-size: 0.58rem; color: rgba(255,255,255,0.4);
+    flex-wrap: wrap;
+}
+.md-live-info span { display: flex; align-items: center; gap: 4px; }
+.md-dwell-box {
+    background: rgba(0,0,0,0.12); border-radius: 8px; padding: 10px;
+    margin-top: 8px;
+}
+.md-dwell-head {
+    display: flex; justify-content: space-between;
+    font-size: 0.55rem; color: rgba(255,255,255,0.35); margin-bottom: 4px;
+}
+.md-dwell-bar {
+    height: 8px; border-radius: 999px; overflow: hidden;
+    background: rgba(255,255,255,0.04);
+}
+.md-dwell-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #5DCAA5, #00C49A);
+    transition: width 1s linear;
+}
+.md-dwell-ticks {
+    display: flex; justify-content: space-between;
+    font-size: 0.45rem; color: rgba(255,255,255,0.18); margin-top: 3px;
+}
+
+/* ── TTS block ────────────────────────────────── */
+.md-tts-box {
+    border: 1px solid rgba(239,159,39,0.15);
+    border-radius: 10px; padding: 12px;
+    background: rgba(239,159,39,0.02);
+}
+.md-tts-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.md-tts-head i { font-size: 0.65rem; color: #EF9F27; }
+.md-tts-label {
+    font-weight: 800; font-size: 0.62rem; color: #EF9F27; flex: 1;
+}
+.md-tts-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.md-tts-badge {
+    font-size: 0.5rem; padding: 2px 8px; border-radius: 999px; font-weight: 700;
+}
+.md-tts-textarea {
+    width: 100%; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.15); color: #fff;
+    font-size: 0.58rem; resize: vertical; margin-top: 8px;
+    font-family: inherit; transition: border-color 0.2s;
+}
+.md-tts-textarea:focus { outline: none; border-color: rgba(239,159,39,0.3); }
+.md-tts-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+/* TTS voice config controls */
+.md-tts-voice-row {
+    display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;
+}
+.md-tts-voice-group {
+    flex: 1; min-width: 100px;
+}
+.md-tts-label-sm {
+    display: block; font-size: 0.5rem; color: rgba(255,255,255,0.4);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;
+}
+.md-tts-select {
+    width: 100%; padding: 4px 6px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.2); color: #fff;
+    font-size: 0.6rem; cursor: pointer;
+}
+.md-tts-select:focus { outline: none; border-color: rgba(239,159,39,0.3); }
+.md-tts-slider {
+    width: 100%; height: 4px; -webkit-appearance: none;
+    background: rgba(255,255,255,0.1); border-radius: 2px;
+    outline: none; cursor: pointer;
+}
+.md-tts-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: #EF9F27; border: none;
+}
+.md-tts-toggle-row {
+    display: flex; align-items: center; gap: 14px; margin-top: 8px;
+}
+.md-tts-toggle {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.58rem; color: rgba(255,255,255,0.6);
+    cursor: pointer; user-select: none;
+}
+.md-tts-toggle input[type="checkbox"] {
+    accent-color: #EF9F27; width: 14px; height: 14px; cursor: pointer;
+}
+
+/* ── Checkpoint manifest cards ────────────────── */
+.md-cp-row {
+    position: relative;
+    background: rgba(20,20,32,0.5);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px; padding: 10px; margin-bottom: 8px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.md-cp-row:hover {
+    border-color: rgba(255,255,255,0.08);
+}
+.md-cp-row.is-miss {
+    border-color: rgba(211,47,47,0.12);
+    background: rgba(211,47,47,0.03);
+}
+.md-cp-row.is-next {
+    border-color: rgba(239,159,39,0.2);
+    background: rgba(239,159,39,0.05);
+}
+.md-cp-row.is-done { opacity: 0.6; }
+.md-cp-row.is-done:hover { opacity: 0.8; }
+.md-cp-main {
+    display: flex; align-items: center; gap: 10px;
+}
+.md-cp-name-sec {
+    display: flex; align-items: center; gap: 6px;
+    min-width: 0; flex: 1;
+}
+.md-cp-name {
+    font-weight: 700; color: #fff; font-size: 0.68rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.md-cp-num {
+    font-size: 0.48rem; font-weight: 800;
+    color: rgba(255,255,255,0.25);
+    white-space: nowrap;
+}
+.md-cp-status {
+    font-weight: 800; font-size: 0.58rem;
+    white-space: nowrap; flex-shrink: 0;
+}
+.md-cp-summary {
+    display: flex; gap: 4px; flex-wrap: wrap;
+}
+.md-cp-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px; border-radius: 999px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.48rem; font-weight: 700; color: rgba(255,255,255,0.25);
+    transition: all 0.2s;
+}
+.md-cp-pill i { font-size: 0.4rem; opacity: 0.5; }
+.md-cp-pill.on {
+    color: #5DCAA5; background: rgba(93,202,165,0.07);
+    border-color: rgba(93,202,165,0.15);
+}
+.md-cp-toggle {
+    padding: 4px 8px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.25);
+    cursor: pointer; font-size: 0.52rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    flex-shrink: 0;
+}
+.md-cp-toggle:hover { background: rgba(108,142,239,0.06); color: #6C8EEF; border-color: rgba(108,142,239,0.15); }
+.md-cp-toggle.open { background: rgba(108,142,239,0.08); color: #6C8EEF; border-color: rgba(108,142,239,0.2); }
+.md-cp-toggle:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* Per-checkpoint TTS row */
+.md-cp-tts-wrap {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.03);
+}
+.md-cp-tts-input {
+    flex: 1; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.04);
+    background: rgba(0,0,0,0.12);
+    color: #fff; font-size: 0.52rem; font-family: inherit;
+    transition: border-color 0.2s;
+}
+.md-cp-tts-input:focus { outline: none; border-color: rgba(239,159,39,0.3); }
+.md-cp-tts-input:disabled { opacity: 0.35; cursor: not-allowed; }
+.md-cp-tts-btn {
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid rgba(239,159,39,0.12);
+    background: rgba(239,159,39,0.04); color: #EF9F27;
+    font-size: 0.48rem; font-weight: 800; cursor: pointer;
+    white-space: nowrap; display: flex; align-items: center; gap: 4px;
+    transition: all 0.2s; flex-shrink: 0;
+}
+.md-cp-tts-btn:hover { background: rgba(239,159,39,0.1); }
+.md-cp-tts-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Config panel (view/edit) ──────────────────── */
+.md-cp-config {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease, margin 0.3s ease, opacity 0.2s ease;
+    opacity: 0;
+}
+.md-cp-config.open {
+    max-height: 520px;
+    margin-top: 10px;
+    opacity: 1;
+}
+
+/* view mode actions */
+.md-cp-view-actions { display: flex; gap: 6px; }
+.md-cp-edit-actions { display: none; gap: 6px; }
+.md-cp-config[data-mode="view"] .md-cp-view-actions { display: flex; }
+.md-cp-config[data-mode="view"] .md-cp-edit-actions { display: none; }
+.md-cp-config[data-mode="view"] .md-cp-enf-slider,
+.md-cp-config[data-mode="view"] .md-cp-enf-presets { display: none; }
+.md-cp-config[data-mode="view"] .md-cp-enf-val { font-size: 0.78rem; }
+.md-cp-config[data-mode="edit"] .md-cp-view-actions { display: none; }
+.md-cp-config[data-mode="edit"] .md-cp-edit-actions { display: flex; }
+
+.md-cp-enf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.md-cp-enf-card {
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px; padding: 8px;
+    background: rgba(255,255,255,0.02);
+    transition: border-color 0.2s;
+}
+.md-cp-enf-card:hover { border-color: rgba(255,255,255,0.08); }
+.md-cp-enf-head {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+}
+.md-cp-enf-icon {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; flex-shrink: 0;
+}
+.md-cp-enf-info { flex: 1; min-width: 0; }
+.md-cp-enf-lbl { font-size: 0.55rem; font-weight: 800; color: rgba(255,255,255,0.45); }
+.md-cp-enf-desc { font-size: 0.42rem; color: rgba(255,255,255,0.18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-cp-enf-val {
+    font-size: 0.72rem; font-weight: 900; color: #fff;
+    white-space: nowrap; text-align: right;
+}
+.md-cp-enf-val small { font-size: 0.48rem; color: rgba(255,255,255,0.25); font-weight: 400; margin-left: 2px; }
+.md-cp-enf-slider {
+    width: 100%; margin: 6px 0 4px 0;
+    height: 4px; -webkit-appearance: none; appearance: none;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px; outline: none;
+}
+.md-cp-enf-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: #6C8EEF; cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.1);
+    transition: transform 0.15s;
+}
+.md-cp-enf-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.md-cp-enf-slider::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #6C8EEF; cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+.md-cp-enf-presets { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+.md-cp-enf-preset {
+    padding: 1px 6px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.2);
+    font-size: 0.43rem; font-weight: 700; cursor: pointer;
+    transition: all 0.15s;
+}
+.md-cp-enf-preset:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #fff; }
+.md-cp-enf-preset.active { border-color: #6C8EEF; background: rgba(108,142,239,0.08); color: #6C8EEF; }
+.md-cp-config-actions { display: flex; gap: 6px; margin-top: 8px; }
+.md-cp-config-btn {
+    flex: 1; padding: 6px 12px; border-radius: 8px; border: none;
+    font-size: 0.52rem; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    transition: all 0.15s;
+}
+.md-cp-config-btn.primary {
+    background: linear-gradient(135deg, #6C8EEF, #4A6FD9);
+    color: #fff;
+}
+.md-cp-config-btn.primary:hover { opacity: 0.9; }
+.md-cp-config-btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.md-cp-config-btn.secondary {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.4);
+}
+.md-cp-config-btn.secondary:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+/* ── Tolerance timeline (view mode) ────────────── */
+.md-cp-config[data-mode="view"] .md-cp-tol-bar-wrap { display: block; }
+.md-cp-config[data-mode="edit"] .md-cp-tol-bar-wrap { display: none; }
+.md-cp-tol-bar-wrap {
+    padding: 4px 2px 6px 2px;
+}
+.md-cp-tol-track {
+    position: relative; height: 4px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px; margin: 8px 0 4px 0;
+}
+.md-cp-tol-fill {
+    position: absolute; top: 0; left: 0; height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #5DCAA5, #EF9F27);
+    transition: width 1s linear;
+}
+.md-cp-tol-fill.past { background: rgba(211,47,47,0.6); }
+.md-cp-tol-cursor {
+    position: absolute; top: -4px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #6C8EEF;
+    box-shadow: 0 0 8px rgba(108,142,239,0.3);
+    transform: translateX(-50%);
+    transition: left 1s linear;
+    z-index: 2;
+}
+.md-cp-tol-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.4rem; color: rgba(255,255,255,0.12);
+}
+.md-cp-tol-label.mid { font-weight: 800; color: rgba(255,255,255,0.25); }
+
+/* ── Actions bar ──────────────────────────────── */
+.md-actions {
+    display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+}
+.md-actions button {
+    padding: 8px 16px; border-radius: 8px; border: none;
+    cursor: pointer; font-weight: 800; font-size: 0.65rem;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+}
+
+/* ── Confirmation overlays ────────────────────── */
+.md-confirm-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 500;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+}
+.md-confirm-box {
+    background: #1A1A2A;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 24px;
+    max-width: 420px; width: 90%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.md-confirm-title {
+    font-size: 0.8rem; font-weight: 900; color: #EF9F27;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.md-confirm-body {
+    font-size: 0.6rem; color: rgba(255,255,255,0.55); line-height: 1.5;
+}
+.md-confirm-actions {
+    display: flex; gap: 8px; margin-top: 16px;
+}
+.md-confirm-btn {
+    flex: 1; padding: 8px 14px; border-radius: 8px; border: none;
+    font-size: 0.58rem; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    transition: all 0.2s;
+}
+.md-confirm-btn.primary {
+    background: linear-gradient(135deg, #d32f2f, #B71C1C); color: #fff;
+}
+.md-confirm-btn.primary:hover { opacity: 0.9; }
+.md-confirm-btn.secondary {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.4);
+}
+.md-confirm-btn.secondary:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+/* ── Animations ──────────────────────────────── */
+@keyframes dcPulse { 0%,100% { transform:scale(1); opacity:0.8; } 50% { transform:scale(1.3); opacity:1; } }
+@keyframes dwellPulse { 0%,100% { opacity:0.6; } 50% { opacity:1; } }
+.dc-dwell-bar { animation: dwellPulse 2s ease-in-out infinite; }
+
+/* ── Live value colors ─────────────────────────── */
+.md-lv-ok { color: #5DCAA5; }
+.md-lv-warn { color: #EF9F27; }
+.md-lv-miss { color: #d32f2f; }
+.md-lv-dim { color: rgba(255,255,255,0.15); }
+.md-lv-on { color: #5DCAA5; }
+.md-lv-off { color: #d32f2f; }
+.md-lv-count { color: #6C8EEF; font-weight: 900; }
+</style>
+
+<div class="md-shell dc-mission-detail dc-hidden" id="dcMissionDetail">
+    <div class="md-head">
+        <button class="md-back" onclick="dcCloseMissionDetail()" title="Back"><i class="fas fa-arrow-left"></i></button>
+        <div class="md-title" id="dcMdTitle">Mission Detail</div>
+        <span class="dc-status" id="dcMdStatusBadge" style="font-size:0.58rem;padding:4px 12px;border-radius:999px;"></span>
+    </div>
+    <div class="md-body">
+        <div class="md-grid">
+            <div class="md-card guard"><div class="md-card-lbl"><i class="fas fa-user-shield"></i> Guard</div><div class="md-card-val" id="dcMdGuard">—</div><div class="md-card-sub" id="dcMdGuardOp">—</div></div>
+            <div class="md-card device"><div class="md-card-lbl"><i class="fas fa-microchip"></i> Device</div><div class="md-card-val" id="dcMdDevice">—</div><div class="md-card-sub" id="dcMdDeviceId">—</div></div>
+            <div class="md-card route"><div class="md-card-lbl"><i class="fas fa-route"></i> Route</div><div class="md-card-val" id="dcMdRoute">—</div><div class="md-card-sub" id="dcMdRouteDetail">—</div></div>
+            <div class="md-card shift"><div class="md-card-lbl"><i class="fas fa-sun-moon"></i> Shift</div><div class="md-card-val" id="dcMdShift">—</div><div class="md-card-sub" id="dcMdShiftDetail">—</div></div>
+            <div class="md-card logic"><div class="md-card-lbl"><i class="fas fa-diagram-project"></i> Logic</div><div class="md-card-val" id="dcMdLogic">—</div><div class="md-card-sub">Strategy type</div></div>
+            <div class="md-card cp-count"><div class="md-card-lbl"><i class="fas fa-location-dot"></i> Checkpoints</div><div class="md-card-val" id="dcMdCpCount">—</div><div class="md-card-sub" id="dcMdCpDetail">—</div></div>
+            <div class="md-card started"><div class="md-card-lbl"><i class="fas fa-play"></i> Started</div><div class="md-card-val" id="dcMdStarted">—</div><div class="md-card-sub" id="dcMdStartedDetail">—</div></div>
+            <div class="md-card schedule"><div class="md-card-lbl"><i class="fas fa-clock"></i> Schedule</div><div class="md-card-val" id="dcMdSchedule">—</div><div class="md-card-sub" id="dcMdScheduleDetail">—</div></div>
+        </div>
+
+        <!-- Progress section -->
+        <div class="md-progress-box">
+            <div class="md-progress-head"><i class="fas fa-list-check"></i> Checkpoints</div>
+            <div id="dcMdSummary" class="md-summary"></div>
+            <div class="dc-progress-wrap" id="dcMdProgressBar"></div>
+            <div id="dcMdManifest"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="md-actions" id="dcMdActions"></div>
+    </div>
+</div>
+
+<!-- TTS Resend Confirmation Overlay -->
+<div class="md-confirm-overlay" id="dcTtsConfirm" style="display:none;" onclick="if(event.target===this)document.getElementById('dcTtsConfirm').style.display='none'">
+    <div class="md-confirm-box">
+        <div class="md-confirm-title"><i class="fas fa-volume-high"></i> Broadcast TTS</div>
+        <div class="md-confirm-body" id="dcTtsConfirmBody">Send TTS announcement for this checkpoint?</div>
+        <div style="font-size:0.55rem;color:rgba(239,159,39,0.7);margin-top:8px;padding:6px 8px;border-radius:6px;background:rgba(239,159,39,0.06);border:1px solid rgba(239,159,39,0.1);">
+            <i class="fas fa-info-circle"></i> Per-checkpoint TTS is only available for missions that have <strong>not yet started</strong> or whose alert window has <strong>not elapsed</strong>. Previously deployed checkpoints use route-level TTS.
+        </div>
+        <div class="md-confirm-actions">
+            <button class="md-confirm-btn secondary" onclick="document.getElementById('dcTtsConfirm').style.display='none'"><i class="fas fa-times"></i> Cancel</button>
+            <button class="md-confirm-btn primary" id="dcTtsConfirmBtn"><i class="fas fa-paper-plane"></i> Send TTS</button>
+        </div>
+    </div>
+</div>
+
+<!-- Checkpoint Edit Confirmation Overlay -->
+<div class="md-confirm-overlay" id="dcCpEditConfirm" style="display:none;" onclick="if(event.target===this)document.getElementById('dcCpEditConfirm').style.display='none'">
+    <div class="md-confirm-box" style="max-width:480px;">
+        <div class="md-confirm-title"><i class="fas fa-pen-to-square"></i> Confirm Checkpoint Changes</div>
+        <div class="md-confirm-body" id="dcCpEditBody">Review changes before applying.</div>
+        <div id="dcCpEditDiff" style="margin-top:8px;padding:8px;border-radius:6px;background:rgba(0,0,0,0.12);font-size:0.58rem;"></div>
+        <div style="font-size:0.52rem;color:rgba(239,159,39,0.7);margin-top:8px;padding:6px 8px;border-radius:6px;background:rgba(239,159,39,0.06);border:1px solid rgba(239,159,39,0.1);">
+            <i class="fas fa-info-circle"></i> Changes apply to the underlying blueprint route and affect <strong>future deployments</strong>. Running missions are not affected.
+        </div>
+        <div class="md-confirm-actions">
+            <button class="md-confirm-btn secondary" onclick="document.getElementById('dcCpEditConfirm').style.display='none'"><i class="fas fa-times"></i> Cancel</button>
+            <button class="md-confirm-btn primary" id="dcCpEditConfirmBtn"><i class="fas fa-check"></i> Apply Changes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    if (window.MissionDetailComponent) return;
+    var tickers = {};
+
+    function fmt(sec) {
+        if (sec == null) return '—';
+        sec = Math.max(0, Number(sec));
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        return (m > 0 ? m + 'm ' : '') + s + 's';
+    }
+
+    function startCountdown(id, initialSeconds, el) {
+        stopCountdown(id);
+        if (initialSeconds == null || !el) return;
+        var remaining = Math.max(0, Number(initialSeconds));
+        el.textContent = fmt(remaining);
+        tickers[id] = setInterval(function() {
+            if (remaining <= 0) { stopCountdown(id); return; }
+            remaining--;
+            el.textContent = fmt(remaining);
+        }, 1000);
+    }
+
+    function stopCountdown(id) {
+        if (tickers[id]) { clearInterval(tickers[id]); delete tickers[id]; }
+    }
+
+    window.MissionDetailComponent = {
+        startEtaCountdown: function(seconds, elementId) {
+            startCountdown('eta', seconds, document.getElementById(elementId));
+        },
+        startDwellCountdown: function(remainingSeconds, totalSeconds, isPresent, labelId, fillId, pctId) {
+            stopCountdown('dwell');
+            if (!isPresent || remainingSeconds == null) return;
+            var rem = Math.max(0, Number(remainingSeconds));
+            var total = Number(totalSeconds) || 1;
+            var labelEl = document.getElementById(labelId);
+            var fillEl = document.getElementById(fillId);
+            var pctEl = document.getElementById(pctId);
+            if (!labelEl) return;
+            tickers['dwell'] = setInterval(function() {
+                if (rem <= 0) { stopCountdown('dwell'); return; }
+                rem--;
+                var pct = Math.round(((total - rem) / total) * 100);
+                if (labelEl) labelEl.textContent = fmt(rem);
+                if (fillEl) fillEl.style.width = pct + '%';
+                if (pctEl) pctEl.textContent = pct + '%';
+                if (rem <= 0) stopCountdown('dwell');
+            }, 1000);
+        },
+        stopAll: function() {
+            for (var k in tickers) stopCountdown(k);
+        }
+    };
+})();
+</script>

@@ -1,0 +1,108 @@
+<div class="mg-panel active" id="mgPanelFleet">
+<div class="mg-panel-head">
+    <h3 class="mg-panel-title"><i class="fas fa-microchip" style="color:var(--primary);margin-right:5px"></i>Fleet &amp; Asset Registry</h3>
+    <button class="mg-btn mg-btn-sm mg-btn-primary" onclick="mgOpenModal('device')">
+        <i class="fas fa-plus"></i> Register Device
+    </button>
+</div>
+<div class="mg-panel-body" style="padding:0;">
+    <div class="mg-fleet-grid">
+        <div class="mg-fleet-devices">
+            <div class="mg-fleet-devices-head">
+                <span class="mg-fleet-devices-title">
+                    <i class="fas fa-microchip" style="color:#6C8EEF;"></i> Fleet
+                </span>
+                <span id="deviceCountBadge" class="mg-fleet-devices-count">0</span>
+            </div>
+            <div class="mg-filter-bar" style="padding:8px 10px;">
+                <div class="mg-search-wrap" style="flex:1;">
+                    <i class="fas fa-search"></i>
+                    <input id="deviceSearch" placeholder="Search devices…"
+                           hx-get="/api/devices-partial/"
+                           hx-target="#deviceList"
+                           hx-trigger="input changed delay:200ms"
+                           hx-vals='js:{q: event.target.value, status: document.querySelector(".mg-filter-chip.active")?.dataset.status || "all"}'
+                           name="q" style="font-size:0.65rem;padding:5px 8px;">
+                </div>
+            </div>
+            <div style="display:flex;gap:3px;padding:0 10px 8px;">
+                <button class="mg-filter-chip active" data-status="all" onclick="mgDeviceFilter('all',this)"
+                        hx-get="/api/devices-partial/" hx-target="#deviceList" hx-trigger="click" style="font-size:0.5rem;padding:3px 8px;">All</button>
+                <button class="mg-filter-chip" data-status="online" onclick="mgDeviceFilter('online',this)"
+                        hx-get="/api/devices-partial/?status=online" hx-target="#deviceList" hx-trigger="click" style="font-size:0.5rem;padding:3px 8px;">Online</button>
+            </div>
+            <div class="mg-list" id="deviceList" style="padding:0 8px;">
+                <div class="mg-empty" style="padding:20px;"><i class="fas fa-circle-notch fa-spin" style="font-size:1rem;opacity:0.3;"></i></div>
+            </div>
+        </div>
+        <div class="mg-fleet-center">
+            <div class="mg-fleet-map">
+                <div class="mg-map-head">
+                    <span class="mg-map-title">
+                        <i class="fas fa-map" style="color:var(--cb-teal);"></i> Tactical Map
+                    </span>
+                    <div class="mg-map-legend">
+                        <span class="mg-map-legend-item"><span class="mg-map-legend-dot" style="background:#6C8EEF;"></span>Device</span>
+                        <span class="mg-map-legend-item"><span class="mg-map-legend-dot" style="background:var(--r-crim);"></span>NFC</span>
+                        <span class="mg-map-legend-item"><span class="mg-map-legend-dot" style="background:#6C8EEF;"></span>GPS</span>
+                        <span class="mg-map-legend-item"><span class="mg-map-legend-dot" style="background:var(--cb-teal);"></span>Staged</span>
+                    </div>
+                    <span id="mgMapCoord" style="font-size:0.45rem;color:rgba(255,255,255,0.2);font-family:monospace;">—</span>
+                </div>
+                <div id="mgFleetMap" class="mg-map-canvas"></div>
+                <div id="cbMapHint" class="mg-map-hint"></div>
+            </div>
+        </div>
+        <div class="mg-cp-panel">
+            <div class="mg-cp-glass">
+                <div class="mg-cp-panel-head">
+                    <span class="mg-cp-panel-title">
+                        <i class="fas fa-crosshairs" style="color:var(--cb-teal);"></i> Checkpoint Builder
+                    </span>
+                    <span class="mg-cp-panel-count" id="regCountStaged">0</span>
+                </div>
+                <div class="mg-cp-trigger-wrap">
+                    <button class="mg-cp-trigger" onclick="mgToggleCpAdders()">
+                        <i class="fas fa-plus"></i> Add Checkpoint
+                        <i class="fas fa-chevron-down" id="mgCpTriggerIcon" style="margin-left:auto;font-size:0.5rem;transition:transform .2s;"></i>
+                    </button>
+                </div>
+                <div class="mg-cp-adders" id="mgCpAdders" style="display:none;">
+                    <div class="mg-cp-adders-inner">
+                        <button class="mg-cp-add-btn" data-type="nfc" onclick="cbQuickAdd('nfc')">
+                            <span class="mg-cp-add-ico" style="background:rgba(211,47,47,0.12);color:#d32f2f;"><i class="fas fa-wifi"></i></span>
+                            <span>NFC</span>
+                        </button>
+                        <button class="mg-cp-add-btn" data-type="gps" onclick="cbQuickAdd('gps')">
+                            <span class="mg-cp-add-ico" style="background:rgba(108,142,239,0.12);color:#6C8EEF;"><i class="fas fa-map-pin"></i></span>
+                            <span>GPS</span>
+                        </button>
+                        <button class="mg-cp-add-btn" data-type="geo" onclick="cbQuickAdd('geo')">
+                            <span class="mg-cp-add-ico" style="background:rgba(168,85,247,0.12);color:#A855F7;"><i class="fas fa-draw-polygon"></i></span>
+                            <span>Geo</span>
+                        </button>
+                        <button class="mg-cp-add-btn" data-type="peer" onclick="cbQuickAdd('peer')">
+                            <span class="mg-cp-add-ico" style="background:rgba(245,158,11,0.12);color:#F59E0B;"><i class="fas fa-user-shield"></i></span>
+                            <span>Peer</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="mg-cp-panel-body">
+                    <div id="cpRegistry" class="cb-draft-list">
+                        <div class="mg-empty" id="regEmpty" style="padding:16px;">
+                            <div style="font-size:1rem;margin-bottom:4px;opacity:0.12;"><i class="fas fa-crosshairs"></i></div>
+                            <div style="font-weight:700;font-size:0.58rem;color:rgba(255,255,255,0.2);">No checkpoints staged</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mg-cp-panel-foot">
+                <button class="mg-btn mg-btn-sm mg-btn-teal" style="flex:1;" onclick="cbSaveInlineCheckpoints()">
+                    <i class="fas fa-cloud-arrow-up"></i> Save All to Server
+                </button>
+                <button class="mg-btn mg-btn-sm" onclick="cbClearStaged()" title="Clear staged"><i class="fas fa-trash-can"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

@@ -1,0 +1,1 @@
+# This module is deprecated. All views have been moved to api/views.py

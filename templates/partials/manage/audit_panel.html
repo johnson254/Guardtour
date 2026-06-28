@@ -1,0 +1,57 @@
+<div class="mg-panel active" id="mgPanelAudit">
+<div class="mg-panel-head">
+    <h3 class="mg-panel-title"><i class="fas fa-route" style="color:var(--primary);margin-right:5px"></i>Routes &amp; Audit Log</h3>
+    <div style="display:flex;gap:7px;">
+        <button class="mg-btn mg-btn-sm" onclick="window.location.href='/routes/'">
+            <i class="fas fa-compass-drafting"></i> Blueprint Designer
+        </button>
+        <button class="mg-btn mg-btn-primary mg-btn-sm" onclick="window.location.href='/dispatch/'">
+            <i class="fas fa-rocket"></i> Dispatch
+        </button>
+    </div>
+</div>
+<div class="mg-panel-body" style="padding:16px;">
+    <div class="mg-stats" id="routeStats" style="margin-bottom:16px;"></div>
+    <div class="mg-g2" style="align-items:start;gap:16px;margin-bottom:24px;">
+        <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;">
+                <span class="mg-lbl" style="margin:0;letter-spacing:0.6px;">All Blueprints</span>
+                <div style="position:relative;flex:0 0 140px;">
+                    <input id="routeSearchInput" class="rs-fi rs-fi-sm" style="width:100%;padding:3px 6px 3px 20px;font-size:0.55rem;border-radius:6px;background:rgba(0,0,0,0.2);" placeholder="Search…" oninput="mgFilterRoutes()">
+                    <i class="fas fa-search" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:0.4rem;color:rgba(255,255,255,0.2);pointer-events:none;"></i>
+                </div>
+            </div>
+            <div id="routeHealthList">
+                <div class="mg-empty"><i class="fas fa-route"></i> Loading…</div>
+            </div>
+        </div>
+        <div>
+            <span class="mg-lbl" style="letter-spacing:0.6px;">Active Deployments</span>
+            <div id="activeDeployList">
+                <div class="mg-empty"><i class="fas fa-satellite-dish"></i>No active deployments</div>
+            </div>
+        </div>
+    </div>
+    <hr class="mg-divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:10px;margin-top:6px;flex-wrap:wrap;">
+        <span class="mg-lbl" style="margin:0;"><i class="fas fa-scroll" style="color:var(--primary);margin-right:6px;"></i>System Audit Log</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <button class="mg-btn mg-btn-xs" onclick="mgLogPreset(1)" title="Last 24 hours">24h</button>
+            <button class="mg-btn mg-btn-xs" onclick="mgLogPreset(7)" title="Last 7 days">7d</button>
+            <button class="mg-btn mg-btn-xs" onclick="mgLogPreset(30)" title="Last 30 days">30d</button>
+            <input type="date" id="logDateFrom" class="mg-fi" style="width:105px;margin-bottom:0;padding:4px 6px;font-size:0.58rem;">
+            <input type="date" id="logDateTo" class="mg-fi" style="width:105px;margin-bottom:0;padding:4px 6px;font-size:0.58rem;">
+            <button class="mg-btn mg-btn-sm" onclick="mgLoadLog()"><i class="fas fa-filter"></i> Filter</button>
+        </div>
+    </div>
+    <div class="mg-filter-bar" style="margin-bottom:10px;">
+        <button class="mg-filter-chip active" onclick="mgLogFilter('all',this)">All</button>
+        <button class="mg-filter-chip" onclick="mgLogFilter('scan',this)"><i class="fas fa-wifi"></i> Scans</button>
+        <button class="mg-filter-chip" onclick="mgLogFilter('deploy',this)"><i class="fas fa-rocket"></i> Deployments</button>
+        <button class="mg-filter-chip" onclick="mgLogFilter('alert',this)"><i class="fas fa-bell"></i> Alerts</button>
+    </div>
+    <div id="auditLogList">
+        <div class="mg-empty"><i class="fas fa-scroll"></i> Loading log…</div>
+    </div>
+</div>
+</div>

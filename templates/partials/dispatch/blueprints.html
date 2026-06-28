@@ -1,0 +1,17 @@
+{% if routes %}
+  {% for r in routes %}
+  <div class="dc-bp-card" onclick="dcSelectBlueprint({{ r.id }})">
+    <div class="dc-bp-card-hdr">
+      <span class="dc-bp-card-name">{{ r.name }}</span>
+      <span class="dc-bp-card-count">{{ r.checkpoint_count|default:0 }}</span>
+    </div>
+    <div class="dc-bp-card-meta">
+      <span class="dc-badge {% if r.logic_type == 'Sequential' %}dc-badge-seq{% elif r.logic_type == 'Scheduled' %}dc-badge-sched{% elif r.logic_type == 'Audit' %}dc-badge-audit{% else %}dc-badge-flex{% endif %}">{{ r.logic_type|default:'Flexible' }}</span>
+      {% if r.is_daily %}<span class="dc-badge dc-badge-daily">↻ Daily</span>{% endif %}
+      {% if r.assigned_guards %}<span style="font-size:0.5rem;color:rgba(255,255,255,0.4);"><i class="fas fa-users"></i> {{ r.assigned_guards|length }}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="dc-bp-empty-center"><i class="fas fa-map"></i> No blueprints yet</div>
+{% endif %}

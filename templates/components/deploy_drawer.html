@@ -1,0 +1,168 @@
+{% comment %}
+Deploy Drawer — Mission Initialization slide-in drawer
+Uses dc-* ID prefix, matches dispatch.html's JS.
+Self-contained: includes own CSS.
+
+  Include: {% include "components/deploy_drawer.html" %}
+  Requires: dispatch.html's JS functions (dcExecuteDeploy, etc.)
+{% endcomment %}
+<style>
+.dc-overlay {
+    position: fixed; top:0; right:0; bottom:0; z-index:300;
+    width:320px; max-width:90vw;
+    background:rgba(10,10,18,0.98); border-left:1px solid rgba(255,255,255,0.06);
+    box-shadow:-8px 0 30px rgba(0,0,0,0.5);
+    transform:translateX(0); opacity:1; transition:transform 0.25s ease, opacity 0.2s ease;
+    display:flex; flex-direction:column; overflow:hidden;
+}
+.dc-overlay.dc-hidden { transform:translateX(20px); opacity:0; pointer-events:none; display:flex; }
+.dc-overlay-inner { display:flex; flex-direction:column; height:100%; padding:14px 12px; overflow-y:auto; gap:8px; }
+.dc-overlay-title { font-size:0.9rem; font-weight:900; color:#d32f2f; display:flex; align-items:center; gap:6px; }
+.dc-overlay-sub { font-size:0.6rem; color:rgba(255,255,255,0.42); margin-bottom:2px; }
+.dc-overlay-past-due { background:rgba(211,47,47,0.08); border:1px solid rgba(211,47,47,0.45); border-radius:8px; padding:10px; font-size:0.65rem; display:none; }
+.dc-overlay-past-due strong { color:#d32f2f; }
+.dc-overlay-alerts-box { border:1px solid rgba(245,166,35,0.15); border-radius:8px; padding:8px; background:rgba(245,166,35,0.03); }
+.dc-overlay-tag-wrap { display:flex; flex-wrap:wrap; gap:3px; padding:4px 6px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); background:#0D0D14; min-height:28px; cursor:text; }
+.dc-overlay-tag-input { flex:1; min-width:60px; border:none; background:transparent; color:#fff; font-size:0.58rem; outline:none; }
+.dc-overlay-suggest { position:absolute; top:100%; left:0; right:0; z-index:10; background:#1A1A2A; border:1px solid rgba(255,255,255,0.08); border-radius:6px; max-height:120px; overflow-y:auto; }
+.dc-overlay-suggest-item { padding:4px 8px; font-size:0.55rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+.dc-overlay-suggest-item:hover { background:rgba(255,255,255,0.05); }
+.dc-overlay-field-note { font-size:0.48rem; color:rgba(255,255,255,0.2); margin-top:2px; }
+.dc-overlay-strat { display:flex; gap:4px; }
+.dc-overlay-strat input[type=radio] { display:none; }
+.dc-overlay-strat label { padding:3px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.06); background:#0D0D14; color:rgba(255,255,255,0.4); font-size:0.55rem; cursor:pointer; display:flex; align-items:center; gap:3px; }
+.dc-overlay-strat input:checked+label { border-color:#d32f2f; color:#d32f2f; background:rgba(211,47,47,0.08); }
+.dc-conf-grid { display:flex; flex-direction:column; gap:8px; }
+.dc-conf-item { margin-bottom:0; }
+.dc-conf-label { font-size:0.55rem; font-weight:700; color:rgba(255,255,255,0.45); margin-bottom:2px; display:flex; align-items:center; gap:4px; text-transform:uppercase; letter-spacing:0.3px; }
+.dc-conf-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.dc-conf-badge { padding:2px 8px; border-radius:4px; font-size:0.6rem; font-weight:700; }
+.dc-conf-badge-teal { color:var(--r-teal,#00C49A); background:rgba(0,196,154,0.1); }
+.dc-overlay-fi { width:100%; padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.07); background:#0D0D14; color:#fff; font-size:0.7rem; transition:border-color 0.15s; }
+.dc-overlay-fi:focus { outline:none; border-color:rgba(211,47,47,0.6); box-shadow:0 0 0 2px rgba(211,47,47,0.14); }
+.dc-overlay-fi-sm { padding:4px 8px; font-size:0.7rem; }
+.dc-conf-manifest-box { border:1px solid rgba(108,142,239,0.15); border-radius:10px; background:#0D0D14; display:flex; flex-direction:column; max-height:260px; overflow:hidden; }
+.dc-conf-manifest-head { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.58rem; font-weight:900; color:#6C8EEF; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px; }
+.dc-conf-manifest-list { flex:1; overflow-y:auto; padding:6px; }
+</style>
+
+<div class="dc-overlay dc-hidden" id="dcDeployOverlay">
+    <div class="dc-overlay-inner">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div class="dc-overlay-title"><i class="fas fa-shield-check" style="color:#d32f2f;"></i> <span id="dcDeployOvTitle">MISSION INIT</span></div>
+            <button class="dc-overlay-back" onclick="dcCancelDeploy()" style="font-size:0.55rem;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.45);cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.color='rgba(255,255,255,0.45)';this.style.background='rgba(255,255,255,0.02)'"><i class="fas fa-times"></i> Close</button>
+        </div>
+        <div class="dc-overlay-sub" id="dcDeployOvSub" style="padding:2px 0 4px;">Final pre-flight &mdash; review and confirm deployment.</div>
+
+        <div class="dc-conf-grid">
+            <div class="dc-conf-briefing">
+                <div class="dc-overlay-past-due" id="dcDeployPastDue">
+                    <strong><i class="fas fa-triangle-exclamation"></i> Past due detected</strong>
+                    <div id="dcDeployPastDueDetail" style="font-size:0.72rem; color:rgba(255,255,255,0.82); margin-top:4px;"></div>
+                </div>
+
+                <div class="dc-conf-item">
+                    <label class="dc-conf-label"><i class="fas fa-fingerprint"></i> Blueprint</label>
+                    <select id="dcDeployBlueprint" class="dc-overlay-fi" onchange="dcOvSelectBlueprint()" style="font-size:0.85rem;font-weight:700;padding:6px 8px;cursor:pointer;">
+                        <option value="">&mdash; Select Blueprint &mdash;</option>
+                    </select>
+                </div>
+
+                <div class="dc-conf-stat-grid">
+                    <div class="dc-conf-item">
+                        <label class="dc-conf-label"><i class="fas fa-compass"></i> Strategy</label>
+                        <div><span class="dc-conf-badge dc-conf-badge-teal" id="dcDeployStrat">Flexible</span></div>
+                    </div>
+                    <div class="dc-conf-item">
+                        <label class="dc-conf-label"><i class="fas fa-calendar-day"></i> Date</label>
+                        <input id="dcDeployDate" type="date" class="dc-overlay-fi dc-overlay-fi-sm" style="width:140px;" onchange="var d=this.value;if(d&&window.CalendarComponent){CalendarComponent.setDate(new Date(d+'T12:00:00'));}">
+                    </div>
+                    <div class="dc-conf-item">
+                        <label class="dc-conf-label"><i class="fas fa-clock"></i> Launch Time</label>
+                        <input id="dcDeployTime" type="time" class="dc-overlay-fi dc-overlay-fi-sm" style="width:110px;">
+                    </div>
+                    <div class="dc-conf-item">
+                        <label class="dc-conf-label"><i class="fas fa-sun-moon"></i> Duty Cycle</label>
+                        <div class="dc-overlay-strat">
+                            <input type="radio" name="dcOvShift" value="Day" id="dcOvShiftDay" checked>
+                            <label for="dcOvShiftDay" class="day"><i class="fas fa-sun"></i> Day</label>
+                            <input type="radio" name="dcOvShift" value="Night" id="dcOvShiftNight">
+                            <label for="dcOvShiftNight" class="night"><i class="fas fa-moon"></i> Night</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dc-conf-item">
+                    <label class="dc-conf-label"><i class="fas fa-microchip"></i> Assigned Personnel / Devices</label>
+                    <div style="position:relative;">
+                        <div class="dc-overlay-tag-wrap" onclick="this.querySelector('input').focus()">
+                            <div id="dcOvGuardTags" style="display:contents"></div>
+                            <input id="dcOvGuardInput" class="dc-overlay-tag-input" placeholder="Type callsign or device ID + Enter&hellip;">
+                        </div>
+                        <div id="dcOvGuardSuggest" class="dc-overlay-suggest dc-hidden"></div>
+                    </div>
+                    <div class="dc-overlay-field-note"><i class="fas fa-info-circle"></i> Leave empty for autonomous device-only mode.</div>
+                </div>
+
+                <div class="dc-overlay-alerts-box">
+                    <div style="font-size:0.58rem;font-weight:900;color:#EF9F27;display:flex;align-items:center;gap:4px;margin-bottom:6px;">
+                        <i class="fas fa-bullhorn"></i> Alerts &amp; TTS
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:3px;font-size:0.55rem;cursor:pointer;color:rgba(255,255,255,0.65);">
+                            <input type="checkbox" id="dcOvTriggerAlert" checked style="accent-color:#EF9F27;width:11px;height:11px;"> Start Alert
+                        </label>
+                        <label style="display:flex;align-items:center;gap:3px;font-size:0.55rem;cursor:pointer;color:rgba(255,255,255,0.65);">
+                            <input type="checkbox" id="dcOvTriggerAnnounce" style="accent-color:#EF9F27;width:11px;height:11px;"> TTS
+                        </label>
+                        <label style="display:flex;align-items:center;gap:3px;font-size:0.55rem;cursor:pointer;color:rgba(255,255,255,0.65);">
+                            <input type="checkbox" id="dcOvTriggerAuto" checked style="accent-color:#EF9F27;width:11px;height:11px;"> Auto-complete
+                        </label>
+                        <label style="display:flex;align-items:center;gap:3px;font-size:0.55rem;cursor:pointer;color:rgba(255,255,255,0.65);">
+                            <input type="checkbox" id="dcOvTriggerMiss" style="accent-color:#EF9F27;width:11px;height:11px;"> Miss Alert
+                        </label>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;margin-top:5px;">
+                        <label style="font-size:0.5rem;color:rgba(255,255,255,0.35);white-space:nowrap;">Lead&nbsp;time</label>
+                        <input type="number" id="dcOvLeadTime" value="15" min="1" max="120" style="width:40px;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,255,255,0.06);background:#0D0D14;color:#fff;font-size:0.55rem;">
+                        <span style="font-size:0.5rem;color:rgba(255,255,255,0.3);">min</span>
+                    </div>
+                    <div style="margin-top:5px;">
+                        <label style="font-size:0.5rem;color:rgba(255,255,255,0.35);">TTS Message</label>
+                        <textarea id="dcOvReadoutText" rows="2" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.06);background:#0D0D14;color:#fff;font-size:0.55rem;resize:vertical;margin-top:2px;font-family:inherit;" placeholder="Broadcast message for POC radio TTS&hellip;"></textarea>
+                    </div>
+                </div>
+
+                <div id="dcOvRedeployFields" style="display:none;flex-direction:column;gap:8px;padding:10px;background:rgba(0,196,154,0.04);border:1px solid rgba(0,196,154,0.15);border-radius:10px;">
+                    <div style="font-size:0.65rem;font-weight:900;color:#5DCAA5;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-redo"></i> Redeploy Configuration
+                    </div>
+                    <div class="dc-conf-item">
+                        <label class="dc-conf-label">Scheduled Time (override)</label>
+                        <input id="dcOvRedeployTime" type="time" class="dc-overlay-fi dc-overlay-fi-sm">
+                    </div>
+                </div>
+
+                <div class="dc-conf-check-row" onclick="document.getElementById('dcOvVerify')?.click()">
+                    <input type="checkbox" id="dcOvVerify" onchange="if(typeof dcOvUpdateState==='function')dcOvUpdateState()" style="width:16px;height:16px;flex-shrink:0;accent-color:#d32f2f;" onclick="event.stopPropagation()">
+                    <div class="dc-conf-check-text">
+                        <span style="vertical-align:middle;">I verify that all mission parameters are correct.</span>
+                        <div style="font-size:0.5rem;color:rgba(255,255,255,0.38);font-weight:400;margin-top:1px;">Deployment will initiate live tracking and broadcast alerts.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dc-conf-manifest-box">
+                <div class="dc-conf-manifest-head"><i class="fas fa-list-check"></i> Checkpoints <span id="dcOvCpCount" style="color:rgba(255,255,255,0.3);font-weight:400;"></span></div>
+                <div id="dcOvCpList" class="dc-conf-manifest-list">
+                    <div style="padding:16px;text-align:center;color:rgba(255,255,255,0.2);font-size:0.75rem;">Select a blueprint to edit checkpoints</div>
+                </div>
+                <div id="dcOvCpFooter" style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;gap:4px;font-size:0.6rem;color:rgba(255,255,255,0.35);"></div>
+            </div>
+        </div>
+
+        <button class="dc-deploy-launch" id="dcOvDeployBtn" disabled onclick="if(typeof dcExecuteDeploy==='function')dcExecuteDeploy()" style="background:linear-gradient(135deg,#d32f2f,#B71C1C);width:100%;padding:14px;border:none;border-radius:10px;color:#fff;font-size:0.85rem;font-weight:900;cursor:pointer;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.15s;">
+            <i class="fas fa-rocket"></i> <span id="dcOvDeployBtnText">COMMENCE MISSION DEPLOYMENT</span>
+        </button>
+    </div>
+</div>

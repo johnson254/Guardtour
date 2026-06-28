@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guard Command | SecOps</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% load static %}
+    {% load vite %}
+    <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
+    <script type="module" src="{% vite_asset 'src/main.js' %}"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script type="module" src="{% static 'src/browser/shared-globals.js' %}"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body hx-history-restore="true">
+    <div id="global-loader"><div></div></div>
+    <div class="toast-container" id="toast-container"></div>
+    <div id="spa-transition" class="spa-transition-overlay" style="display:none;">
+        <div class="spa-spinner"></div>
+    </div>
+    {% block content %}{% endblock %}
+    <script>
+         const userData = JSON.parse(localStorage.getItem('gt_user') || '{}');
+         if (!userData.token) window.location.href = '/';
+         const isSystemAdmin = userData.role === 'admin' && (userData.organization_id === null || userData.organization_id === undefined);
+
+         if (typeof window.apiFetch === 'undefined') {
+             window.apiFetch = async function apiFetch(url, options = {}) {
+                 const loader = document.getElementById('global-loader');
+                 loader.style.display = 'block';
+                 const defaultHeaders = {
+                     'Authorization': 'Bearer ' + userData.token,
+                     'Content-Type': 'application/json'
+                 };
+                 options.headers = { ...defaultHeaders, ...options.headers };
+                 try {
+                     const response = await fetch(url, options);
+                     loader.style.display = 'none';
+                     if (response.status === 401) { window.location.href = '/'; return; }
+                     if (!response.ok && options.method && options.method !== 'GET') {
+                         let errData = {};
+                         try { const clone = response.clone(); errData = await clone.json(); } catch(e) { errData = {error: 'Server error'}; }
+                     }
+                     return response;
+                 } catch (err) {
+                     loader.style.display = 'none();
+                     throw err;
+                 }
+             };
+         }
+
+         document.body.addEventListener('htmx:beforeRequest', function(evt) {
+             if (evt.detail.target.id === 'spa-content') {
+                 var overlay = document.getElementById('spa-transition');
+                 if (overlay) overlay.classList.add('active');
+             }
+         });
+         document.body.addEventListener('htmx:afterSwap', function(evt) {
+             if (evt.detail.target.id === 'spa-content') {
+                 var overlay = document.getElementById('spa-transition');
+                 if (overlay) overlay.classList.remove('active');
+                 window.dispatchEvent(new CustomEvent('spa:pageLoaded', {detail: {url: evt.detail.requestConfig?.path}}));
+             }
+         });
+    </script>
+    {% block page_js %}{% endblock %}
+</body>
+</html>

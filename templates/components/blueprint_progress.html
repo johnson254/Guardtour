@@ -1,0 +1,110 @@
+{% comment %}
+Blueprint Progress Component — deployment overview for a single blueprint
+Uses dcBpPv-* / dcBpPvAssignList ID prefix, matches dispatch.html's JS.
+
+  Include: {% include "components/blueprint_progress.html" %}
+  Requires: dispatch.html's JS functions (dcRenderBpProgress fills data)
+{% endcomment %}
+<style>
+.bp-shell { display:flex; flex-direction:column; gap:6px; padding:6px 0; height:100%; }
+.bp-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.bp-back { width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.68rem; }
+.bp-back:hover { background:rgba(255,255,255,0.08); color:white; }
+.bp-title { font-size:0.85rem;font-weight:900;color:white; }
+.bp-sub { font-size:0.6rem;color:rgba(255,255,255,0.35);margin-top:1px; }
+.bp-deploy-btn { width:auto;padding:6px 12px;font-size:0.6rem;border-radius:8px;border:1px solid rgba(211,47,47,0.25);background:rgba(211,47,47,0.15);color:#d32f2f;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.2s; }
+.bp-deploy-btn:hover { background:rgba(211,47,47,0.25); }
+.bp-body { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+
+/* Summary cards */
+.bp-summary {
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:6px;
+}
+.bp-summary-item {
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 6px;
+    text-align:center;
+    background:rgba(255,255,255,0.02);
+    transition:all 0.15s;
+}
+.bp-summary-item:hover { background:rgba(255,255,255,0.04); transform:translateY(-1px); }
+.bp-summary-val { font-size:1rem;font-weight:900;line-height:1; }
+.bp-summary-lbl { font-size:0.5rem;color:rgba(255,255,255,0.35);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px; }
+.bp-summary-lbl i { font-size:0.45rem;opacity:0.6; }
+.bp-summary-active .bp-summary-val { color:#5DCAA5; }
+.bp-summary-pending .bp-summary-val { color:#EF9F27; }
+.bp-summary-done .bp-summary-val { color:#6C8EEF; }
+.bp-summary-missed .bp-summary-val { color:#FF5252; }
+
+/* Assignment cards */
+.bp-assign {
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+    background:rgba(255,255,255,0.018);
+    transition:all 0.2s;
+}
+.bp-assign:hover { border-color:rgba(255,255,255,0.12); background:rgba(255,255,255,0.025); }
+.bp-assign.is-active { border-color:rgba(93,202,165,0.3); background:rgba(93,202,165,0.02); }
+.bp-assign.is-done { border-color:rgba(108,142,239,0.15); opacity:0.75; }
+.bp-assign.is-failed { border-color:rgba(211,47,47,0.2); background:rgba(211,47,47,0.02); }
+.bp-assign-header { display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04); }
+.bp-assign-avatar { width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:900;flex-shrink:0; }
+.bp-assign-info { flex:1;min-width:0; }
+.bp-assign-name { font-size:0.72rem;font-weight:800;color:white; }
+.bp-assign-meta { font-size:0.5rem;color:rgba(255,255,255,0.3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap; }
+.bp-assign-meta i { font-size:0.4rem;margin-right:2px; }
+.bp-assign-status { font-size:0.5rem;padding:2px 7px;border-radius:999px;font-weight:800;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap; }
+.bp-assign-body { padding:12px; }
+.bp-assign-progress { margin-bottom:8px; }
+.bp-assign-progress-text { display:flex;justify-content:space-between;font-size:0.55rem;color:rgba(255,255,255,0.4);margin-bottom:4px;font-weight:700; }
+.bp-assign-bar { display:flex;height:5px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,0.05); }
+.bp-assign-fill { height:100%;border-radius:999px;transition:width 1s; }
+.bp-assign-timing { display:grid;grid-template-columns:repeat(auto-fit, minmax(120px,1fr));gap:6px;margin:8px 0; }
+.bp-assign-timing-item { background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);border-radius:8px;padding:8px; }
+.bp-assign-timing-lbl { font-size:0.48rem;font-weight:800;text-transform:uppercase;letter-spacing:0.4px;color:rgba(255,255,255,0.25);margin-bottom:2px; }
+.bp-assign-timing-val { font-size:0.65rem;font-weight:800;color:rgba(255,255,255,0.7); }
+.bp-assign-timing-val.present { color:#5DCAA5; }
+.bp-assign-timing-val.miss { color:#d32f2f; }
+.bp-assign-timing-val.overdue { color:#EF9F27; }
+.bp-assign-actions { display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.03); }
+.bp-assign-btn { padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.55);font-size:0.55rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s; }
+.bp-assign-btn:hover { background:rgba(255,255,255,0.05);color:white;border-color:rgba(255,255,255,0.1); }
+.bp-assign-btn.danger { border-color:rgba(211,47,47,0.2);color:#d32f2f; }
+.bp-assign-btn.danger:hover { background:rgba(211,47,47,0.08); }
+.bp-assign-btn.redeploy { border-color:rgba(93,202,165,0.2);color:#5DCAA5; }
+.bp-assign-btn.redeploy:hover { background:rgba(93,202,165,0.08); }
+
+/* Checkpoint mini rows inside assignment */
+.bp-cp-row { display:grid;grid-template-columns:22px 1fr 36px 40px;gap:4px;align-items:center;padding:3px 0;font-size:0.52rem;border-bottom:1px solid rgba(255,255,255,0.015); }
+.bp-cp-row:last-child { border-bottom:none; }
+.bp-cp-index { font-weight:900;color:rgba(255,255,255,0.15);text-align:center;font-size:0.48rem; }
+.bp-cp-name { color:rgba(255,255,255,0.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600; }
+.bp-cp-type { color:rgba(255,255,255,0.2);text-align:center;font-size:0.42rem;font-weight:700;text-transform:uppercase; }
+.bp-cp-status { font-weight:800;font-size:0.45rem;text-align:right;text-transform:uppercase; }
+.bp-cp-status.hit { color:#5DCAA5; }
+.bp-cp-status.miss { color:#d32f2f; }
+.bp-cp-status.next { color:#EF9F27; }
+.bp-cp-list { margin-top:6px;border:1px solid rgba(255,255,255,0.04);border-radius:8px;padding:4px 8px;background:rgba(0,0,0,0.08);max-height:160px;overflow-y:auto; }
+
+.bp-empty { text-align:center;padding:30px 16px;color:rgba(255,255,255,0.25);font-size:0.7rem; }
+.bp-empty i { font-size:2rem;opacity:0.2;display:block;margin-bottom:12px; }
+</style>
+
+<div class="bp-shell dc-bp-progress dc-hidden" id="dcBpProgressView">
+    <div class="bp-head">
+        <button class="bp-back" onclick="dcCloseBpProgress()" title="Back"><i class="fas fa-arrow-left"></i></button>
+        <div style="flex:1;min-width:0;">
+            <div class="bp-title" id="dcBpPvTitle">Blueprint</div>
+            <div class="bp-sub" id="dcBpPvSub">Select a blueprint</div>
+        </div>
+        <button class="bp-deploy-btn" onclick="dcSetRouteForDeploy(window.__dcActiveBpId)" title="Deploy this blueprint"><i class="fas fa-rocket"></i> Deploy</button>
+    </div>
+    <div class="bp-body" id="dcBpPvBody">
+        <div class="bp-summary" id="dcBpPvSummary"></div>
+        <div id="dcBpPvAssignList"></div>
+    </div>
+</div>

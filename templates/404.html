@@ -1,0 +1,25 @@
+{% extends 'bare_base.html' %}
+{% block content %}
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center;padding:40px;">
+    <div style="position:relative;margin-bottom:32px;">
+        <div style="font-size:6rem;font-weight:900;color:var(--primary);letter-spacing:4px;line-height:1;text-shadow:0 0 40px rgba(211,47,47,0.3);">404</div>
+        <div style="position:absolute;top:-8px;right:-12px;width:12px;height:12px;border-radius:50%;background:var(--primary);box-shadow:0 0 12px var(--primary);animation:pulse-ring 2s infinite;"></div>
+    </div>
+    <h2 style="font-size:1.2rem;font-weight:800;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:2px;">Sector Not Found</h2>
+    <p style="color:var(--text-muted);font-size:0.85rem;max-width:360px;margin-bottom:28px;line-height:1.5;">The requested perimeter does not exist or has been reassigned. Check your coordinates and try again.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <a href="/dashboard/" class="action-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+            <i class="fas fa-arrow-left"></i> Return to Operations
+        </a>
+        <button onclick="history.back()" class="action-btn btn-secondary" style="display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;">
+            <i class="fas fa-undo"></i> Previous Page
+        </button>
+    </div>
+    <div style="margin-top:48px;padding:16px 24px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;backdrop-filter:blur(8px);">
+        <div style="font-size:0.6rem;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1px;font-weight:700;">Error Code: 404 | Requested Path: <span id="req-path" style="color:var(--primary-light);font-family:monospace;"></span></div>
+    </div>
+</div>
+<script>
+    document.getElementById('req-path').textContent = window.location.pathname;
+</script>
+{% endblock %}

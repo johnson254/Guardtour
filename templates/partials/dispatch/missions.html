@@ -1,0 +1,54 @@
+{% if groups %}
+  {% for group in groups %}
+  <div class="dc-ls-section">
+    <div class="dc-ls-section-hdr">
+      <i class="fas fa-route" style="color:var(--primary);font-size:0.45rem;"></i>
+      {{ group.name }}
+      <span style="margin-left:auto;font-size:0.55rem;color:rgba(255,255,255,0.3);">{{ group.assignments|length }}</span>
+    </div>
+    {% for a in group.assignments %}
+    <div class="dc-ls-card {% if a.is_active and not a.is_completed %}dc-ls-card-active{% endif %}{% if a.is_completed %}dc-ls-card-done{% endif %}"
+         onclick="dcSelectMission({{ a.id }})" data-assign-id="{{ a.id }}">
+      <div class="dc-ls-card-route">
+        {% if a.route %}{{ a.route.name }}{% else %}Unassigned{% endif %}
+      </div>
+      <div class="dc-ls-card-guard">
+        {% if a.guard_supervisor %}
+          <i class="fas fa-user-shield"></i>
+          {{ a.guard_supervisor.first_name }} {{ a.guard_supervisor.last_name }}
+        {% elif a.device %}
+          <i class="fas fa-microchip"></i>
+          {{ a.device.device_id }}
+        {% else %}
+          <i class="fas fa-question"></i> Unassigned
+        {% endif %}
+      </div>
+      <div class="dc-ls-card-meta">
+        {% if a.is_completed %}
+          <span class="dc-badge dc-badge-done">✓ Done</span>
+        {% elif a.is_active %}
+          <span class="dc-badge dc-badge-live"><span class="dc-ls-pulse"></span> Live</span>
+        {% else %}
+          <span class="dc-badge dc-badge-scheduled">⏱ Scheduled</span>
+        {% endif %}
+        {% if a.total_checkpoints %}
+          <span style="font-size:0.6rem;color:rgba(255,255,255,0.4);">
+            {{ a.completed_checkpoints|default:0 }}/{{ a.total_checkpoints }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="dc-ls-empty">
+    <i class="fas fa-satellite-dish"></i>
+    {% if tab == 'active' %}No active missions
+    {% elif tab == 'upcoming' %}No upcoming missions
+    {% elif tab == 'done' %}No completed missions
+    {% elif tab == 'missed' %}No missed checkpoints
+    {% else %}No missions found
+    {% endif %}
+  </div>
+{% endif %}

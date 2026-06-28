@@ -1,0 +1,202 @@
+{% comment %}
+Calendar Component — reusable calendar grid with deployment dots
+
+  Dependencies:
+    - Global: calDate, allAssignments, allRoutes,
+              __dc_live_next_by_assignment
+    - Callbacks (override via CalendarComponentConfig):
+        onDayClick(dateStr)    default: dcShowDayView(dateStr)
+        onSelectBlueprint(id)  default: dcShowBpDeployments(id)
+
+  Usage:
+    {% include "components/calendar_component.html" %}
+    <script>CalendarComponent.init();</script>
+{% endcomment %}
+<style>
+.cal-shell { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+.cal-head { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; }
+.cal-title { font-size:0.75rem; font-weight:800; color:#fff; }
+.cal-nav { display:flex; gap:4px; }
+.cal-nav-btn { padding:2px 6px; font-size:0.55rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:4px; color:rgba(255,255,255,0.5); cursor:pointer; }
+.cal-nav-btn:hover { background:rgba(255,255,255,0.06); color:#fff; }
+.cal-body { flex:1; overflow-y:auto; padding:0 10px 10px; }
+.cal-month-title { font-size:0.72rem; font-weight:800; color:#fff; text-align:center; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:6px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-dow { text-align:center; font-size:0.55rem; font-weight:900; color:#6C8EEF; text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.cal-cell { background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.06); border-radius:4px; padding:2px; display:flex; flex-direction:column; align-items:center; min-height:28px; cursor:pointer; transition:all 0.2s; }
+.cal-cell:hover { background:rgba(255,255,255,0.03); border-color:rgba(255,255,255,0.15); }
+.cal-cell.today { border-color:#D32F2F; background:rgba(211,47,47,0.03); }
+.cal-cell-num { font-size:0.6rem; font-weight:900; color:rgba(255,255,255,0.25); }
+.cal-cell.today .cal-cell-num { color:#D32F2F; }
+.cal-dot-row { display:flex; gap:2px; margin-top:1px; flex-wrap:wrap; justify-content:center; }
+.cal-deployments { margin-top:8px; padding:0 10px 10px; }
+.cal-deployments-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.cal-deployments-label { font-size:0.65rem; font-weight:900; color:rgba(255,255,255,0.5); text-transform:uppercase; }
+.cal-deployments-close { background:transparent; border:none; color:rgba(255,255,255,0.3); cursor:pointer; font-size:0.65rem; }
+.cal-deployments-close:hover { color:#d32f2f; }
+
+</style>
+
+<div class="cal-shell" id="calShell">
+    <div class="cal-head">
+        <div class="cal-title"><i class="fas fa-calendar-alt" style="color:var(--primary,#D32F2F);margin-right:6px;"></i> Schedule</div>
+        <div class="cal-nav">
+            <button class="cal-nav-btn" id="calPrevBtn"><i class="fas fa-chevron-left"></i></button>
+            <button class="cal-nav-btn" id="calTodayBtn" title="Today"><i class="fas fa-dot-circle"></i></button>
+            <button class="cal-nav-btn" id="calNextBtn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+    <div class="cal-body">
+        <div class="cal-month-title" id="calMonthTitle">Month YYYY</div>
+        <div class="cal-grid" id="calGrid"></div>
+
+        <div class="cal-deployments" id="calDeployments" style="display:none;">
+            <div class="cal-deployments-head">
+                <div class="cal-deployments-label">Deployments</div>
+                <button class="cal-deployments-close" id="calDeploymentsClose" title="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="calDeploymentsList"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function() {
+    if (window.CalendarComponent) return;
+
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var calConfig = {
+        onDayClick: window.dcShowDayView || function(dateStr) {
+            if (window.dcShowDayView) dcShowDayView(dateStr);
+        },
+        onSelectBlueprint: window.dcShowBpDeployments || function(id) {
+            if (window.dcShowBpDeployments) dcShowBpDeployments(id);
+        },
+        onSelectBlueprint: window.dcShowBpDeployments || function(id) {
+            if (window.dcShowBpDeployments) dcShowBpDeployments(id);
+        },
+        getAssignments: function() { return window.allAssignments || []; },
+        getRoutes: function() { return window.allRoutes || []; },
+        getLiveData: function() { return window.__dc_live_next_by_assignment || {}; }
+    };
+
+    function $(id) { return document.getElementById(id); }
+    var calDate = new Date();
+
+    function render() {
+        var container = $('calGrid');
+        if (!container) return;
+
+        $('calMonthTitle').textContent = MONTHS[calDate.getMonth()] + ' ' + calDate.getFullYear();
+
+        container.innerHTML = ['Su','Mo','Tu','We','Th','Fr','Sa']
+            .map(function(d) { return '<div class="cal-dow">' + d + '</div>'; }).join('');
+
+        var today = new Date();
+        var firstDay = new Date(calDate.getFullYear(), calDate.getMonth(), 1).getDay();
+        var daysInMonth = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0).getDate();
+
+        for (var i = 0; i < firstDay; i++) {
+            container.innerHTML += '<div class="cal-cell" style="opacity:0;pointer-events:none;min-height:28px;"></div>';
+        }
+
+        var assignments = calConfig.getAssignments();
+        var routes = calConfig.getRoutes();
+        var liveData = calConfig.getLiveData();
+
+        for (var d = 1; d <= daysInMonth; d++) {
+            var date = new Date(calDate.getFullYear(), calDate.getMonth(), d);
+            var isToday = today.getDate() === d && today.getMonth() === calDate.getMonth() && today.getFullYear() === calDate.getFullYear();
+            var dateStr = date.toISOString().split('T')[0];
+
+            var dayAss = assignments.filter(function(a) {
+                var aDate = (a.scheduled_date || a.assigned_at || '').split('T')[0];
+                return aDate === dateStr;
+            });
+            var dailyCount = routes.filter(function(r) { return r.is_daily && r.status !== 'archived'; }).length;
+
+            var activeCount = 0, doneCount = 0, missCount = 0, schedCount = 0;
+            dayAss.forEach(function(a) {
+                var isActive = a.is_active && !a.is_completed;
+                var isCompleted = a.is_completed;
+                var missedEv = isActive && liveData[a.id] && liveData[a.id].has_missed_checkpoints;
+                if (isCompleted) doneCount++;
+                else if (missedEv) missCount++;
+                else if (isActive) activeCount++;
+                else schedCount++;
+            });
+
+            var totalCount = dayAss.length + dailyCount;
+            var dotsHtml = '';
+            if (activeCount) dotsHtml += '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#5DCAA5;" title="' + activeCount + ' active"></span>';
+            if (missCount) dotsHtml += '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#FF5252;" title="' + missCount + ' miss"></span>';
+            if (doneCount) dotsHtml += '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#6C8EEF;" title="' + doneCount + ' done"></span>';
+            if (schedCount) dotsHtml += '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.2);" title="' + schedCount + ' sched"></span>';
+
+            container.innerHTML += '<div class="cal-cell' + (isToday ? ' today' : '') + '" data-date="' + dateStr + '" style="min-height:28px;padding:2px;cursor:pointer;">' +
+                '<div class="cal-cell-num">' + d + '</div>' +
+                (totalCount ? '<div style="font-size:0.45rem;color:rgba(255,255,255,0.25);margin-top:1px;">' + totalCount + '</div>' : '') +
+                (dotsHtml ? '<div class="cal-dot-row">' + dotsHtml + '</div>' : '') +
+                '</div>';
+        }
+    }
+
+    function setup() {
+        var grid = $('calGrid');
+        if (!grid) return;
+        grid.addEventListener('click', function(e) {
+            var cell = e.target.closest('.cal-cell');
+            if (cell && cell.dataset.date && calConfig.onDayClick) {
+                calConfig.onDayClick(cell.dataset.date);
+            }
+        });
+
+        var prev = $('calPrevBtn');
+        var next = $('calNextBtn');
+        var todayBtn = $('calTodayBtn');
+        var closeDeployments = $('calDeploymentsClose');
+
+        if (prev) prev.addEventListener('click', function() { calDate.setMonth(calDate.getMonth() - 1); render(); });
+        if (next) next.addEventListener('click', function() { calDate.setMonth(calDate.getMonth() + 1); render(); });
+        if (todayBtn) todayBtn.addEventListener('click', function() {
+            calDate = new Date();
+            render();
+            if (calConfig.onDayClick) {
+                calConfig.onDayClick(new Date().toISOString().split('T')[0]);
+            }
+        });
+        if (closeDeployments) closeDeployments.addEventListener('click', function() {
+            var el = $('calDeployments');
+            if (el) el.style.display = 'none';
+        });
+
+        render();
+    }
+
+    window.CalendarComponent = {
+        init: function(config) {
+            if (config) {
+                if (config.onDayClick) calConfig.onDayClick = config.onDayClick;
+                if (config.onSelectBlueprint) calConfig.onSelectBlueprint = config.onSelectBlueprint;
+                if (config.getAssignments) calConfig.getAssignments = config.getAssignments;
+                if (config.getRoutes) calConfig.getRoutes = config.getRoutes;
+                if (config.getLiveData) calConfig.getLiveData = config.getLiveData;
+            }
+            setup();
+        },
+        render: render,
+        setDate: function(d) { calDate = d || new Date(); render(); },
+        showDeployments: function(html) {
+            var el = $('calDeployments');
+            var list = $('calDeploymentsList');
+            if (el) el.style.display = 'block';
+            if (list) list.innerHTML = html || '';
+        },
+        hideDeployments: function() {
+            var el = $('calDeployments');
+            if (el) el.style.display = 'none';
+        }
+    };
+})();
+</script>

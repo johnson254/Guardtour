@@ -1,0 +1,69 @@
+{% extends base_template %}
+{% load htmx_base %}{% block content %}
+<div class="card"><h3>System Administration</h3><p>Manage users, organizations, and system settings</p></div>
+<div class="card"><h3>System Overview</h3><div id="adminStats" hx-get="/api/admin-stats-partial/" hx-trigger="load, every 120s" hx-target="this"><p style="text-align:center;padding:20px;color:var(--text-muted);">Loading stats...</p></div></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+    <div class="card"><h3>User Management</h3><button onclick="showUserForm()">+ Add New User</button><div id="usersList"></div></div>
+    <div class="card"><h3>Organization Management</h3><button onclick="showOrgForm()">+ Add Organization</button><div id="orgsList"></div></div>
+</div>
+
+<!-- User Form -->
+<div id="userForm" style="display:none" class="card"><h3 id="userFormTitle">Add User</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="newUsername" placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="newEmail" placeholder="Enter email" required>
+        </div>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="newPassword" placeholder="Enter password" required>
+        </div>
+        <div class="form-group">
+            <label>Role</label>
+            <select id="newRole" required>
+                <option value="admin">System Administrator</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="guard">Guard / Field Officer</option>
+            </select>
+        </div>
+    </div>
+    <div style="margin-bottom: 15px;" class="form-group">
+        <label>Organization (for supervisors/guards)</label>
+        <select id="newOrgId">
+            <option value="">-- No Organization (System Admin only) --</option>
+        </select>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button onclick="createUser()" style="flex: 1;">Create User</button>
+        <button onclick="cancelUserForm()" style="flex: 1;" class="btn-secondary">Cancel</button>
+    </div>
+</div>
+
+<!-- Organization Form -->
+<div id="orgForm" style="display:none" class="card"><h3 id="orgFormTitle">Add Organization</h3>
+    <div style="margin-bottom: 15px;" class="form-group">
+        <label for="orgName">Organization Name</label>
+        <input type="text" id="orgName" placeholder="Enter organization name" required>
+    </div>
+    <div style="margin-bottom: 15px;" class="form-group">
+        <label for="orgDesc">Address (optional)</label>
+        <textarea id="orgDesc" placeholder="Organization address" rows="3"></textarea>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button onclick="createOrganization()" style="flex: 1;">Create Organization</button>
+        <button onclick="cancelOrgForm()" style="flex: 1;" class="btn-secondary">Cancel</button>
+    </div>
+</div>
+
+{% block page_js %}
+  {% load static %}
+  {% load vite %}
+  <script type="module" src="{% vite_asset 'src/pages/admin.js' %}"></script>
+{% endblock %}
+{% endblock %}

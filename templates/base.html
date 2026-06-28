@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guard Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0a0a0f;color:#e0e0e0;padding:24px}
+.container{max-width:1400px;margin:0 auto}
+.card{background:#1a1a24;border-radius:20px;padding:20px;margin-bottom:20px;border:1px solid #3a3a3a}
+.card h3{margin-bottom:15px;color:#ff5f52}
+input,select,textarea{width:100%;padding:12px;margin-bottom:12px;background:#14141c;border:1px solid #3a3a3a;border-radius:25px;color:white}
+button{background:#c62828;border:none;padding:10px 20px;border-radius:25px;color:white;cursor:pointer;margin-right:10px}
+.btn-secondary{background:#2a2a35}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #3a3a3a}
+th{color:#ff5f52}
+.nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.nav a{background:#2a2a35;padding:10px 20px;border-radius:25px;text-decoration:none;color:white}
+.nav a.active{background:#c62828}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#c62828;padding:10px 24px;border-radius:60px;z-index:1000}
+</style>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h1>Guard Tour</h1>
+        <div><span id="userRole"></span> | <span id="userName"></span> | <button onclick="logout()">Logout</button></div>
+    </div>
+    <div class="nav" id="navMenu"></div>
+    {% block content %}{% endblock %}
+</div>
+<script>
+    const user = JSON.parse(localStorage.getItem('gt_user') || '{}');
+    if (!user.token) window.location.href = '/';
+    document.getElementById('userRole').innerText = user.role || '';
+    document.getElementById('userName').innerText = user.username || '';
+    
+    // Determine if user is system admin
+    const isSystemAdmin = user.is_system_admin === true;
+    
+    const navLinks = [
+        {url:'/dashboard/', name:'Dashboard', roles:['admin','supervisor','guard']},
+        {url:'/routes/', name:'Routes Dispatch', roles:['admin','supervisor']},
+        {url:'/dispatch/', name:'Mission Control', roles:['admin','supervisor']},
+        {url:'/guards/', name:'Guards', roles:['admin','supervisor']},
+        {url:'/reports/', name:'Reports', roles:['admin','supervisor','guard']},
+        {url:'/admin_panel/', name:'Admin', roles:['admin'], systemAdminOnly: true}
+    ];
+    
+    const navDiv = document.getElementById('navMenu');
+    navLinks.forEach(link => {
+        const hasRole = link.roles.includes(user.role);
+        const isAllowed = hasRole && (!link.systemAdminOnly || isSystemAdmin);
+        if (isAllowed) {
+            const a = document.createElement('a');
+            a.href = link.url;
+            a.innerText = link.name;
+            if(window.location.pathname === link.url) a.classList.add('active');
+            navDiv.appendChild(a);
+        }
+    });
+    
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+</script>
+</body>
+</html>

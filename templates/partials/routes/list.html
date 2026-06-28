@@ -1,0 +1,16 @@
+{% if routes %}
+  {% for r in routes %}
+  <div class="rs-r-card" onclick="bpSelectRoute({{ r.id }})">
+    <div class="rs-r-card-top">
+      <div class="rs-r-name">{{ r.name }}</div>
+      <div style="display:flex;gap:5px;">
+        <button class="rs-r-del" style="color:var(--r-teal); opacity:0.6;" onclick="event.stopPropagation();mgQuickDeploy({{ r.id }})" title="Quick Deploy"><i class="fas fa-bolt"></i></button>
+        <button class="rs-r-del" onclick="event.stopPropagation();bpDeleteRoute(event,{{ r.id }})" title="Delete"><i class="fas fa-trash-alt"></i></button>
+      </div>
+    </div>
+    <div class="rs-r-meta">{{ r.checkpoint_count|default:0 }} Checkpoints</div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div style="padding:12px;font-size:0.75rem;color:var(--r-mute);text-align:center;">No routes yet</div>
+{% endif %}

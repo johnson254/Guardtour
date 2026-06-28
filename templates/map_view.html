@@ -1,0 +1,789 @@
+{% extends base_template %}
+{% load htmx_base %}{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+{% endblock %}
+{% block content %}
+
+<style>
+/* ── Root layout ─────────────────────────────────────────── */
+.tm-shell {
+    position: relative;
+    height: calc(100vh - 200px);
+    height: calc(100dvh - 200px);
+    min-height: 600px;
+    overflow: hidden;
+}
+
+/* ── Sidebar toggle (mobile) ─────────────────────────────── */
+.tm-sidebar-toggle {
+    display: none;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    cursor: pointer;
+    gap: 3px;
+    align-items: center;
+    font-family: inherit;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.tm-sidebar-toggle:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* ── Map container ───────────────────────────────────────── */
+#tmMap {
+    position: absolute;
+    inset: 0;
+    background: #050508;
+    z-index: 1;
+    border-radius: 24px;
+}
+
+/* Leaflet overrides */
+.leaflet-container { border-radius: 18px; font-family: inherit; }
+.leaflet-popup-content-wrapper {
+    background: rgba(14,14,20,0.97);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+.leaflet-popup-tip { background: rgba(14,14,20,0.97); }
+.leaflet-popup-content { font-size: 0.78rem; margin: 10px 14px; }
+.leaflet-popup-content b { color: var(--primary-light); }
+.leaflet-popup-close-button { color: var(--primary) !important; font-size:1.2rem !important; }
+.leaflet-control-zoom {
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important;
+}
+.leaflet-control-zoom a {
+    background: rgba(14,14,22,0.92) !important;
+    color: rgba(255,255,255,0.7) !important;
+    border-color: rgba(255,255,255,0.05) !important;
+    width: 36px !important; height: 36px !important;
+    line-height: 36px !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    transition: background 0.15s, color 0.15s !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+.leaflet-control-zoom a.leaflet-control-zoom-in { border-bottom: 1px solid rgba(255,255,255,0.05) !important; }
+.leaflet-draw-toolbar a {
+    background: rgba(14,14,22,0.92) !important;
+    border-color: rgba(255,255,255,0.05) !important;
+    transition: background 0.15s !important;
+}
+.leaflet-draw-toolbar a:hover { background: rgba(255,255,255,0.08) !important; }
+.leaflet-bar { border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 10px !important; overflow: hidden !important; box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important; }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+ .tm-sidebar {
+     position: absolute;
+     top: 14px;
+     right: 14px;
+     bottom: 14px;
+     width: 340px;
+     background: linear-gradient(155deg, rgba(18,18,30,0.75) 0%, rgba(10,10,20,0.9) 60%, rgba(14,14,24,0.82) 100%);
+     backdrop-filter: blur(20px);
+     -webkit-backdrop-filter: blur(20px);
+     border: 1px solid rgba(255, 255, 255, 0.06);
+     border-radius: 16px;
+     display: flex;
+     flex-direction: column;
+     overflow: hidden;
+     z-index: 1000;
+     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 12px 40px rgba(0,0,0,0.5);
+     transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s ease;
+ }
+
+.tm-sidebar-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.tm-sidebar-title {
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+}
+
+/* ── Tab row ─────────────────────────────────────────────── */
+ .tm-tabs {
+     display: flex;
+     gap: 4px;
+ }
+ .tm-tab {
+     flex: 1;
+     padding: 7px 6px;
+     border: none;
+     background: rgba(255,255,255,0.03);
+     color: rgba(255,255,255,0.4);
+     border-radius: 8px;
+     font-size: 0.68rem;
+     font-weight: 800;
+     cursor: pointer;
+     transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+     text-align: center;
+     letter-spacing: 0.3px;
+ }
+ .tm-tab:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); }
+ .tm-tab.active {
+     background: linear-gradient(135deg, #d32f2f 0%, #9a0007 100%);
+     color: #fff;
+     box-shadow: 0 2px 10px rgba(211,47,47,0.3);
+ }
+
+/* ── Sidebar body panels ─────────────────────────────────── */
+.tm-panel { display: none; flex: 1; overflow-y: auto; padding: 14px 14px 10px; flex-direction: column; gap: 12px; }
+.tm-panel.active { display: flex; }
+
+/* ── Section label ───────────────────────────────────────── */
+.tm-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* ── Form fields (dc-fi from dispatch design system) ────── */
+.dc-fi {
+    width:100%; padding:7px 9px; border-radius:8px;
+    border:1px solid var(--border); background:rgba(0,0,0,0.35);
+    color:#fff; font-size:0.72rem;
+    transition:border-color 0.15s,box-shadow 0.15s; font-family:inherit;
+}
+.dc-fi:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 2px rgba(211,47,47,0.1); }
+.dc-fi::placeholder { color:rgba(255,255,255,0.2); }
+select.dc-fi { height:34px; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='rgba(255,255,255,0.25)'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; padding-right:24px; cursor:pointer; }
+
+ /* ── Tool buttons ────────────────────────────────────────── */
+ .tm-tool-row { display: flex; gap: 6px; }
+ .tm-tool-btn {
+     flex: 1;
+     padding: 9px 6px;
+     border-radius: 10px;
+     border: 1px solid rgba(255,255,255,0.05);
+     background: linear-gradient(160deg, rgba(25,25,38,0.6) 0%, rgba(18,18,30,0.8) 100%);
+     color: rgba(255,255,255,0.7);
+     font-size: 0.72rem;
+     font-weight: 900;
+     cursor: pointer;
+     transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+     text-align: center;
+     backdrop-filter: blur(8px);
+     -webkit-backdrop-filter: blur(8px);
+ }
+ .tm-tool-btn:hover {
+     border-color: rgba(211,47,47,0.3);
+     background: linear-gradient(160deg, rgba(30,30,44,0.7) 0%, rgba(22,22,36,0.9) 100%);
+     transform: translateY(-1px);
+ }
+ .tm-tool-btn.active {
+     background: linear-gradient(135deg, #d32f2f 0%, #9a0007 100%);
+     border-color: transparent;
+     color: #fff;
+     box-shadow: 0 4px 12px rgba(211,47,47,0.35);
+ }
+
+/* ── Action button (dispatch-style) ──────────────────────── */
+.tm-btn {
+    width:100%; padding:8px; border-radius:8px;
+    border:1px solid var(--border); background:rgba(255,255,255,0.03);
+    color:rgba(255,255,255,0.6); font-size:0.7rem; font-weight:800;
+    cursor:pointer; transition:all 0.15s;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.tm-btn:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.2); }
+.tm-btn-primary { background:var(--primary-gradient); border-color:transparent; color:#fff; font-weight:900; }
+.tm-btn-primary:hover { opacity:0.88; }
+.tm-btn-green { background:rgba(29,158,117,0.12); border-color:rgba(29,158,117,0.25); color:#5DCAA5; }
+.tm-btn-green:hover { background:rgba(29,158,117,0.22); }
+.tm-btn-sm {
+    padding:5px 8px; border-radius:7px;
+    border:1px solid var(--border); background:rgba(255,255,255,0.03);
+    color:rgba(255,255,255,0.55); font-size:0.62rem; font-weight:800; cursor:pointer;
+}
+.tm-btn-sm:hover { background:rgba(255,255,255,0.07); }
+
+/* ── Object / blueprint cards ────────────────────────────── */
+.tm-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 10px 12px;
+    transition: border-color 0.15s;
+}
+.tm-item:hover { border-color: rgba(255,255,255,0.15); }
+.tm-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.tm-item-name { font-size: 0.78rem; font-weight: 900; }
+.tm-item-sub  { font-size: 0.65rem; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.tm-item-actions { display: flex; gap: 5px; margin-top: 8px; }
+.tm-item-details {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+}
+.tm-item-details.open { display: flex; }
+.tm-detail-row { font-size: 0.65rem; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 6px; }
+
+/* ── Toggle switch (db-toggle from dispatch design system) ── */
+.db-toggle { position:relative; width:32px; height:18px; flex-shrink:0; }
+.db-toggle input { opacity:0; width:0; height:0; }
+.db-toggle-sl { position:absolute; inset:0; background:rgba(255,255,255,0.06); border-radius:999px; cursor:pointer; transition:background 0.2s; border:1px solid rgba(255,255,255,0.08); }
+.db-toggle-sl::before { content:''; position:absolute; width:12px; height:12px; left:2px; top:2px; border-radius:50%; background:rgba(255,255,255,0.3); transition:transform 0.2s,background 0.2s; }
+.db-toggle input:checked + .db-toggle-sl { background:rgba(29,158,117,0.3); border-color:rgba(29,158,117,0.4); }
+.db-toggle input:checked + .db-toggle-sl::before { transform:translateX(14px); background:#5DCAA5; }
+
+/* ── Feed items ──────────────────────────────────────────── */
+.tm-feed-item {
+    padding: 9px 11px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 0.7rem;
+}
+.tm-feed-guard { color: var(--primary-light); font-weight: 700; font-size: 0.72rem; }
+.tm-feed-cp    { color: #fff; margin: 3px 0 2px; }
+.tm-feed-time  { font-size: 0.62rem; color: rgba(255,255,255,0.35); }
+
+/* ── Progress bar ────────────────────────────────────────── */
+.tm-prog-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-top: 6px;
+}
+.tm-prog-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--primary-gradient);
+    transition: width 0.4s;
+}
+
+/* ── History trail colors ────────────────────────────────── */
+.tm-history-badge {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+/* ── Map draw form ───────────────────────────────────────── */
+.tm-draw-form {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+}
+.tm-draw-form.open { display: flex; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.tm-empty {
+    text-align: center;
+    padding: 24px 10px;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.78rem;
+}
+.tm-empty i { font-size: 1.8rem; opacity: 0.2; display: block; margin-bottom: 8px; }
+
+/* ── Map overlay toolbar (floating top-left of map) ──────── */
+.tm-map-toolbar {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(14, 14, 22, 0.88);
+    backdrop-filter: blur(8px);
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* Strategy Badges */
+.tm-strat-badge {
+    padding: 1px 6px; border-radius: 4px; font-size: 0.55rem; font-weight: 900;
+    text-transform: uppercase; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4);
+}
+.tm-strat-badge.active { background: rgba(0,196,154,0.15); color: #5DCAA5; border: 1px solid rgba(0,196,154,0.2); }
+.tm-map-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255,255,255,0.65);
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+}
+.tm-map-btn i { font-size: 0.95rem; }
+.tm-map-btn:hover  { background: rgba(255, 255, 255, 0.08); color: #fff; border-color: rgba(255,255,255,0.2); }
+.tm-map-btn.active { background: var(--primary-gradient); color: #fff; border-color: transparent; box-shadow: 0 0 15px rgba(211,47,47,0.4); }
+
+.tm-tool-tip {
+    position: absolute;
+    left: 55px;
+    background: #000;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    border: 1px solid var(--border);
+    z-index: 1001;
+}
+.tm-map-btn:hover .tm-tool-tip { opacity: 1; }
+
+/* ── Toast ───────────────────────────────────────────────── */
+.tm-toasts { position: fixed; top: 18px; right: 18px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.tm-toast {
+    background: rgba(10,10,16,0.97);
+    border: 1px solid var(--border);
+    color: #fff;
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.tm-toast .td { width: 7px; height: 7px; border-radius: 50%; background: #5DCAA5; flex-shrink: 0; }
+.tm-toast .tde { background: var(--primary); }
+
+/* ── Guard marker pulse ──────────────────────────────────── */
+@keyframes tm-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: 0.6; } }
+.tm-guard-dot { animation: tm-pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+.tm-hidden { display: none !important; }
+
+/* ── Mobile responsive ────────────────────────────────────── */
+@media(max-width:1024px){
+  .tm-shell{height:calc(100vh - 160px);height:calc(100dvh - 160px);min-height:400px}
+  .tm-sidebar{width:300px;right:10px;top:10px;bottom:10px;border-radius:14px}
+  .tm-map-toolbar{padding:5px;gap:5px;top:10px;left:10px;border-radius:12px}
+  .tm-map-toolbar .tm-map-btn{width:34px;height:34px;border-radius:8px}
+  .tm-map-toolbar .tm-map-btn i{font-size:0.85rem}
+  .leaflet-control-zoom a{width:32px !important;height:32px !important;line-height:32px !important}
+}
+@media(max-width:768px){
+  .tm-shell{height:calc(100vh - 120px);height:calc(100dvh - 120px);min-height:300px}
+  #tmMap{border-radius:16px}
+  .leaflet-container{border-radius:12px}
+  .tm-sidebar-toggle{display:inline-flex}
+  .tm-sidebar{position:fixed;top:auto;left:0;right:0;bottom:0;width:100%;height:65vh;border-radius:14px 14px 0 0;transform:translateY(calc(100% - 48px));opacity:1;border-bottom:none}
+  .tm-sidebar.open{transform:translateY(0)}
+  .tm-sidebar-head{padding:8px 10px}
+  .tm-sidebar-head .tm-sidebar-title{font-size:0.65rem;margin-bottom:4px}
+  .tm-tabs{gap:3px;margin-top:4px}
+  .tm-tab{font-size:0.55rem;padding:5px 3px;border-radius:6px}
+  .tm-panel{padding:10px 10px 8px;gap:10px}
+  /* Draw tools at top */
+  .tm-map-toolbar{flex-direction:row;top:10px;left:10px;right:auto;bottom:auto;transform:none;padding:5px 6px;gap:3px;border-radius:10px}
+  .tm-map-toolbar .tm-label{display:none}
+  .tm-map-toolbar .tm-divider{display:none}
+  .tm-map-toolbar .tm-map-btn{width:30px;height:30px;border-radius:7px}
+  .tm-map-toolbar .tm-map-btn i{font-size:0.75rem}
+  /* Zoom at top-right */
+  .leaflet-control-zoom{position:absolute !important;top:10px !important;right:10px !important;left:auto !important;bottom:auto !important;margin:0 !important;border-radius:7px !important}
+  .leaflet-control-zoom a{width:30px !important;height:30px !important;line-height:30px !important;font-size:0.85rem !important}
+  .tm-tool-tip{display:none}
+  .tm-item{padding:8px 10px}
+  .tm-item-name{font-size:0.75rem}
+  .tm-item-sub{font-size:0.6rem}
+  .tm-btn-sm{padding:5px 8px;font-size:0.6rem}
+  .tm-panel .tm-tool-row{gap:4px}
+  .tm-panel .tm-tool-btn{padding:7px 4px;font-size:0.65rem}
+  .tm-btn{padding:7px;font-size:0.65rem}
+  .dc-fi{font-size:0.65rem;padding:5px 7px}
+  select.dc-fi{height:28px}
+  .tm-label{font-size:0.5rem}
+  .enf-preset{font-size:0.45rem;padding:3px 1px}
+  .enf-card-head{padding:6px 8px !important}
+  .enf-card-label{font-size:0.5rem !important}
+  .enf-card-value{font-size:0.85rem !important}
+  .enf-slider{height:4px !important}
+  .enf-slider::-webkit-slider-thumb{width:14px !important;height:14px !important}
+  .tm-draw-form{padding:10px}
+  .tm-coords-wrap{gap:3px}
+  .tm-item-actions{gap:4px}
+}
+@media(max-width:480px){
+  .tm-shell{height:calc(100vh - 100px);height:calc(100dvh - 100px)}
+  .tm-sidebar{height:70vh;transform:translateY(calc(100% - 44px));border-radius:12px}
+  .tm-sidebar-head{padding:6px 8px}
+  .tm-sidebar-head .tm-sidebar-title{font-size:0.58rem}
+  .tm-sidebar-toggle{padding:4px 8px;font-size:0.5rem}
+  .tm-tab{font-size:0.48rem;padding:3px 2px}
+  .tm-panel{padding:8px 6px 6px;gap:8px}
+  .tm-map-toolbar{top:8px;left:8px;padding:4px 5px;gap:2px;border-radius:8px}
+  .tm-map-toolbar .tm-map-btn{width:28px;height:28px;border-radius:6px}
+  .tm-map-toolbar .tm-map-btn i{font-size:0.65rem}
+  .leaflet-control-zoom{top:8px !important;right:8px !important;border-radius:6px !important}
+  .leaflet-control-zoom a{width:26px !important;height:26px !important;line-height:26px !important;font-size:0.75rem !important}
+  .tm-item{padding:6px 8px}
+  .tm-item-name{font-size:0.7rem}
+}
+.tm-divider { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+/* ── Enforcement slider cards (matching manage.html style) ── */
+.enf-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:all .25s cubic-bezier(.4,0,.2,1); cursor:default; }
+.enf-card:hover { border-color:rgba(255,255,255,0.12); }
+.enf-card-head { display:flex; align-items:center; gap:8px; }
+.enf-card-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; flex-shrink:0; }
+.enf-card-info { flex:1; min-width:0; display:flex; flex-direction:column; }
+.enf-card-label { font-weight:800; color:#fff; letter-spacing:.2px; }
+.enf-card-desc { color:rgba(255,255,255,0.3); }
+.enf-card-value { font-weight:900; color:rgba(255,255,255,0.15); font-variant-numeric:tabular-nums; flex-shrink:0; transition:color .2s; }
+.enf-card-value small { font-size:0.5rem; opacity:0.5; margin-left:1px; font-weight:700; }
+.enf-slider { -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:5px; background:rgba(255,255,255,0.06); outline:none; cursor:pointer; }
+.enf-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; border:2px solid var(--primary); cursor:pointer; box-shadow:0 0 8px rgba(211,47,47,0.3); transition:transform .15s; }
+.enf-slider::-webkit-slider-thumb:hover { transform:scale(1.15); }
+.enf-slider::-moz-range-thumb { width:12px; height:12px; border-radius:50%; border:2px solid var(--primary); cursor:pointer; }
+#tmEnfRadius .enf-slider::-webkit-slider-thumb { background:var(--primary); box-shadow:0 0 8px rgba(211,47,47,0.3); }
+#tmEnfRadius .enf-slider::-moz-range-thumb { background:var(--primary); }
+#tmEnfDwell .enf-slider::-webkit-slider-thumb { background:#EF9F27; box-shadow:0 0 8px rgba(239,159,39,0.3); }
+#tmEnfDwell .enf-slider::-moz-range-thumb { background:#EF9F27; }
+#tmEnfTol .enf-slider::-webkit-slider-thumb { background:#6C8EEF; box-shadow:0 0 8px rgba(108,142,239,0.3); }
+#tmEnfTol .enf-slider::-moz-range-thumb { background:#6C8EEF; }
+.enf-presets { display:flex; gap:3px; }
+.enf-preset { flex:1; padding:4px 2px; border-radius:5px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.35); font-size:0.5rem; font-weight:800; cursor:pointer; text-align:center; transition:all .12s; }
+.enf-preset:hover { border-color:rgba(255,255,255,0.15); color:rgba(255,255,255,0.7); }
+.enf-preset.active { background:rgba(211,47,47,0.15); border-color:rgba(211,47,47,0.4); color:var(--primary); }
+/* Compact enf cards inside checkpoint registry */
+.tm-cp-enf .enf-card { margin-bottom:0 !important; border-radius:4px !important; border-color:rgba(255,255,255,0.03); }
+.tm-cp-enf .enf-card-head { padding:3px 6px !important; }
+.tm-cp-enf .enf-card-icon { width:18px !important; height:18px !important; border-radius:4px !important; font-size:0.45rem !important; }
+.tm-cp-enf .enf-card-label { font-size:0.42rem !important; }
+.tm-cp-enf .enf-card-value { font-size:0.65rem !important; }
+.tm-cp-enf .enf-card-value small { font-size:0.4rem !important; }
+.tm-cp-enf .enf-card-body { padding:0 6px 3px !important; }
+.tm-cp-enf .enf-slider { height:3.5px !important; }
+.tm-cp-enf .enf-slider::-webkit-slider-thumb { width:12px !important; height:12px !important; border-width:1.5px !important; }
+.tm-cp-enf .enf-preset { padding:2px 1px !important; font-size:0.4rem !important; border-radius:3px !important; }
+/* Thumb colors for registry enf cards (order: radius, dwell, tol) */
+.tm-cp-enf .enf-card:nth-child(1) .enf-slider::-webkit-slider-thumb { background:#d32f2f; }
+.tm-cp-enf .enf-card:nth-child(1) .enf-slider::-moz-range-thumb { background:#d32f2f; }
+.tm-cp-enf .enf-card:nth-child(2) .enf-slider::-webkit-slider-thumb { background:#EF9F27; }
+.tm-cp-enf .enf-card:nth-child(2) .enf-slider::-moz-range-thumb { background:#EF9F27; }
+.tm-cp-enf .enf-card:nth-child(3) .enf-slider::-webkit-slider-thumb { background:#6C8EEF; }
+.tm-cp-enf .enf-card:nth-child(3) .enf-slider::-moz-range-thumb { background:#6C8EEF; }
+/* Preview anchor on map */
+.tm-preview-circle { opacity:0.9; pointer-events:none; }
+</style>
+
+<!-- ── Shell ───────────────────────────────────────────────── -->
+<div class="tm-shell spa-page">
+
+    <!-- FULL CANVAS MAP -->
+    <div id="tmMap"></div>
+
+    <!-- VERTICAL STRATEGIC TOOLBOX -->
+    <div class="tm-map-toolbar" id="tmMapToolbar">
+        <div class="tm-label" style="text-align:center; margin-bottom:4px; font-size:0.5rem; opacity:0.5;">Draw</div>
+        <button class="tm-map-btn" id="tmBtnPatrol" onclick="tmStartDraw('patrol')">
+            <i class="fas fa-map-pin"></i>
+            <span class="tm-tool-tip">Patrol Anchor</span>
+        </button>
+        <button class="tm-map-btn" id="tmBtnGeo" onclick="tmStartDraw('geofence')">
+            <i class="fas fa-draw-polygon"></i>
+            <span class="tm-tool-tip">Polygon Fence</span>
+        </button>
+        <button class="tm-map-btn" id="tmBtnCircle" onclick="tmStartDraw('circle')">
+            <i class="fas fa-circle-dot"></i>
+            <span class="tm-tool-tip">Radial Fence</span>
+        </button>
+        <button class="tm-map-btn" id="tmBtnPoi" onclick="tmStartDraw('poi')">
+            <i class="fas fa-location-dot"></i>
+            <span class="tm-tool-tip">Point of Interest</span>
+        </button>
+        
+        <div class="tm-divider" style="margin: 8px 0; border-color:rgba(255,255,255,0.05);"></div>
+        <div class="tm-label" style="text-align:center; margin-bottom:4px; font-size:0.5rem; opacity:0.5;">Intel</div>
+
+        <button class="tm-map-btn" id="tmBtnHistory" onclick="tmToggleHistory()">
+            <i class="fas fa-route"></i>
+            <span class="tm-tool-tip">Live Trails</span>
+        </button>
+        <button class="tm-map-btn" id="tmBtnDevices" onclick="tmToggleDevices()">
+            <i class="fas fa-microchip"></i>
+            <span class="tm-tool-tip">Devices</span>
+        </button>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="tm-sidebar">
+        <div class="tm-sidebar-head">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div class="tm-sidebar-title">
+                    <i class="fas fa-satellite-dish"></i>
+                    Tactical Overview
+                </div>
+                <button class="tm-sidebar-toggle" id="tmSidebarToggle" onclick="tmToggleSidebar()">
+                    <i class="fas fa-chevron-up"></i> <span id="tmSidebarLabel">Open</span>
+                </button>
+            </div>
+            <div class="tm-tabs">
+                <button class="tm-tab active" onclick="tmTab('live', this)">Live</button>
+                <button class="tm-tab" onclick="tmTab('objects', this)">Objects</button>
+                <button class="tm-tab" onclick="tmTab('assets', this)">Assets</button>
+                <button class="tm-tab" onclick="tmTab('routes', this)">Routes</button>
+                <button class="tm-tab" onclick="tmTab('history', this)">History</button>
+            </div>
+        </div>
+
+        <!-- ══ LIVE panel ══ -->
+        <div class="tm-panel active" id="tmPanelLive">
+            <div>
+                <span class="tm-label">Active Deployments</span>
+                <div id="tmLiveDeployments">
+                    <div class="tm-empty"><i class="fas fa-satellite-dish"></i>Loading…</div>
+                </div>
+            </div>
+            <hr class="tm-divider">
+            <div>
+                <span class="tm-label">Devices <span id="tmDeviceCount" style="opacity:.5;font-weight:400;">0</span></span>
+                <div id="tmDeviceList">
+                    <div class="tm-empty"><i class="fas fa-microchip"></i>No devices</div>
+                </div>
+            </div>
+            <hr class="tm-divider">
+            <div>
+                <span class="tm-label">Activity Stream</span>
+                <div id="tmFeed" style="display:flex; flex-direction:column; gap:6px;">
+                    <div class="tm-empty"><i class="fas fa-signal"></i>Awaiting scans…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ OBJECTS panel ══ -->
+        <div class="tm-panel" id="tmPanelObjects">
+            <div class="tm-tool-row">
+                <button class="tm-tool-btn" onclick="tmStartDraw('poi')" aria-label="Draw Point of Interest" title="Draw Point of Interest"><i class="fas fa-location-dot"></i> POI</button>
+                <button class="tm-tool-btn" onclick="tmStartDraw('geofence')" aria-label="Draw Geofence Polygon" title="Draw Geofence Polygon"><i class="fas fa-draw-polygon"></i> Geofence</button>
+                <button class="tm-tool-btn" onclick="tmStartDraw('circle')" aria-label="Draw Circle Geofence" title="Draw Circle Geofence"><i class="fas fa-circle-dot"></i> Circle</button>
+                <button class="tm-tool-btn" onclick="tmStartDraw('patrol')" aria-label="Draw Patrol Point" title="Draw Patrol Point"><i class="fas fa-map-pin"></i> Patrol Pt</button>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:2px;">
+                <button class="tm-btn-sm" style="font-size:0.5rem;padding:5px;" onclick="tmFitObjects()"><i class="fas fa-expand"></i> Fit All Objects</button>
+            </div>
+
+            <!-- Draw form (shown after placing on map) -->
+            <div class="tm-draw-form" id="tmDrawForm">
+                <span class="tm-label" id="tmDrawFormTitle">New Object</span>
+                <label for="tmObjName" class="tm-label">Object Name</label><input type="text" id="tmObjName" class="dc-fi" placeholder="Name this object…">
+                <!-- Enforcement parameter cards -->
+                <div id="tmEnfCards" style="display:flex;flex-direction:column;gap:6px;margin:6px 0;">
+                    <!-- Radius card -->
+                    <div class="enf-card" id="tmEnfRadius">
+                        <div class="enf-card-head" style="padding:8px 10px;">
+                            <div class="enf-card-icon" style="background:rgba(211,47,47,0.12);color:#d32f2f;"><i class="fas fa-circle-dot"></i></div>
+                            <div class="enf-card-info">
+                                <div class="enf-card-label" style="font-size:0.6rem;">Detection Radius</div>
+                                <div class="enf-card-desc" style="font-size:0.45rem;">Perimeter in meters</div>
+                            </div>
+                            <div class="enf-card-value" id="tmRadVal" style="font-size:1rem;">50<small>m</small></div>
+                        </div>
+                        <div class="enf-card-body" style="padding:0 10px 8px;">
+                            <input type="range" class="enf-slider" id="tmObjRadius" min="0" max="500" value="50" step="5" oninput="tmEnfSlider(this,'tmRadVal','m')">
+                            <div class="enf-presets">
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjRadius','tmRadVal',0,'m')">Off</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjRadius','tmRadVal',25,'m')">25</div>
+                                <div class="enf-preset active" onclick="tmSetPreset('tmObjRadius','tmRadVal',50,'m')">50</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjRadius','tmRadVal',100,'m')">100</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjRadius','tmRadVal',250,'m')">250</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Dwell card -->
+                    <div class="enf-card" id="tmEnfDwell">
+                        <div class="enf-card-head" style="padding:8px 10px;">
+                            <div class="enf-card-icon" style="background:rgba(239,159,39,0.12);color:#EF9F27;"><i class="fas fa-stopwatch"></i></div>
+                            <div class="enf-card-info">
+                                <div class="enf-card-label" style="font-size:0.6rem;">Dwell Time</div>
+                                <div class="enf-card-desc" style="font-size:0.45rem;">Minimum stay duration</div>
+                            </div>
+                            <div class="enf-card-value" id="tmDwellVal" style="font-size:1rem;">0<small>min</small></div>
+                        </div>
+                        <div class="enf-card-body" style="padding:0 10px 8px;">
+                            <input type="range" class="enf-slider" id="tmObjDwell" min="0" max="60" value="0" step="1" oninput="tmEnfSlider(this,'tmDwellVal','min')">
+                            <div class="enf-presets">
+                                <div class="enf-preset active" onclick="tmSetPreset('tmObjDwell','tmDwellVal',0,'min')">Off</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjDwell','tmDwellVal',5,'min')">5</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjDwell','tmDwellVal',10,'min')">10</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjDwell','tmDwellVal',30,'min')">30</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjDwell','tmDwellVal',60,'min')">60</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tolerance card -->
+                    <div class="enf-card" id="tmEnfTol">
+                        <div class="enf-card-head" style="padding:8px 10px;">
+                            <div class="enf-card-icon" style="background:rgba(108,142,239,0.12);color:#6C8EEF;"><i class="fas fa-hourglass-start"></i></div>
+                            <div class="enf-card-info">
+                                <div class="enf-card-label" style="font-size:0.6rem;">Time Tolerance</div>
+                                <div class="enf-card-desc" style="font-size:0.45rem;">Allowed grace window</div>
+                            </div>
+                            <div class="enf-card-value" id="tmTolVal" style="font-size:1rem;">15<small>min</small></div>
+                        </div>
+                        <div class="enf-card-body" style="padding:0 10px 8px;">
+                            <input type="range" class="enf-slider" id="tmObjTol" min="0" max="60" value="15" step="1" oninput="tmEnfSlider(this,'tmTolVal','min')">
+                            <div class="enf-presets">
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjTol','tmTolVal',0,'min')">Off</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjTol','tmTolVal',5,'min')">5</div>
+                                <div class="enf-preset active" onclick="tmSetPreset('tmObjTol','tmTolVal',15,'min')">15</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjTol','tmTolVal',30,'min')">30</div>
+                                <div class="enf-preset" onclick="tmSetPreset('tmObjTol','tmTolVal',60,'min')">60</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        <!-- Geofence enforcement rules (shown for geofence/circle) -->
+        <div id="tmGeoRules" style="display:none;flex-direction:column;gap:5px;margin:4px 0;padding:6px 8px;background:rgba(92,202,165,0.04);border-radius:10px;border:1px solid rgba(92,202,165,0.12);">
+            <span class="tm-label" style="font-size:0.5rem;color:#5DCAA5;display:flex;align-items:center;gap:4px;"><i class="fas fa-shield-halved"></i> Perimeter Rules <span style="font-weight:400;opacity:0.4;">(geofence)</span></span>
+            <div style="display:flex;gap:4px;">
+                <div style="flex:1;">
+                    <label class="tm-label" style="font-size:0.4rem;margin-bottom:1px;color:#6C8EEF;"><i class="fas fa-door-open"></i> Entry Rule</label>
+                    <input type="text" id="tmObjEntryMsg" class="dc-fi" placeholder="e.g. Scan NFC within 30s" style="font-size:0.55rem;padding:4px 6px;">
+                </div>
+                <div style="flex:1;">
+                    <label class="tm-label" style="font-size:0.4rem;margin-bottom:1px;color:#EF9F27;"><i class="fas fa-door-closed"></i> Exit Alert</label>
+                    <input type="text" id="tmObjExitMsg" class="dc-fi" placeholder="e.g. Guard left perimeter" style="font-size:0.55rem;padding:4px 6px;">
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:2px 0;">
+                <label class="db-toggle" style="width:24px;height:14px;">
+                    <input type="checkbox" id="tmObjIntrusion" onchange="tmToggleLabel(this,'tmIntrusionLabel')">
+                    <span class="db-toggle-sl"></span>
+                </label>
+                <span id="tmIntrusionLabel" style="font-size:0.5rem;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:4px;"><i class="fas fa-bell"></i> Intrusion Alert — triggers on unauthorized entry</span>
+            </div>
+        </div>
+                <div id="tmCoordsWrap" style="display:flex;gap:4px;margin-bottom:6px;">
+                    <div style="flex:1;"><label class="tm-label">Lat</label><input type="text" id="tmObjLat" class="dc-fi" placeholder="0.00" readonly style="font-family:monospace;font-size:0.6rem;"></div>
+                    <div style="flex:1;"><label class="tm-label">Lng</label><input type="text" id="tmObjLng" class="dc-fi" placeholder="0.00" readonly style="font-family:monospace;font-size:0.6rem;"></div>
+                    <button class="tm-btn" id="tmPickBtn" onclick="tmPickOnMap()" title="Pick from map" style="align-self:flex-end;padding:6px 10px;font-size:0.5rem;"><i class="fas fa-map-pin"></i> Pick</button>
+                </div>
+                <div id="tmPersonnelWrap">
+                    <label class="tm-label">Assign Personnel (optional)</label>
+                    <select id="tmObjPersonnel" class="dc-fi" multiple style="height:50px;"></select>
+                </div>
+                <div class="tm-tool-row" style="margin-top:4px;">
+                    <button class="tm-btn tm-btn-primary" onclick="tmSaveObject()"><i class="fas fa-check"></i> Save</button>
+                    <button class="tm-btn" onclick="tmCancelDraw()"><i class="fas fa-times"></i> Cancel</button>
+                </div>
+            </div>
+
+            <hr class="tm-divider">
+            <span class="tm-label">Saved Objects</span>
+            <div id="tmObjectsList" style="display:flex; flex-direction:column; gap:7px;">
+                <div class="tm-empty"><i class="fas fa-layer-group"></i>No objects yet</div>
+            </div>
+        </div>
+
+        <!-- ══ ASSETS panel ══ -->
+        <div class="tm-panel" id="tmPanelAssets">
+            <div style="display:flex;flex-direction:column;gap:6px;height:100%;">
+                <!-- Registry list -->
+                <div id="tmCpRegistry" style="flex:1;overflow-y:auto;border:1.5px dashed rgba(255,255,255,0.04);border-radius:8px;padding:5px;background:rgba(0,0,0,0.1);min-height:80px;">
+                    <div class="tm-empty" id="tmRegEmpty" style="padding:16px;font-size:0.6rem;">
+                        <i class="fas fa-map-pin" style="opacity:0.2;font-size:1.2rem;"></i><br>
+                        No checkpoints yet<br><span style="opacity:0.25;font-size:0.5rem;">Add one below</span>
+                    </div>
+                </div>
+                <!-- Quick-add pills -->
+                <div style="display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0;">
+                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('nfc')"><i class="fas fa-wifi"></i> NFC</button>
+                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('gps')"><i class="fas fa-map-pin"></i> GPS</button>
+                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmStartDraw('geofence')"><i class="fas fa-draw-polygon"></i> Fence</button>
+                    <button class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('peer')"><i class="fas fa-user-shield"></i> Peer</button>
+                </div>
+                <!-- Save / Clear -->
+                <div style="display:flex;gap:4px;flex-shrink:0;">
+                    <button class="tm-btn tm-btn-primary" style="flex:3;padding:6px;font-size:0.55rem;" onclick="tmSaveCheckpoints()"><i class="fas fa-cloud-arrow-up"></i> Save All</button>
+                    <button class="tm-btn" style="flex:1;padding:6px;font-size:0.55rem;color:var(--r-mute);" onclick="tmClearStaged()"><i class="fas fa-trash-can"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ ROUTES panel ══ -->
+        <div class="tm-panel" id="tmPanelRoutes">
+            <span class="tm-label">Mission Blueprints</span>
+            <div id="tmRoutesList" style="display:flex; flex-direction:column; gap:7px;">
+                <div class="tm-empty"><i class="fas fa-route"></i>Loading routes…</div>
+            </div>
+        </div>
+
+        <!-- ══ HISTORY panel ══ -->
+        <div class="tm-panel" id="tmPanelHistory">
+            <div>
+                <label class="tm-label" for="tmHistoryGuard">Select Guard</label>
+                <select id="tmHistoryGuard" class="dc-fi" onchange="tmLoadGuardHistory()">
+                    <option value="">— All active guards —</option>
+                </select>
+            </div>
+            <div>
+                <label class="tm-label" for="tmHistoryDate">Date</label>
+                <input type="date" id="tmHistoryDate" class="dc-fi" onchange="tmLoadGuardHistory()">
+            </div>
+            <button class="tm-btn tm-btn-green" onclick="tmLoadGuardHistory()">
+                <i class="fas fa-search"></i> Load History
+            </button>
+            <hr class="tm-divider">
+            <span class="tm-label">Guard Trails</span>
+            <div id="tmHistoryList" style="display:flex; flex-direction:column; gap:7px;">
+                <div class="tm-empty"><i class="fas fa-route"></i>Select a guard to view trail</div>
+            </div>
+        </div>
+
+    </div><!-- /sidebar -->
+
+</div>
+
+<div class="tm-toasts" id="tmToasts"></div>
+
+{% block page_js %}
+  {% load static %}
+  {% load vite %}
+  <script type="module" src="{% vite_asset 'src/pages/map-view.js' %}"></script>
+{% endblock %}
+{% endblock %}
+<!-- Legacy script removed - see static/src/pages/map-view.js for implementation -->

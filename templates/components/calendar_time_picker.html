@@ -1,0 +1,708 @@
+{% comment %}
+Calendar + Time Presets Picker — combined date & time selector
+with quick-preset buttons, themed for GuardTour SecOps.
+
+Usage:
+  {% include "components/calendar_time_picker.html" %}
+  <script>
+    CalendarTimePicker.init({
+      target: 'ctpContainer',     // container element ID
+      onSelect: function(dateStr, timeStr) { },
+      initialDate: new Date(),
+      initialTime: '10:00'
+    });
+  </script>
+
+API:
+  CalendarTimePicker.getDateTime()  // => { date: '2025-06-12', time: '10:00' }
+  CalendarTimePicker.setDate(d)     // d = Date or string
+  CalendarTimePicker.setTime(t)     // t = 'HH:MM'
+{% endcomment %}
+<style>
+.ctp-shell {
+  background: var(--card, #1e1e28);
+  border: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  width: 100%;
+  max-width: 520px;
+}
+
+.ctp-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 480px) {
+  .ctp-layout {
+    flex-direction: row;
+  }
+  .ctp-calendar-pane { width: 280px; flex-shrink: 0; }
+  .ctp-time-pane { flex: 1; border-left: 1px solid var(--border, rgba(255,255,255,0.07)); }
+}
+
+.ctp-calendar-pane {
+  padding: 16px;
+}
+
+.ctp-time-pane {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ctp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+}
+
+.ctp-header-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.38);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctp-header-label i {
+  color: var(--primary, #d32f2f);
+}
+
+.ctp-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ctp-month-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.ctp-nav-btn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.5);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: all 0.2s;
+}
+.ctp-nav-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #f0f0f0;
+}
+
+.ctp-dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.ctp-dow {
+  text-align: center;
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #6C8EEF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 0;
+}
+
+.ctp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.ctp-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.01);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ctp-day:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+  color: #f0f0f0;
+}
+.ctp-day.selected {
+  background: var(--primary, #d32f2f);
+  border-color: var(--primary, #d32f2f);
+  color: #fff;
+  font-weight: 700;
+}
+.ctp-day.today {
+  border-color: rgba(211,47,47,0.4);
+  color: #ff6659;
+}
+.ctp-day.selected.today {
+  color: #fff;
+  border-color: var(--primary, #d32f2f);
+}
+.ctp-day.other-month {
+  opacity: 0.2;
+  pointer-events: none;
+}
+.ctp-day.disabled {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.ctp-time-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+}
+
+.ctp-time-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.38);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctp-time-title i {
+  color: var(--primary, #d32f2f);
+}
+
+.ctp-quick-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.ctp-quick-btn {
+  padding: 4px 10px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: rgba(108, 142, 239, 0.1);
+  border: 1px solid rgba(108, 142, 239, 0.2);
+  border-radius: 40px;
+  color: #6C8EEF;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.ctp-quick-btn:hover {
+  background: rgba(108, 142, 239, 0.2);
+  border-color: rgba(108, 142, 239, 0.4);
+}
+
+.ctp-preset-row {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.ctp-preset-row::-webkit-scrollbar {
+  height: 3px;
+}
+.ctp-preset-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ctp-preset-row::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+.ctp-preset-btn {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  padding: 5px 12px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.ctp-preset-btn:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.15);
+  color: #f0f0f0;
+}
+.ctp-preset-btn.selected {
+  background: var(--primary-bg, rgba(211,47,47,0.12));
+  border-color: var(--primary, #d32f2f);
+  color: var(--primary-light, #ff6659);
+  font-weight: 700;
+}
+
+.ctp-manual-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.ctp-manual-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.ctp-manual-input {
+  width: 80px;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: #0D0D14;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  color: #f0f0f0;
+  transition: border-color 0.15s;
+}
+.ctp-manual-input:focus {
+  outline: none;
+  border-color: var(--primary, #d32f2f);
+  box-shadow: 0 0 0 2px rgba(211,47,47,0.14);
+}
+
+.ctp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.07));
+  background: rgba(255,255,255,0.01);
+  flex-wrap: wrap;
+}
+
+.ctp-summary {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+}
+
+.ctp-summary strong {
+  color: #f0f0f0;
+  font-weight: 700;
+}
+
+.ctp-summary .ctp-summary-time {
+  color: var(--primary-light, #ff6659);
+}
+
+.ctp-action-btn {
+  background: linear-gradient(135deg, #d32f2f, #9a0007);
+  border: none;
+  padding: 8px 20px;
+  border-radius: 40px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.ctp-action-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+.ctp-action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+  filter: none;
+}
+</style>
+
+<div class="ctp-shell" id="ctpShell">
+  <div class="ctp-layout">
+    <div class="ctp-calendar-pane">
+      <div class="ctp-header">
+        <span class="ctp-header-label"><i class="fas fa-calendar-alt"></i> Select Date</span>
+      </div>
+      <div class="ctp-nav-row">
+        <button class="ctp-nav-btn" id="ctpPrevBtn" title="Previous month"><i class="fas fa-chevron-left"></i></button>
+        <span class="ctp-month-label" id="ctpMonthLabel">Month YYYY</span>
+        <button class="ctp-nav-btn" id="ctpNextBtn" title="Next month"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="ctp-dow-row">
+        <span class="ctp-dow">Su</span>
+        <span class="ctp-dow">Mo</span>
+        <span class="ctp-dow">Tu</span>
+        <span class="ctp-dow">We</span>
+        <span class="ctp-dow">Th</span>
+        <span class="ctp-dow">Fr</span>
+        <span class="ctp-dow">Sa</span>
+      </div>
+      <div class="ctp-grid" id="ctpGrid"></div>
+    </div>
+    <div class="ctp-time-pane">
+      <div class="ctp-time-header">
+        <span class="ctp-time-title"><i class="fas fa-clock"></i> Select Time</span>
+        <span style="font-size:0.6rem;color:rgba(255,255,255,0.25);" id="ctpTimeDisplay">--:--</span>
+      </div>
+      <div class="ctp-quick-row" id="ctpQuickRow">
+        <button class="ctp-quick-btn" data-quick="now"><i class="fas fa-crosshairs" style="font-size:0.5rem;"></i> Now</button>
+        <button class="ctp-quick-btn" data-quick="+15">+15m</button>
+        <button class="ctp-quick-btn" data-quick="+30">+30m</button>
+        <button class="ctp-quick-btn" data-quick="+60">+1h</button>
+        <button class="ctp-quick-btn" data-quick="eos">End Shift</button>
+      </div>
+      <div class="ctp-preset-row" id="ctpPresetRow"></div>
+      <div class="ctp-manual-row">
+        <span class="ctp-manual-label"><i class="fas fa-pen"></i> Custom</span>
+        <input class="ctp-manual-input" type="time" id="ctpManualInput" value="">
+      </div>
+    </div>
+  </div>
+  <div class="ctp-footer">
+    <div class="ctp-summary" id="ctpSummary">Select a date and time</div>
+    <button class="ctp-action-btn" id="ctpConfirmBtn" disabled>
+      <i class="fas fa-check"></i> Confirm
+    </button>
+  </div>
+</div>
+
+<script>
+(function() {
+  if (window.CalendarTimePicker) return;
+
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var DOWS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  var state = {
+    selectedDate: null,
+    selectedTime: null,
+    viewDate: new Date(),
+    disabledDates: [],
+    onSelect: null,
+    containerId: 'ctpShell'
+  };
+
+  var els = {};
+
+  function cacheEls() {
+    var shell = document.getElementById(state.containerId);
+    if (!shell) return false;
+    els.shell = shell;
+    els.grid = shell.querySelector('#ctpGrid');
+    els.monthLabel = shell.querySelector('#ctpMonthLabel');
+    els.prevBtn = shell.querySelector('#ctpPrevBtn');
+    els.nextBtn = shell.querySelector('#ctpNextBtn');
+    els.presetRow = shell.querySelector('#ctpPresetRow');
+    els.timeDisplay = shell.querySelector('#ctpTimeDisplay');
+    els.manualInput = shell.querySelector('#ctpManualInput');
+    els.summary = shell.querySelector('#ctpSummary');
+    els.confirmBtn = shell.querySelector('#ctpConfirmBtn');
+    els.quickRow = shell.querySelector('#ctpQuickRow');
+    return true;
+  }
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function formatDateKey(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function isDisabled(d) {
+    var key = formatDateKey(d);
+    return state.disabledDates.some(function(dd) {
+      return formatDateKey(new Date(dd)) === key;
+    });
+  }
+
+  function renderCalendar() {
+    if (!els.grid) return;
+    var year = state.viewDate.getFullYear();
+    var month = state.viewDate.getMonth();
+
+    els.monthLabel.textContent = MONTHS[month] + ' ' + year;
+
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var daysInPrev = new Date(year, month, 0).getDate();
+    var today = new Date();
+    var todayKey = formatDateKey(today);
+
+    var html = '';
+
+    // Previous month tail
+    for (var i = firstDay - 1; i >= 0; i--) {
+      html += '<div class="ctp-day other-month">' + (daysInPrev - i) + '</div>';
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var date = new Date(year, month, d);
+      var key = formatDateKey(date);
+      var isToday = key === todayKey;
+      var isSel = state.selectedDate && key === formatDateKey(state.selectedDate);
+      var disabled = isDisabled(date);
+      var classes = 'ctp-day';
+      if (isToday) classes += ' today';
+      if (isSel) classes += ' selected';
+      if (disabled) classes += ' disabled';
+      html += '<div class="' + classes + '" data-date="' + key + '">' + d + '</div>';
+    }
+
+    // Next month head
+    var totalCells = firstDay + daysInMonth;
+    var remainder = totalCells % 7;
+    if (remainder > 0) {
+      for (var i = 1; i <= 7 - remainder; i++) {
+        html += '<div class="ctp-day other-month">' + i + '</div>';
+      }
+    }
+
+    els.grid.innerHTML = html;
+  }
+
+  function generateTimeSlots() {
+    var slots = [];
+    for (var h = 0; h < 24; h++) {
+      for (var m = 0; m < 60; m += 30) {
+        slots.push(pad(h) + ':' + pad(m));
+      }
+    }
+    return slots;
+  }
+
+  function renderTimes() {
+    if (!els.presetRow) return;
+    var slots = generateTimeSlots();
+    var html = '';
+    slots.forEach(function(t) {
+      var selected = state.selectedTime === t ? ' selected' : '';
+      html += '<button class="ctp-preset-btn' + selected + '" data-time="' + t + '">' + t + '</button>';
+    });
+    els.presetRow.innerHTML = html;
+  }
+
+  function updateSummary() {
+    if (!els.summary || !els.confirmBtn) return;
+    if (state.selectedDate && state.selectedTime) {
+      var d = state.selectedDate;
+      var dateStr = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+      els.summary.innerHTML = 'Selected: <strong>' + dateStr + '</strong> at <strong class="ctp-summary-time">' + state.selectedTime + '</strong>';
+      els.confirmBtn.disabled = false;
+    } else {
+      els.summary.textContent = 'Select a date and time';
+      els.confirmBtn.disabled = true;
+    }
+  }
+
+  function setSelectedDate(date) {
+    state.selectedDate = date;
+    renderCalendar();
+    updateSummary();
+  }
+
+  function setSelectedTime(time) {
+    state.selectedTime = time;
+    if (els.timeDisplay) els.timeDisplay.textContent = time || '--:--';
+    if (els.manualInput) els.manualInput.value = time || '';
+    renderTimes();
+    updateSummary();
+  }
+
+  function computeQuickTime(quick) {
+    var now = new Date();
+    switch (quick) {
+      case 'now':
+        return pad(now.getHours()) + ':' + pad(now.getMinutes());
+      case '+15':
+        now.setMinutes(now.getMinutes() + 15);
+        return pad(now.getHours()) + ':' + pad(now.getMinutes());
+      case '+30':
+        now.setMinutes(now.getMinutes() + 30);
+        return pad(now.getHours()) + ':' + pad(now.getMinutes());
+      case '+60':
+        now.setMinutes(now.getMinutes() + 60);
+        return pad(now.getHours()) + ':' + pad(now.getMinutes());
+      case 'eos':
+        return '18:00';
+      default:
+        return null;
+    }
+  }
+
+  function setup() {
+    if (!cacheEls()) return;
+
+    renderCalendar();
+    renderTimes();
+
+    // Month nav
+    els.prevBtn.addEventListener('click', function() {
+      state.viewDate.setMonth(state.viewDate.getMonth() - 1);
+      renderCalendar();
+    });
+    els.nextBtn.addEventListener('click', function() {
+      state.viewDate.setMonth(state.viewDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    // Day click (delegated)
+    els.grid.addEventListener('click', function(e) {
+      var day = e.target.closest('.ctp-day:not(.disabled):not(.other-month)');
+      if (!day || !day.dataset.date) return;
+      var parts = day.dataset.date.split('-');
+      setSelectedDate(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+    });
+
+    // Time preset click (delegated)
+    els.presetRow.addEventListener('click', function(e) {
+      var btn = e.target.closest('.ctp-preset-btn');
+      if (!btn || !btn.dataset.time) return;
+      setSelectedTime(btn.dataset.time);
+    });
+
+    // Quick preset buttons
+    els.quickRow.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-quick]');
+      if (!btn) return;
+      var time = computeQuickTime(btn.dataset.quick);
+      if (time) setSelectedTime(time);
+      // Auto-select today if no date selected
+      if (!state.selectedDate) {
+        setSelectedDate(new Date());
+        // Adjust view to current month
+        state.viewDate = new Date();
+        renderCalendar();
+      }
+    });
+
+    // Manual time input
+    els.manualInput.addEventListener('change', function() {
+      if (this.value) setSelectedTime(this.value);
+    });
+    els.manualInput.addEventListener('blur', function() {
+      if (this.value) setSelectedTime(this.value);
+    });
+
+    // Confirm button
+    els.confirmBtn.addEventListener('click', function() {
+      if (state.onSelect && state.selectedDate && state.selectedTime) {
+        var dateStr = formatDateKey(state.selectedDate);
+        state.onSelect(dateStr, state.selectedTime);
+      }
+    });
+  }
+
+  window.CalendarTimePicker = {
+    init: function(config) {
+      if (config) {
+        if (config.target) {
+          // Allow mounting into a specific element by moving the shell
+          var target = document.getElementById(config.target);
+          var shell = document.getElementById('ctpShell');
+          if (target && shell && shell.parentNode !== target) {
+            target.appendChild(shell);
+          }
+          if (target) state.containerId = config.target;
+        }
+        if (config.onSelect) state.onSelect = config.onSelect;
+        if (config.disabledDates) state.disabledDates = config.disabledDates;
+        if (config.initialDate) {
+          state.selectedDate = config.initialDate instanceof Date ? config.initialDate : new Date(config.initialDate);
+          state.viewDate = new Date(state.selectedDate);
+        }
+        if (config.initialTime) state.selectedTime = config.initialTime;
+      }
+      setup();
+      // Set initial values into UI
+      if (state.selectedTime) {
+        if (els.timeDisplay) els.timeDisplay.textContent = state.selectedTime;
+        if (els.manualInput) els.manualInput.value = state.selectedTime;
+      }
+      if (state.selectedDate) updateSummary();
+    },
+    getDateTime: function() {
+      if (!state.selectedDate || !state.selectedTime) return null;
+      return {
+        date: formatDateKey(state.selectedDate),
+        time: state.selectedTime,
+        dateObj: state.selectedDate
+      };
+    },
+    setDate: function(d) {
+      var date = d instanceof Date ? d : new Date(d);
+      setSelectedDate(date);
+      state.viewDate = new Date(date);
+      renderCalendar();
+      // Notify onSelect if both are set
+      if (state.selectedTime && state.onSelect) {
+        state.onSelect(formatDateKey(state.selectedDate), state.selectedTime);
+      }
+    },
+    setTime: function(t) {
+      setSelectedTime(t);
+      if (state.selectedDate && state.onSelect) {
+        state.onSelect(formatDateKey(state.selectedDate), state.selectedTime);
+      }
+    },
+    getState: function() {
+      return {
+        selectedDate: state.selectedDate ? formatDateKey(state.selectedDate) : null,
+        selectedTime: state.selectedTime,
+        viewDate: formatDateKey(state.viewDate)
+      };
+    }
+  };
+
+  // Auto-init if script loads after DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (document.getElementById('ctpShell')) {
+        window.CalendarTimePicker.init();
+      }
+    });
+  } else {
+    // Defer to next tick to let DOM settle
+    setTimeout(function() {
+      if (document.getElementById('ctpShell')) {
+        window.CalendarTimePicker.init();
+      }
+    }, 0);
+  }
+})();
+</script>

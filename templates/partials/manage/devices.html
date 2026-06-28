@@ -1,0 +1,35 @@
+{% if devices %}
+  {% for d in devices %}
+  <div class="mg-card mg-card-device" data-device-id="{{ d.id }}" style="--i:{{ forloop.counter0 }};--card-accent:{% if d.is_online %}var(--accent-green){% else %}rgba(255,255,255,0.15){% endif %};">
+    <div class="mg-card-topline"></div>
+    <div class="mg-card-avatar" style="background:{% if d.is_online %}rgba(76,175,80,.12){% else %}rgba(255,255,255,.03){% endif %};">
+      <i class="fas fa-mobile-screen" style="color:{% if d.is_online %}var(--accent-green){% else %}rgba(255,255,255,.25){% endif %};"></i>
+      {% if d.is_online %}<span class="mg-card-live-dot"></span>{% endif %}
+    </div>
+    <div class="mg-card-info">
+      <div class="mg-card-name">
+        <span>{{ d.device_name|default:d.device_id|default:"Unit" }}</span>
+        <span class="mg-device-status {% if d.is_online %}status-online{% else %}status-offline{% endif %}">{% if d.is_online %}● Live{% else %}○ Off{% endif %}</span>
+      </div>
+      <div class="mg-card-sub">
+        <span><i class="fas fa-id-badge"></i> {{ d.assigned_callsign|default:"—" }}</span>
+        {% if d.assigned_guard_name %}<span class="mg-card-guard"><i class="fas fa-user-shield"></i> {{ d.assigned_guard_name }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="mg-card-actions">
+      <button class="mg-btn mg-btn-xs mg-btn-config" onclick="mgDeviceControls({{ d.id }}, this)" title="Configure device">
+        <i class="fas fa-sliders"></i>
+      </button>
+      <button class="mg-btn mg-btn-xs mg-btn-swap" onclick="mgSwapOperator({{ d.id }},'{{ d.device_name|default:d.device_id|default:'Device'|escapejs }}')" title="Swap operator">
+        <i class="fas fa-exchange-alt"></i>
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="mg-empty">
+    <i class="fas fa-microchip"></i>
+    <div>No devices registered yet</div>
+    <div class="mg-empty-hint">Click "Register Device" to add your first unit</div>
+  </div>
+{% endif %}

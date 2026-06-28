@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Join Guard Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0a0a0f;color:white;display:flex;justify-content:center;align-items:center;min-height:100dvh;padding:16px}
+.login-card{background:#1a1a24;border-radius:20px;padding:40px 32px;width:100%;max-width:400px;border:1px solid #3a3a3a}
+.login-card h2{text-align:center;margin-bottom:20px;font-size:24px;font-weight:700}
+.input-group{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.input-group label{font-size:14px;font-weight:500;color:#c0c0c8}
+.input-group input{width:100%;padding:14px 16px;background:#14141c;border:1px solid #3a3a3a;border-radius:12px;color:white;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s}
+.input-group input:focus{border-color:#c62828}
+button{width:100%;padding:14px;background:#c62828;border:none;border-radius:12px;color:white;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:4px}
+button:hover{background:#b71c1c}
+button:active{transform:scale(.98)}
+.error{color:#f44336;margin-top:12px;font-size:14px;min-height:20px}
+.links{margin-top:20px;text-align:center;font-size:14px;color:#888}
+.links a{color:#ff5f52;text-decoration:none;font-weight:500}
+.links a:hover{text-decoration:underline}
+select{width:100%;padding:14px 16px;background:#14141c;border:1px solid #3a3a3a;border-radius:12px;color:white;font-size:15px;font-family:inherit;outline:none}
+@media(max-width:480px){
+  body{padding:12px}
+  .login-card{padding:32px 20px;border-radius:16px}
+  .login-card h2{font-size:22px}
+  .input-group input{padding:13px 14px;font-size:14px}
+  button{padding:13px;font-size:15px}
+  select{padding:13px 14px;font-size:14px}
+}
+@media(max-width:360px){
+  .login-card{padding:24px 16px}
+  .login-card h2{font-size:20px}
+}
+</style></head>
+<body>
+<div class="login-card"><h2>System Onboarding</h2><div class="input-group"><label for="username">Username</label><input type="text" id="username" placeholder="Username"></div><div class="input-group"><label for="email">Email Address</label><input type="email" id="email" placeholder="Email Address"></div><div class="input-group"><label for="password">Password</label><input type="password" id="password" placeholder="Password"></div><button onclick="register()">Create Account</button><div id="errorMsg" class="error"></div><div class="links">Already have an account? <a href="/">Login here</a></div></div>
+
+{% block page_js %}
+  {% load static %}
+  {% load vite %}
+  <script type="module" src="{% vite_asset 'src/pages/register.js' %}"></script>
+{% endblock %}
+</body></html>
