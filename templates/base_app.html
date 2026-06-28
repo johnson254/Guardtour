@@ -274,21 +274,19 @@
          htmx.config.scrollIntoViewOnBoost = true;
          htmx.config.globalViewTransitions = true;
          htmx.config.includeIndicatorStyles = true;
-        const publicPaths = ['/', '/login/', '/register/'];
-        let userData = {};
-        try { userData = JSON.parse(localStorage.getItem('gt_user') || '{}'); } catch(e) {}
-        const authToken = (userData.token || userData.access || '').trim();
-        if (!authToken && !publicPaths.includes(window.location.pathname)) {
-            window.location.href = '/login/';
-        }
-        
-        // login.html stores organization_id as null or a single organization id
-        const isSystemAdmin = userData.role === 'admin' && (userData.organization_id === null || userData.organization_id === undefined);
 
-        document.getElementById('user-name').innerText = userData.username || 'User';
-        document.getElementById('user-role').innerText = userData.role || 'Guest';
-        document.getElementById('user-av').innerText = (userData.username || 'U')[0].toUpperCase();
-        document.getElementById('org-display').innerText = userData.organization_name || 'SecOps v2.0';
+         // Safe defaults for users who do not have gt_user populated
+         window.__localUser = { role: 'Guest', organization_id: null, username: '' };
+         try {
+             const parsed = JSON.parse(localStorage.getItem('gt_user') || 'null');
+             if (parsed && !parsed.role && parsed.username) parsed.role = 'Guest';
+             if (parsed) window.__localUser = parsed;
+         } catch (_e) {}
+
+         document.getElementById('user-name').innerText = window.__localUser.username || 'User';
+         document.getElementById('user-role').innerText = window.__localUser.role || 'Guest';
+         document.getElementById('user-av').innerText = (window.__localUser.username || 'U')[0].toUpperCase();
+         document.getElementById('org-display').innerText = window.__localUser.organization_name || 'SecOps v2.0';
 
          const navLinks = [
              {url:'/dashboard/', name:'Dashboard', icon:'fa-gauge-high', roles:['admin','supervisor','guard','dispatcher']},
@@ -358,8 +356,8 @@
         document.body.appendChild(globalModal);
 
         function logout() {
-            localStorage.clear();
-            window.location.href = '/';
+            localStorage.removeItem('gt_user');
+            window.location.href = '/login/';
         }
 
         function showToast(message, type = 'success') {
@@ -379,20 +377,21 @@
         // Helper for API calls
         window.apiFetch = async function apiFetch(url, options = {}) {
             const loader = document.getElementById('global-loader');
-            loader.style.display = 'block';
-            
-            const defaultHeaders = {
-                'Authorization': `Bearer ${(userData.token || userData.access || '').trim()}`,
-                'Content-Type': 'application/json'
-            };
-            options.headers = { ...defaultHeaders, ...options.headers };
-            
+            if (loader) loader.style.display = 'block';
+
+            const token = (window.__localUser && (window.__localUser.token || window.__localUser.access)) ? (window.__localUser.token || window.__localUser.access) : '';
+            const defaultHeaders = token
+                ? { 'Authorization': `Bearer ${token.trim()}`, 'Content-Type': 'application/json' }
+                : { 'Content-Type': 'application/json' };
+            options.headers = { ...defaultHeaders, ...(options.headers || {}) };
+
             try {
                 const response = await fetch(url, options);
-                loader.style.display = 'none';
-                
+                if (loader) loader.style.display = 'none';
+
                 if (response.status === 401) {
-                    logout();
+                    window.localStorage.removeItem('gt_user');
+                    window.location.href = '/login/';
                     return;
                 }
                 

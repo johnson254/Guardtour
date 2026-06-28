@@ -24,7 +24,7 @@ def alerts_partial(request):
         rows.append(
             f'<div class="alert-item" style="border-left:3px solid var(--primary)">'
             f'<div class="alert-item-info">'
-            f'<strong>{a.title or "Alert"}</strong> for <strong>{a.operator_name or "Unknown"}</strong>'
+            f'<strong>{a.title or "Alert"}</strong> for <strong>{a.operator_id or "Unknown"}</strong>'
             f'</div>'
             f'<div class="alert-item-time">{a.created_at.strftime("%H:%M") if a.created_at else ""}</div>'
             f'</div>'
