@@ -57,28 +57,32 @@ local_settings.py
 db.sqlite3
 test_db.sqlite3
 
+# Node / Vite
+static/node_modules/
+static/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs / tooling state
+.vscode/
+.idea/
+.opencode/
+.impeccable/
+
+# Android / GuardTourNFC
+GuardTourNFC/
+*.keystore
+*.jks
+
 # Environment
 .env
 .env.*
 !.env.example
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-
 # OS
 .DS_Store
 Thumbs.db
-
-# Android / GuardTourNFC
-GuardTourNFC/.gradle/
-GuardTourNFC/.idea/
-GuardTourNFC/local.properties
-GuardTourNFC/build/
-*.keystore
-*.jks
 
 # Project specific
 .logs/
