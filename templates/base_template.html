@@ -29,6 +29,12 @@
           <div class="org-name" id="orgName">Guard Command</div>
           <div class="org-detail" id="orgDetail">SecOps Platform</div>
         </div>
+        <div class="org-stats" id="orgStats"
+             hx-get="/api/org-stats-partial/"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+          <span class="org-stat"><i class="fas fa-spinner fa-spin"></i></span>
+        </div>
       </div>
       <nav class="nav-links" id="navMenu" aria-label="Primary"></nav>
       <div class="nav-actions">
@@ -41,25 +47,8 @@
     </div>
   </header>
 
-  <!-- ═══ Org Bar ═══ -->
+  <!-- ═══ Page Content ═══ -->
   <div class="app-shell">
-    <div class="org-bar" id="orgBar">
-      <div class="org-bar-left">
-        <div class="org-bar-avatar"><i class="fas fa-shield-halved"></i></div>
-        <div>
-          <div class="org-bar-name" id="orgBarName">Organization</div>
-          <div class="org-bar-detail" id="orgBarDetail">Loading...</div>
-        </div>
-      </div>
-      <div class="org-bar-right" id="orgBarStats"
-           hx-get="/api/org-stats-partial/"
-           hx-trigger="load"
-           hx-swap="innerHTML">
-        <span class="org-stat"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
-      </div>
-    </div>
-
-    <!-- ═══ Page Content ═══ -->
     <main id="spa-content" aria-live="polite">
       {% block content %}{% endblock %}
     </main>
@@ -81,21 +70,14 @@
       }
       var u = window.__localUser || {};
 
-      // Populate nav header
+      // Populate nav header org
       document.getElementById("roleBadge").textContent = u.role || 'Guest';
       document.getElementById("userName").textContent = u.username || 'User';
       if (u.organization_name) {
         document.getElementById("orgName").textContent = u.organization_name;
-        document.getElementById("orgBarName").textContent = u.organization_name;
-      }
-
-      // Populate org bar from localStorage (login response already has this)
-      if (u.organization_name) {
-        document.getElementById("orgBarName").textContent = u.organization_name;
-        document.getElementById("orgBarDetail").textContent = (u.role || 'Operations') + ' Terminal';
       }
       if (u.organization_id) {
-        document.getElementById("orgBarDetail").textContent = 'Org #' + u.organization_id + ' — ' + (u.role || 'Operations') + ' Terminal';
+        document.getElementById("orgDetail").textContent = 'Org #' + u.organization_id + ' — ' + (u.role || 'Operations') + ' Terminal';
       }
 
       // Logout
