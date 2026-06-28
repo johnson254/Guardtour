@@ -8,9 +8,9 @@
     {% load static %}
     {% load vite %}
     <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
-    {% if debug %}
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    {% endif %}
+    <link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+    <script>htmx.config.globalViewTransitions = true;</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -22,7 +22,7 @@
     <header class="top-nav">
         <div class="nav-inner">
             <a href="/dashboard/" class="logo">Guard Command</a>
-            <nav class="nav-links" id="nav-links"></nav>
+            <nav class="nav-links" id="navMenu"></nav>
             <div class="nav-right">
                 <span class="org-name" id="org-name">SecOps</span>
                 <span class="role-badge" id="role-badge"></span>
@@ -38,29 +38,104 @@
     </main>
 
     {% block page_js %}{% endblock %}
+
+    <!-- SPA transition overlay -->
+    <div id="spa-transition" class="spa-transition-overlay" style="display:none;">
+        <div class="spa-spinner"></div>
+    </div>
+
     <script>
         (function() {
             try {
-                var userData = JSON.parse(localStorage.getItem('gt_user') || '{}');
+                var raw = JSON.parse(localStorage.getItem('gt_user') || '{}');
+                var role = (raw.role || '').toLowerCase();
+                var roleAlias = {
+                    'admin': 'Admin',
+                    'supervisor': 'Supervisor',
+                    'guard': 'Guard',
+                    'dispatcher': 'Dispatcher',
+                    'user role': 'Dispatcher',
+                    'user_role': 'Dispatcher',
+                    'user': 'User',
+                    'super_admin': 'Admin',
+                    'operator': 'Operator',
+                    'client': 'Client'
+                };
+                var orgId = raw.organization_id;
+                var isSystemAdmin = role === 'admin' && (orgId === null || orgId === undefined || orgId === '' || (Array.isArray(orgId) && orgId.length === 0));
+                var isDispatcher = role === 'dispatcher' || role === 'user role' || role === 'user_role';
+                var isSupervisor = role === 'supervisor';
+                var isGuard = role === 'guard';
+                var isAdmin = role === 'admin' && !isSystemAdmin;
+                var displayRole = roleAlias[role] || (role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User');
                 var roleEl = document.getElementById('role-badge');
                 var orgEl = document.getElementById('org-name');
                 var logoutBtn = document.getElementById('logout-btn');
-                if (userData.role && roleEl) {
-                    roleEl.textContent = userData.role;
-                }
-                if (userData.organization_name && orgEl) {
-                    orgEl.textContent = userData.organization_name;
-                }
+                if (roleEl) roleEl.textContent = displayRole;
+                if (orgEl && raw.organization_name) orgEl.textContent = raw.organization_name;
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', function() {
-                        try {
-                            localStorage.removeItem('gt_user');
-                        } catch (e) {}
-                        window.location.href = '/';
+                        try { localStorage.removeItem('gt_user'); } catch (e) {}
+                        window.location.href = '/logout/';
                     });
                 }
             } catch (e) {}
         })();
+
+        (function() {
+            try {
+                var raw = JSON.parse(localStorage.getItem('gt_user') || '{}');
+                var role = (raw.role || '').toLowerCase();
+                var orgId = raw.organization_id;
+                var isSystemAdmin = role === 'admin' && (orgId === null || orgId === undefined || orgId === '' || (Array.isArray(orgId) && orgId.length === 0));
+                var isDispatcher = role === 'dispatcher' || role === 'user role';
+                var isSupervisor = role === 'supervisor';
+                var isGuard = role === 'guard';
+                var isAdmin = role === 'admin' && !isSystemAdmin;
+                var navLinks = [
+                    {url:'/dashboard/', name:'Dashboard', icon:'fa-gauge-high', roles:[isAdmin, isSupervisor, isGuard, isDispatcher]},
+                    {url:'/map-view/', name:'Open Maps', icon:'fa-map-location-dot', roles:[isAdmin, isSupervisor, isDispatcher]},
+                    {url:'/routes/', name:'Routes Dispatch', icon:'fa-route', roles:[isAdmin, isDispatcher]},
+                    {url:'/dispatch/', name:'Mission Control', icon:'fa-satellite-dish', roles:[isAdmin, isDispatcher]},
+                    {url:'/incidents/', name:'Analytics', icon:'fa-chart-line', roles:[isAdmin, isSupervisor, isGuard, isDispatcher]},
+                    {url:'/manage/', name:'Manage', icon:'fa-gears', roles:[isAdmin, isSupervisor, isDispatcher]},
+                    {url:'/analytics/', name:'Reports', icon:'fa-box-archive', roles:[isAdmin, isSupervisor, isGuard, isDispatcher]},
+                    {url:'/control/', name:'SecOps Control', icon:'fa-sliders', roles:[isSystemAdmin]}
+                ];
+                var navContainer = document.getElementById('navMenu');
+                if (!navContainer) return;
+                navLinks.forEach(function(link) {
+                    if (!link.roles.some(Boolean)) return;
+                    var a = document.createElement('a');
+                    a.href = link.url;
+                    if (window.location.pathname === link.url) a.className = 'active';
+                    a.innerHTML = '<i class="fas ' + link.icon + '"></i> ' + link.name;
+                    a.setAttribute('hx-get', link.url);
+                    a.setAttribute('hx-target', '#content');
+                    a.setAttribute('hx-swap', 'innerHTML transition:true');
+                    a.setAttribute('hx-push-url', 'true');
+                    a.setAttribute('hx-indicator', '#spa-transition');
+                    a.addEventListener('click', function(e) {
+                        if (a.classList.contains('active')) { e.preventDefault(); return false; }
+                    });
+                    navContainer.appendChild(a);
+                });
+            } catch (e) {}
+        })();
+
+        document.body.addEventListener('htmx:beforeRequest', function(evt) {
+            if (evt.detail.target.id === 'content') {
+                var overlay = document.getElementById('spa-transition');
+                if (overlay) overlay.style.display = 'flex';
+            }
+        });
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'content') {
+                var overlay = document.getElementById('spa-transition');
+                if (overlay) overlay.style.display = 'none';
+                window.dispatchEvent(new CustomEvent('spa:pageLoaded', {detail: {url: evt.detail.requestConfig ? evt.detail.requestConfig.path : ''}}));
+            }
+        });
     </script>
 </body>
 </html>

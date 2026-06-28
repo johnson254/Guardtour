@@ -1,9 +1,10 @@
 from django.contrib import admin
+from django.http import HttpResponsePermanentRedirect
 from django.urls import path, include
 from api import views as api_views
 
-handler404 = 'api.views.core.custom_404'
-handler500 = 'api.views.core.custom_500'
+handler404 = 'api.views.custom_404'
+handler500 = 'api.views.custom_500'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +25,5 @@ urlpatterns = [
     path('control/', api_views.admin_panel_page, name='secops_control'),
     path('routes/', api_views.routes_page, name='routes'),
     path('logout/', api_views.logout_view, name='logout'),
+    path('intelligence_map/', lambda r: HttpResponsePermanentRedirect('/map-view/')),
 ]

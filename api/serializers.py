@@ -94,12 +94,11 @@ class DeviceSerializer(serializers.ModelSerializer):
     assigned_callsign = serializers.SerializerMethodField()
     assigned_guard_id = serializers.SerializerMethodField()
     device_name = serializers.SerializerMethodField()
-    tts_pending = serializers.ReadOnlyField()
 
     class Meta:
         model = Device
         fields = '__all__'
-        read_only_fields = ['tts_pending', 'tts_pending_at', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'last_sequence_id']
+        read_only_fields = ['tts_pending', 'tts_pending_at', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_voice', 'last_sequence_id']
 
     def get_device_name(self, obj):
         return obj.device_name or obj.device_id or 'Device'
@@ -485,6 +484,9 @@ class ShiftAssignmentSerializer(serializers.ModelSerializer):
             'total_checkpoints', 'completed_checkpoints'
         ]
         read_only_fields = ['dispatcher', 'assigned_at']
+
+
+ScanSerializer = ScanRecordSerializer
 
 
 class GeometryField(serializers.Field):

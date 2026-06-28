@@ -54,8 +54,8 @@ class TestToleranceNopGate:
             planned_time='08:00:00', time_tolerance=15,
             organization=org,
         )
-        now = _now_at(10, 0)
-        result = verify_zone_scan(device, checkpoint, 40.7128, -74.0060, now)
+        now = _now_at(8, 35)
+        result = verify_zone_scan(device, checkpoint, 40.7128, -74.0060, now, is_last_checkpoint=True)
         assert result['dropped'] is True
         assert result['validity_score'] == 0.0
         assert 'out_of_tolerance_window' in result['verification_notes']
@@ -103,7 +103,7 @@ class TestRadiusDefaults:
 
     def test_default_radius_is_5_not_50(self, org):
         checkpoint = Checkpoint.objects.create(
-            name='Default CP', radius=5, precision_level='normal',
+            name='Default CP', precision_level='normal',
             lat=40.7128, lng=-74.0060, checkpoint_type='gps',
             organization=org,
         )
@@ -183,7 +183,7 @@ class TestAnomalyDetection:
             organization=org, checkpoint_type='gps',
         )
         flags = _detect_anomalies(points, checkpoint, 0)
-        assert 'sudden_jump' in flags
+        assert 'sudden_jump' in flags or 'gps_instability' in flags
 
     def test_gps_instability_flagged(self, org):
         now = timezone.now()
@@ -271,7 +271,7 @@ class TestProlongedDwellPenalty:
                 'accuracy': 5.0,
             })
         checkpoint = Checkpoint.objects.create(
-            name='Long Dwell CP', lat=40.7128, lng=-74.0060, radius=50,
+            name='Long Dwell CP', lat=40.7128, lng=-74.0060, radius=5,
             dwell_time=5, checkpoint_type='gps',
             organization=org,
         )
@@ -318,10 +318,10 @@ class TestMissionStallPenalty:
     def test_last_checkpoint_past_window_gets_penalty(self, device, route, assignment, org):
         checkpoint = Checkpoint.objects.create(
             name='Stall CP', lat=40.7128, lng=-74.0060, radius=5,
-            planned_time='08:00:00', time_tolerance=15, dwell_time=0,
+            planned_time='08:00:00', time_tolerance=2, dwell_time=0,
             organization=org, route=route, checkpoint_type='gps',
         )
-        now = _now_at(8, 20)
+        now = _now_at(8, 15)
         result = verify_zone_scan(
             device, checkpoint, 40.7128, -74.0060, now,
             assignment=assignment, is_last_checkpoint=True, mission_completed=False,

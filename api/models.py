@@ -305,7 +305,7 @@ class Checkpoint(models.Model):
     planned_time = models.TimeField(null=True, blank=True)
     time_tolerance = models.IntegerField(default=15, blank=True)
     dwell_time = models.IntegerField(default=0, blank=True, help_text="Minutes expected to stay at checkpoint")
-    radius = models.IntegerField(default=50, blank=True, help_text="Acceptable GPS radius in meters")
+    radius = models.IntegerField(default=5, blank=True, help_text="Acceptable GPS radius in meters")
     precision_level = models.CharField(
         max_length=10,
         choices=[('strict', 'Strict'), ('normal', 'Normal'), ('loose', 'Loose')],
@@ -489,6 +489,22 @@ class OperatorAlert(models.Model):
     def __str__(self):
         name = self.operator.first_name if self.operator else "Unknown"
         return f"Alert to {name}: {self.title}"
+
+    @property
+    def device_info(self):
+        guard = self.operator
+        if not guard:
+            return None
+        from api.models import CallSign
+        try:
+            cs = CallSign.objects.filter(current_guard=guard).select_related('device').first()
+        except Exception:
+            cs = None
+        if cs and cs.device:
+            return cs.device.device_id
+        if hasattr(guard, 'device') and guard.device:
+            return guard.device.device_id
+        return None
 
 @receiver(post_save, sender=ShiftAssignment)
 def update_guard_shift_status(sender, instance, created, **kwargs):

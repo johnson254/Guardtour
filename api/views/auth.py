@@ -138,18 +138,20 @@ def login(request):
     elif hasattr(user, 'guardsupervisor'):
         guard_profile = user.guardsupervisor
         role = guard_profile.role
+        if role == 'User Role':
+            role = 'dispatcher'
         if guard_profile.organization:
             organization_id = [guard_profile.organization.id]
             organization_name = guard_profile.organization.name
 
     refresh = RefreshToken.for_user(user)
     request.session['access_token'] = str(refresh.access_token)
-
     django_login(request, user)
 
     return Response({
         'refresh': str(refresh),
         'access': str(refresh.access_token),
+        'token': str(refresh.access_token),
         'user': UserSerializer(user).data,
         'role': role,
         'organization_id': organization_id,

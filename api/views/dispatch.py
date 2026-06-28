@@ -121,6 +121,8 @@ def assign_guard_to_blueprint_shift(request):
         if hasattr(user, 'dispatcher_profile') and user.dispatcher_profile.organization:
             if route.organization and route.organization != user.dispatcher_profile.organization:
                 return Response({'detail': 'Permission denied'}, status=403)
+            if not guard.organization or guard.organization != user.dispatcher_profile.organization:
+                return Response({'detail': 'Permission denied'}, status=403)
 
     if route.assigned_guards.exists() and not route.assigned_guards.filter(id=guard.id).exists():
         return Response({'detail': 'Guard not eligible for this blueprint'}, status=400)

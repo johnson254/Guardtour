@@ -102,12 +102,13 @@ def admin_panel_page(request):
     return render(request, 'admin_panel.html')
 
 
+@login_required
 def login_page(request):
-    return render(request, 'login.html')
+    return redirect('/dashboard/')
 
-
+@login_required
 def register_page(request):
-    return render(request, 'register.html')
+    return redirect('/dashboard/')
 
 
 def logout_view(request):
