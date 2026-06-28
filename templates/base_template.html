@@ -145,6 +145,11 @@
       }
       renderNav();
 
+      // Re-render nav after every SPA page swap
+      window.addEventListener("spa:pageLoaded", function () {
+        renderNav();
+      });
+
       // SPA transition feedback
       document.body.addEventListener("htmx:beforeRequest", function (evt) {
         if (evt.detail.target.id === "spa-content") {

@@ -1,72 +1,147 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Guard Tour | SecOps</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'Inter',sans-serif;background:#0a0a0f;color:white;display:flex;justify-content:center;align-items:center;min-height:100dvh;padding:16px}
-        .login-card{background:#1a1a24;border-radius:20px;padding:40px 32px;width:100%;max-width:400px;border:1px solid #3a3a3a}
-        .login-card h2{text-align:center;margin-bottom:8px;font-size:24px;font-weight:700}
-        .input-group{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-        .input-group label{font-size:14px;font-weight:500;color:#c0c0c8}
-        .input-group input{width:100%;padding:14px 16px;background:#14141c;border:1px solid #3a3a3a;border-radius:12px;color:white;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s}
-        .input-group input:focus{border-color:#c62828}
-        button{width:100%;padding:14px;background:#c62828;border:none;border-radius:12px;color:white;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:4px}
-        button:hover{background:#b71c1c}
-        button:active{transform:scale(.98)}
-        .error{color:#f44336;margin-top:12px;font-size:14px;min-height:20px}
-        .links{margin-top:20px;text-align:center;font-size:14px;color:#888}
-        .links a{color:#ff5f52;text-decoration:none;font-weight:500}
-        .links a:hover{text-decoration:underline}
-        @media(max-width:480px){body{padding:12px}.login-card{padding:32px 20px;border-radius:16px}.login-card h2{font-size:22px}}
-        @media(max-width:360px){.login-card{padding:24px 16px}.login-card h2{font-size:20px}}
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Guard Command | SecOps Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+  <style>
+    :root {
+      --r-crim: #d32f2f;
+      --r-crim2: #ef5350;
+      --r-surf: #141420;
+      --r-surf3: #0d0d14;
+      --r-line: rgba(255, 255, 255, 0.07);
+      --r-mute: rgba(255, 255, 255, 0.38);
+      --r-text: rgba(255, 255, 255, 0.92);
+      --r-glow-crim: 0 0 18px rgba(211, 47, 47, 0.35);
+      --r-rad: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top left, #161625, #0a0a10 55%, #0d0d18 100%);
+      color: var(--r-text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100dvh;
+      padding: 16px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 20px;
+      padding: 32px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(160deg, rgba(26,26,38,0.92) 0%, rgba(12,12,24,0.98) 100%);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+    }
+    .login-card h2 { text-align: center; margin-bottom: 6px; font-size: 22px; font-weight: 800; }
+    .login-card .sub { text-align: center; font-size: 13px; color: var(--r-mute); margin-bottom: 22px; }
+    .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .input-group label { font-size: 13px; font-weight: 700; color: #b8bcc4; }
+    .input-group input {
+      width: 100%; padding: 13px 15px; background: var(--r-surf3); border: 1px solid var(--r-line);
+      border-radius: var(--r-rad); color: white; font-size: 15px; font-family: inherit; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-group input:focus { border-color: var(--r-crim); box-shadow: 0 0 0 2px rgba(211,47,47,0.12); }
+    button.primary-btn {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, #b71c1c, #d32f2f); border: none;
+      border-radius: var(--r-rad); color: white; font-size: 15px; font-weight: 800; cursor: pointer;
+      font-family: inherit; transition: filter 0.15s, transform 0.15s; box-shadow: var(--r-glow-crim); margin-top: 4px;
+    }
+    button.primary-btn:hover { filter: brightness(1.08); }
+    button.primary-btn:active { transform: scale(0.98); }
+    .error { color: var(--r-crim2); margin-top: 10px; font-size: 14px; min-height: 20px; }
+    .links { margin-top: 18px; text-align: center; font-size: 14px; color: #9a9aa2; }
+    .links a { color: var(--r-crim2); text-decoration: none; font-weight: 700; }
+    .links a:hover { text-decoration: underline; }
+    @media (max-width: 480px) {
+      body { padding: 12px; } .login-card { padding: 24px 18px; border-radius: 16px; }
+      .login-card h2 { font-size: 20px; }
+    }
+    @media (max-width: 360px) { .login-card { padding: 20px 14px; } .login-card h2 { font-size: 18px; } }
+  </style>
+  <script>
+    htmx.config.globalViewTransitions = true;
+    htmx.config.includeIndicatorStyles = true;
+  </script>
 </head>
 <body>
-    <div class="login-card">
-        <h2>Guard Tour</h2>
-        <div class="input-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" placeholder="Username">
-        </div>
-        <div class="input-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Password">
-        </div>
-        <button type="button" onclick="login()">Login</button>
-        <div id="errorMsg" class="error"></div>
-        <div class="links">Don't have an account? <a href="/register/">Register here</a></div>
-    </div>
-    <script>
-        function login() {
-            var u = document.getElementById('username').value;
-            var p = document.getElementById('password').value;
-            fetch('/api/login/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: u, password: p})
-            })
-            .then(r => r.json())
-            .then(d => {
-                if (d.access) {
-                    localStorage.setItem('gt_user', JSON.stringify({
-                        token: d.access,
-                        refresh: d.refresh,
-                        username: (d.user && d.user.username) ? d.user.username : u,
-                        role: d.role,
-                        organization_id: d.organization_id || null,
-                        organization_name: d.organization_name
-                    }));
-                    window.location.href = '/dashboard/';
-                } else {
-                    document.getElementById('errorMsg').textContent = (d.error || d.detail || 'Login failed');
-                }
-            })
-            .catch(e => { document.getElementById('errorMsg').textContent = 'Error'; });
+  <div class="login-card">
+    <h2>Guard Command</h2>
+    <div class="sub">SecOps Access Terminal</div>
+    <form
+      hx-post="/api/login/"
+      hx-target="#loginResult"
+      hx-swap="innerHTML"
+      hx-include="#loginFormFields"
+      hx-push-url="false"
+      hx-indicator="#loginIndicator"
+    >
+      <input type="hidden" name="next" id="loginNextField" value="/dashboard/" />
+      <div class="input-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Username" autocomplete="username" />
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="primary-btn" id="loginIndicator" style="display:none;">Signing in...</button>
+      <button type="submit" class="primary-btn">Login</button>
+      <div id="loginResult"><div class="error"></div></div>
+    </form>
+    <div class="links">Don't have an account? <a href="/register/">Register here</a></div>
+  </div>
+
+  <script>
+    (function () {
+      var form = document.querySelector('form[hx-post="/api/login/"]');
+      if (!form) return;
+      var errorEl = document.getElementById('loginResult');
+      var nextField = document.getElementById('loginNextField');
+
+      // Defensive: only propagate a clean relative path as next
+      try {
+        var rawNext = new URL(window.location.href).searchParams.get('next');
+        if (rawNext && rawNext.startsWith('/') && !/next[=/]|%3Fnext/.test(rawNext)) {
+          if (nextField) nextField.value = rawNext;
         }
-    </script>
+      } catch (e) {
+        if (nextField) nextField.value = '/dashboard/';
+      }
+
+      form.addEventListener('submit', function () {
+        if (errorEl) errorEl.innerHTML = '<div class="error"></div>';
+      });
+      document.body.addEventListener('htmx:afterRequest', function (evt) {
+        if (evt.detail.elt !== form || !errorEl) return;
+        if (evt.detail.xhr.status === 200 || evt.detail.xhr.status === 201) {
+          try {
+            var data = JSON.parse(evt.detail.xhr.responseText || '{}');
+            var target = (data.next || '/dashboard/').split('?')[0];
+            localStorage.setItem('gt_user', JSON.stringify({
+              token: data.access || data.token,
+              username: data.user?.username || '',
+              role: data.role,
+              userId: data.user?.id,
+              organization_id: data.organization_id,
+              organization_name: data.organization_name
+            }));
+            window.location.href = target;
+          } catch (e) { window.location.href = '/dashboard/'; }
+        } else {
+          errorEl.innerHTML = '<div class="error">' + (evt.detail.xhr.responseText || 'Login failed') + '</div>';
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
