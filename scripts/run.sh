@@ -11,8 +11,9 @@ PY="${VENV_DIR}/bin/python"
 NPM="npm"
 NODE="${NODE:-node}"
 
-DAPHNE_PORT="${DAPHNE_PORT:-8000}"
+DAPHNE_PORT="${DAPHNE_PORT:-8080}"
 VITE_PORT="${VITE_PORT:-5173}"
+NGROK_PORT="${NGROK_PORT:-${DAPHNE_PORT:-8080}}"
 
 die() {
   printf '%s\n' "$*" >&2
@@ -34,10 +35,19 @@ wait_for_port() {
   return 1
 }
 
+# Check optional dependencies
+if ! command -v ngrok >/dev/null 2>&1; then
+  echo "Warning: ngrok not installed. Skipping ngrok tunnel."
+  START_NGROK=false
+else
+  START_NGROK=true
+fi
 # Remove stale pyc and cache dirs without nuking real code.
 find "$REPO_ROOT" \( -name '__pycache__' -o -name '*.pyc' \) -prune -print | while IFS= read -r p; do
   rm -rf -- "$p"
 done
+
+if [ ! -x "$PY" ] && [ ! -f "$VENV_DIR/bin/python" ]; then
   die "Backend venv not found at: $VENV_DIR\nRun scripts/setup.sh first."
 fi
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
