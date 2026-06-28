@@ -42,73 +42,32 @@ from api.views.core import _deactivate_assignments
 from api.views.partials.guards import guards_partial, guard_form_partial
 from api.views.partials.reports import scans_table_partial, reports_guards_options_partial, reports_routes_options_partial
 from api.views.partials.admin import admin_stats_partial
+from api.views.partials.org_bar import org_stats_partial
 from api.views.partials.incidents import incidents_partial, incidents_guards_options_partial
 from api.views.partials.options import alerts_partial
 from api.views.partials.routes import routes_list_partial, route_editor_partial
 from api.views.partials.dispatch import blueprints_partial, missions_partial
 from api.views.partials.manage import devices_list_partial, checkpoints_list_partial, staff_panel_partial, fleet_panel_partial, audit_panel_partial
 
-# Page renders (kept in core for now, could be moved)
+# Page renders
+from api.views.page_views import (
+    dashboard_page,
+    map_view_page,
+    routes_page,
+    dispatch_page,
+    incidents_page,
+    guards_page,
+    manage_page,
+    reports_page,
+    admin_panel_page,
+    login_page,
+    register_page,
+    mission_builder_page,
+    peer_rules_page,
+)
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout as django_logout
-
-
-@login_required
-def dashboard_page(request):
-    stats_response = organization_stats(request)
-    context = stats_response.data if hasattr(stats_response, 'data') else {}
-    # ... (simplified - full implementation would be in reports.py)
-    return render(request, 'dashboard.html', context or {})
-
-
-@login_required
-def map_view_page(request):
-    return render(request, 'map_view.html')
-
-
-@login_required
-def routes_page(request):
-    return render(request, 'routes.html')
-
-
-@login_required
-def dispatch_page(request):
-    return render(request, 'dispatch.html')
-
-
-@login_required
-def incidents_page(request):
-    return render(request, 'incidents.html')
-
-
-@login_required
-def guards_page(request):
-    return render(request, 'guards.html')
-
-
-@login_required
-def manage_page(request):
-    return render(request, 'manage.html')
-
-
-@login_required
-def reports_page(request):
-    return render(request, 'reports.html')
-
-
-@login_required
-def admin_panel_page(request):
-    return render(request, 'admin_panel.html')
-
-
-@login_required
-def login_page(request):
-    return redirect('/dashboard/')
-
-@login_required
-def register_page(request):
-    return redirect('/dashboard/')
 
 
 def logout_view(request):

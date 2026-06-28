@@ -30,6 +30,7 @@ urlpatterns = [
     path('alerts-partial/', views.alerts_partial, name='alerts_partial'),
     path('scans-table-partial/', views.scans_table_partial, name='scans_table_partial'),
     path('admin-stats-partial/', views.admin_stats_partial, name='admin_stats_partial'),
+    path('org-stats-partial/', views.org_stats_partial, name='org_stats_partial'),
     path('incidents-partial/', views.incidents_partial, name='incidents_partial'),
     path('reports-guards-options-partial/', views.reports_guards_options_partial, name='reports_guards_options_partial'),
     path('reports-routes-options-partial/', views.reports_routes_options_partial, name='reports_routes_options_partial'),

@@ -1,137 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guard Command | SecOps</title>
-    {% block extra_head %}{% endblock %}
-    {% load static %}{% load vite %}
-    <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
-    <link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
-    <script>htmx.config.globalViewTransitions = true;</script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Guard Command | SecOps</title>
+  {% block extra_head %}{% endblock %}
+  {% load static %}{% load vite %}
+  <link rel="stylesheet" href="{% static 'css/design-tokens.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/layout.css' %}" />
+  <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+  <script>
+    htmx.config.globalViewTransitions = true;
+    htmx.config.includeIndicatorStyles = true;
+  </script>
 </head>
-<body>
-    <div id="global-loader"><div class="loader-bar"></div></div>
-    <div id="toast-container"></div>
+<body class="glass-app">
+  <div id="global-loader"><div class="loader-bar"></div></div>
+  <div id="toast-container"></div>
 
-    <header class="top-nav">
-        <div class="nav-inner">
-            <a href="/dashboard/" class="logo">Guard Command</a>
-            <nav class="nav-links" id="navMenu"></nav>
-            <div class="nav-right">
-                <span class="org-name" id="org-name">SecOps</span>
-                <span class="role-badge" id="role-badge"></span>
-                <button type="button" class="logout-btn" id="logout-btn" title="Logout"><i class="fas fa-power-off"></i></button>
-            </div>
+  <!-- ═══ Top Nav ═══ -->
+  <header class="top-nav glass-shell">
+    <div class="top-nav-inner">
+      <div class="org-brand" id="orgBrand">
+        <div class="org-avatar"><i class="fas fa-building org-avatar-icon"></i></div>
+        <div class="org-identity">
+          <div class="org-name" id="orgName">Guard Command</div>
+          <div class="org-detail" id="orgDetail">SecOps Platform</div>
         </div>
-    </header>
+      </div>
+      <nav class="nav-links" id="navMenu" aria-label="Primary"></nav>
+      <div class="nav-actions">
+        <span class="role-badge" id="roleBadge"></span>
+        <span class="nav-user" id="userName"></span>
+        <button type="button" id="logoutBtn" class="ghost-btn" title="Sign out">
+          <i class="fas fa-power-off"></i> Exit
+        </button>
+      </div>
+    </div>
+  </header>
 
-    <main id="spa-content" class="content">
-        {% block content %}{% endblock %}
+  <!-- ═══ Org Bar ═══ -->
+  <div class="app-shell">
+    <div class="org-bar" id="orgBar">
+      <div class="org-bar-left">
+        <div class="org-bar-avatar"><i class="fas fa-shield-halved"></i></div>
+        <div>
+          <div class="org-bar-name" id="orgBarName">Organization</div>
+          <div class="org-bar-detail" id="orgBarDetail">Loading...</div>
+        </div>
+      </div>
+      <div class="org-bar-right" id="orgBarStats"
+           hx-get="/api/org-stats-partial/"
+           hx-trigger="load"
+           hx-swap="innerHTML">
+        <span class="org-stat"><i class="fas fa-spinner fa-spin"></i> Loading...</span>
+      </div>
+    </div>
+
+    <!-- ═══ Page Content ═══ -->
+    <main id="spa-content" aria-live="polite">
+      {% block content %}{% endblock %}
     </main>
+  </div>
 
-    {% block page_js %}{% endblock %}
+  {% block page_js %}{% endblock %}
 
-    <div id="spa-transition" class="spa-transition-overlay" style="display:none;"><div class="spa-spinner"></div></div>
+  <div id="spa-transition" class="spa-transition-overlay">
+    <div class="spa-spinner"></div>
+  </div>
 
-    <script>
-        const ROLE_LABELS = {
-            admin: 'Admin',
-            supervisor: 'Supervisor',
-            guard: 'Guard',
-            dispatcher: 'Dispatcher',
-            user_role: 'Dispatcher',
-            'User Role': 'Dispatcher',
-            guest: 'Guest',
-        };
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem("gt_user");
+        window.__localUser = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        window.__localUser = { role: "Guest", organization_id: null, username: '', organization_name: 'SecOps' };
+      }
+      var u = window.__localUser || {};
 
-        function labelFor(role, fallback) {
-            const key = String(role || '').trim();
-            return ROLE_LABELS[key] || fallback || 'Guest';
-        }
+      // Populate nav header
+      document.getElementById("roleBadge").textContent = u.role || 'Guest';
+      document.getElementById("userName").textContent = u.username || 'User';
+      if (u.organization_name) {
+        document.getElementById("orgName").textContent = u.organization_name;
+        document.getElementById("orgBarName").textContent = u.organization_name;
+      }
 
-        function setUser(raw) {
-            window.__localUser = raw || { role: 'Guest', organization_id: null, username: '', organization_name: 'SecOps v2.0' };
-        }
+      // Populate org bar from localStorage (login response already has this)
+      if (u.organization_name) {
+        document.getElementById("orgBarName").textContent = u.organization_name;
+        document.getElementById("orgBarDetail").textContent = (u.role || 'Operations') + ' Terminal';
+      }
+      if (u.organization_id) {
+        document.getElementById("orgBarDetail").textContent = 'Org #' + u.organization_id + ' — ' + (u.role || 'Operations') + ' Terminal';
+      }
 
-        function renderNav() {
-            const nav = document.getElementById('navMenu');
-            if (!nav) return;
-            nav.innerHTML = '';
-            try {
-                const raw = JSON.parse(localStorage.getItem('gt_user') || 'null') || {};
-                const role = String(raw.role || '').trim().toLowerCase();
-                const orgId = raw.organization_id;
-                const isSystemAdmin = role === 'admin' && [null, undefined, ''].includes(orgId);
-                const isDispatcher = ['dispatcher', 'user role', 'user_role'].includes(role);
-                const isSupervisor = role === 'supervisor';
-                const isGuard = role === 'guard';
-                const isAdmin = role === 'admin' && !isSystemAdmin;
-                const links = [
-                    { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
-                    { url: '/map-view/', name: 'Open Maps', icon: 'fa-map-location-dot', allow: [isAdmin, isSupervisor, isDispatcher] },
-                    { url: '/routes/', name: 'Routes Dispatch', icon: 'fa-route', allow: [isAdmin, isDispatcher] },
-                    { url: '/dispatch/', name: 'Mission Control', icon: 'fa-satellite-dish', allow: [isAdmin, isDispatcher] },
-                    { url: '/incidents/', name: 'Analytics', icon: 'fa-chart-line', allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
-                    { url: '/manage/', name: 'Manage', icon: 'fa-gears', allow: [isAdmin, isSupervisor, isDispatcher] },
-                    { url: '/analytics/', name: 'Reports', icon: 'fa-box-archive', allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
-                    { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: [isSystemAdmin] },
-                ];
-                links.forEach(l => {
-                    if (!l.allow.some(Boolean)) return;
-                    const a = document.createElement('a');
-                    a.href = l.url;
-                    if (window.location.pathname === l.url) a.className = 'active';
-                    a.innerHTML = `<i class="fas ${l.icon}"></i> ${l.name}`;
-                    a.setAttribute('hx-get', l.url);
-                    a.setAttribute('hx-target', '#spa-content');
-                    a.setAttribute('hx-swap', 'innerHTML transition:true');
-                    a.setAttribute('hx-push-url', 'true');
-                    a.setAttribute('hx-indicator', '#spa-transition');
-                    a.addEventListener('click', (e) => { if (a.classList.contains('active')) { e.preventDefault(); return false; } });
-                    nav.appendChild(a);
-                });
-            } catch (_e) {}
-        }
+      // Logout
+      document.getElementById("logoutBtn").addEventListener("click", function () {
+        localStorage.removeItem("gt_user");
+        window.location.href = "/logout/";
+      });
 
-        function init() {
-            try {
-                const parsed = JSON.parse(localStorage.getItem('gt_user') || 'null');
-                setUser(parsed);
-            } catch (_e) { setUser(null); }
-
-            const raw = window.__localUser;
-            const role = String(raw.role || '').trim();
-            const roleBadge = document.getElementById('role-badge');
-            const orgName = document.getElementById('org-name');
-            const logoutBtn = document.getElementById('logout-btn');
-            const nameEl = document.getElementById('user-name');
-
-            if (roleBadge) roleBadge.textContent = labelFor(role, String(role).charAt(0).toUpperCase() + String(role).slice(1));
-            if (orgName && raw.organization_name) orgName.textContent = raw.organization_name;
-            if (nameEl) nameEl.textContent = raw.username || 'User';
-            if (logoutBtn) logoutBtn.addEventListener('click', () => { try { localStorage.removeItem('gt_user'); } catch (_e) {} window.location.href = '/logout/'; });
-
-            renderNav();
-        }
-
-        document.body.addEventListener('htmx:beforeRequest', (evt) => {
-            if (evt.detail.target.id === 'spa-content') {
-                const overlay = document.getElementById('spa-transition');
-                if (overlay) overlay.style.display = 'flex';
-            }
+      // Render role-gated nav
+      function renderNav() {
+        var nav = document.getElementById("navMenu");
+        if (!nav) return;
+        nav.innerHTML = "";
+        var role = String(u.role || "").trim().toLowerCase();
+        var orgId = u.organization_id;
+        var isSystemAdmin = role === "admin" && [null, undefined, ""].includes(orgId);
+        var isDispatcher = ["dispatcher", "user role", "user_role"].includes(role);
+        var isSupervisor = role === "supervisor";
+        var isGuard = role === "guard";
+        var isAdmin = role === "admin" && !isSystemAdmin;
+        var links = [
+          { url: "/dashboard/", name: "Dashboard", icon: "fa-gauge-high", allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
+          { url: "/map-view/", name: "Open Maps", icon: "fa-map-location-dot", allow: [isAdmin, isSupervisor, isDispatcher] },
+          { url: "/routes/", name: "Routes Dispatch", icon: "fa-route", allow: [isAdmin, isDispatcher] },
+          { url: "/dispatch/", name: "Mission Control", icon: "fa-satellite-dish", allow: [isAdmin, isDispatcher] },
+          { url: "/incidents/", name: "Analytics", icon: "fa-chart-line", allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
+          { url: "/manage/", name: "Manage", icon: "fa-gears", allow: [isAdmin, isSupervisor, isDispatcher] },
+          { url: "/analytics/", name: "Reports", icon: "fa-box-archive", allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
+          { url: "/control/", name: "SecOps Control", icon: "fa-sliders", allow: [isSystemAdmin] },
+        ];
+        links.forEach(function(l) {
+          if (!l.allow.some(Boolean)) return;
+          var a = document.createElement("a");
+          a.href = l.url;
+          if (window.location.pathname === l.url) a.className = "active";
+          a.innerHTML = '<i class="fas ' + l.icon + '"></i> ' + l.name;
+          a.setAttribute("hx-get", l.url);
+          a.setAttribute("hx-target", "#spa-content");
+          a.setAttribute("hx-swap", "innerHTML transition:true");
+          a.setAttribute("hx-push-url", "true");
+          a.setAttribute("hx-indicator", "#spa-transition");
+          a.addEventListener("click", function(e) {
+            if (a.classList.contains("active")) { e.preventDefault(); return false; }
+          });
+          nav.appendChild(a);
         });
-        document.body.addEventListener('htmx:afterSwap', (evt) => {
-            if (evt.detail.target.id === 'spa-content') {
-                const overlay = document.getElementById('spa-transition');
-                if (overlay) overlay.style.display = 'none';
-                window.dispatchEvent(new CustomEvent('spa:pageLoaded', { detail: { url: evt.detail.requestConfig?.path || '' } }));
-            }
-        });
+      }
+      renderNav();
 
-        init();
-    </script>
+      // SPA transition feedback
+      document.body.addEventListener("htmx:beforeRequest", function (evt) {
+        if (evt.detail.target.id === "spa-content") {
+          var overlay = document.getElementById("spa-transition");
+          if (overlay) overlay.style.display = "flex";
+        }
+      });
+      document.body.addEventListener("htmx:afterSwap", function (evt) {
+        if (evt.detail.target.id === "spa-content") {
+          var overlay = document.getElementById("spa-transition");
+          if (overlay) overlay.style.display = "none";
+          window.dispatchEvent(new CustomEvent("spa:pageLoaded", { detail: { url: evt.detail.requestConfig?.path || "" } }));
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
