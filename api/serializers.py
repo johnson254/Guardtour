@@ -94,11 +94,34 @@ class DeviceSerializer(serializers.ModelSerializer):
     assigned_callsign = serializers.SerializerMethodField()
     assigned_guard_id = serializers.SerializerMethodField()
     device_name = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Device
-        fields = '__all__'
-        read_only_fields = ['tts_pending', 'tts_pending_at', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_voice', 'last_sequence_id']
+        fields = [
+            'id', 'device_id', 'device_name', 'callsign', 'is_active', 'is_online',
+            'last_seen', 'registered_at', 'organization', 'organization_name',
+            'assigned_callsign', 'assigned_guard_id', 'status',
+            'imei', 'imsi', 'sim_phone_number', 'os_version', 'manufacturer', 'model', 'sdk_int',
+            'nfc_mode', 'last_nfc_scan', 'last_nfc_scan_uid',
+            'last_latitude', 'last_longitude', 'last_gps_accuracy', 'battery_pct',
+            'nfc_fetch_requested', 'gps_fetch_requested', 'gps_accuracy_threshold',
+            'tts_voice', 'tts_rate', 'tts_pitch',
+            'tts_pending', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_pending_at',
+            'tts_acked', 'last_reminder_at', 'geofence_states',
+            'password',
+        ]
+        read_only_fields = [
+            'id', 'registered_at', 'last_seen',
+            'tts_pending', 'tts_pending_voice', 'tts_pending_rate', 'tts_pending_pitch', 'tts_pending_at',
+            'tts_voice', 'tts_rate', 'tts_pitch',
+            'last_sequence_id', 'peer_session_key',
+            'last_nfc_scan', 'last_nfc_scan_uid',
+            'last_gps_accuracy', 'battery_pct',
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
 
     def get_device_name(self, obj):
         return obj.device_name or obj.device_id or 'Device'
@@ -107,19 +130,13 @@ class DeviceSerializer(serializers.ModelSerializer):
         return obj.organization.name if obj.organization else None
 
     def get_assigned_callsign(self, obj):
-        """Return the callsign shown in the Manage → Devices UI.
-
-        Priority:
-        1) Latest active shift assignment for this device
-        2) Latest provisioning binding (callsign_snapshot)
-        """
         try:
             if hasattr(obj, 'active_callsign') and obj.active_callsign is not None:
                 return obj.active_callsign.callsign
         except Exception:
             pass
         return obj.callsign
-    
+
     def get_assigned_guard_id(self, obj):
         try:
             if hasattr(obj, 'active_callsign') and obj.active_callsign and obj.active_callsign.current_guard:
@@ -127,6 +144,15 @@ class DeviceSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
+
+    def get_status(self, obj):
+        if not obj.is_online:
+            return 'offline'
+        from django.utils import timezone as dj_timezone
+        now = dj_timezone.now()
+        if obj.last_seen and (now - obj.last_seen).total_seconds() <= 120:
+            return 'online'
+        return 'idle'
 
 class CallSignSerializer(serializers.ModelSerializer):
     device_name = serializers.SerializerMethodField()

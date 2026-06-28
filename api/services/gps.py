@@ -3,6 +3,8 @@ from datetime import timedelta
 
 
 def _haversine(lat1, lng1, lat2, lng2):
+    if None in (lat1, lng1, lat2, lng2):
+        return None
     R = 6371000
     dlat = math.radians(lat2 - lat1)
     dlng = math.radians(lng2 - lng1)

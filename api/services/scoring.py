@@ -129,8 +129,15 @@ def verify_zone_scan(device, checkpoint, scan_lat, scan_lng, now, assignment=Non
 
     effective_radius = _compute_effective_radius(checkpoint, sensor_context)
     dist = _haversine(scan_lat, scan_lng, checkpoint.lat, checkpoint.lng)
-    radius_score = 0.0
-    if dist <= effective_radius:
+    if dist is None:
+        if checkpoint.checkpoint_type == 'nfc' and checkpoint.nfc_tag:
+            radius_score = 1.0
+            result['verification_notes'] += ' nfc_only_no_gps'
+        else:
+            result['verification_notes'] += ' no_gps'
+            result['dropped'] = True
+            return result
+    elif dist <= effective_radius:
         radius_score = 1.0
     elif dist <= effective_radius * 3:
         radius_score = 0.5
@@ -206,7 +213,7 @@ def verify_zone_scan(device, checkpoint, scan_lat, scan_lng, now, assignment=Non
 
     result['validity_score'] = round(min(1.0, max(0.0, validity)), 2)
 
-    if dist <= effective_radius:
+    if dist is not None and dist <= effective_radius:
         result['map_update'] = {
             'event': 'zone_enter',
             'checkpoint_id': checkpoint.id,

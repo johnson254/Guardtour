@@ -22,6 +22,8 @@ def _walk_dwell_trail(device, assignment, checkpoint, effective_radius, window_s
     hdop_values = []
     for p in points:
         dist = _haversine(p['lat'], p['lng'], checkpoint.lat, checkpoint.lng)
+        if dist is None:
+            continue
         inside = dist <= effective_radius
         ts = p['recorded_at']
         if inside:

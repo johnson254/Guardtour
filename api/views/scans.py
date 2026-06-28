@@ -271,7 +271,7 @@ def scan_batch_sync(request):
                 route_id=s.get('route_id'),
                 nfc_value=nfc_value,
                 peer_key=s.get('verification_key') or s.get('peer_key'),
-                now=server_now,
+                now=recorded_at,
                 raw_nfc=s.get('raw_nfc'),
                 scan_lat=s.get('lat'),
                 scan_lng=s.get('lng'),
@@ -284,6 +284,8 @@ def scan_batch_sync(request):
             tts_p = scan_data.pop('_tts_pitch', 1.0)
             ps = scan_data.pop('_play_sound', True)
             vb = scan_data.pop('_vibrate', True)
+            scan_data.pop('_map_update', None)
+            scan_data.pop('_dropped', None)
             scan_data['server_received_timestamp'] = server_now
             record = ScanRecord.objects.create(
                 **{k: v for k, v in scan_data.items() if k != 'guard_supervisor'},

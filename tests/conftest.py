@@ -112,6 +112,10 @@ def patrol_route_with_checkpoints(db, default_organization, guard_supervisor):
     )
     route.assigned_guards.add(guard_supervisor)
 
+    now = timezone.now()
+    t1 = (now - timedelta(minutes=5)).strftime('%H:%M:%S')
+    t2 = (now + timedelta(minutes=30)).strftime('%H:%M:%S')
+
     Checkpoint.objects.create(
         route=route,
         organization=default_organization,
@@ -119,8 +123,11 @@ def patrol_route_with_checkpoints(db, default_organization, guard_supervisor):
         checkpoint_type='nfc',
         nfc_tag='TAG-GATE',
         order=1,
-        planned_time='08:00:00',
-        time_tolerance=15
+        planned_time=t1,
+        time_tolerance=15,
+        lat=40.7128,
+        lng=-74.0060,
+        radius=50,
     )
     Checkpoint.objects.create(
         route=route,
@@ -129,8 +136,11 @@ def patrol_route_with_checkpoints(db, default_organization, guard_supervisor):
         checkpoint_type='nfc',
         nfc_tag='TAG-LOBBY',
         order=2,
-        planned_time='08:30:00',
-        time_tolerance=10
+        planned_time=t2,
+        time_tolerance=10,
+        lat=40.7135,
+        lng=-74.0055,
+        radius=50,
     )
     return route
 
