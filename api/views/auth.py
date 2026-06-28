@@ -43,13 +43,13 @@ def register(request):
 
     if role == 'admin' or user.is_superuser:
         role = 'admin'
-        organization_id = [org.id for org in Organization.objects.all()]
+        organization_id = None
         organization_name = "Global System"
     else:
         dispatcher = Dispatcher.objects.create(user=user, organization=default_org)
         role = 'dispatcher'
-        organization_id = [dispatcher.organization.id]
-        organization_name = dispatcher.organization.name
+        organization_id = dispatcher.organization.id if dispatcher.organization else None
+        organization_name = dispatcher.organization.name if dispatcher.organization else None
 
     refresh = RefreshToken.for_user(user)
 
@@ -119,11 +119,11 @@ def login(request):
 
     if user.is_superuser:
         role = 'admin'
-        organization_id = [org.id for org in Organization.objects.all()]
+        organization_id = None
         organization_name = "Global System"
     elif hasattr(user, 'admin_profile'):
         admin_profile = user.admin_profile
-        organization_id = [org.id for org in admin_profile.organizations.all()]
+        organization_id = None
         organization_name = "Enterprise Admin"
         role = 'admin'
     elif hasattr(user, 'dispatcher_profile'):
@@ -133,7 +133,7 @@ def login(request):
             dispatcher_profile.organization = default_org
             dispatcher_profile.save(update_fields=['organization'])
         if dispatcher_profile.organization:
-            organization_id = [dispatcher_profile.organization.id]
+            organization_id = dispatcher_profile.organization.id
             organization_name = dispatcher_profile.organization.name
     elif hasattr(user, 'guardsupervisor'):
         guard_profile = user.guardsupervisor
@@ -141,7 +141,7 @@ def login(request):
         if role == 'User Role':
             role = 'dispatcher'
         if guard_profile.organization:
-            organization_id = [guard_profile.organization.id]
+            organization_id = guard_profile.organization.id
             organization_name = guard_profile.organization.name
 
     refresh = RefreshToken.for_user(user)

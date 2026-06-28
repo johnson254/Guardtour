@@ -57,7 +57,7 @@
                         refresh: d.refresh,
                         username: (d.user && d.user.username) ? d.user.username : u,
                         role: d.role,
-                        organization_id: d.organization_id ? d.organization_id[0] : null,
+                        organization_id: d.organization_id || null,
                         organization_name: d.organization_name
                     }));
                     window.location.href = '/dashboard/';
