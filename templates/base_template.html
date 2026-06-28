@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guard Command | SecOps</title>
+    {% block extra_head %}{% endblock %}
+    {% load static %}
+    {% load vite %}
+    <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
+    {% if debug %}
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    {% endif %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="global-loader">
+        <div class="loader-bar"></div>
+    </div>
+    <div id="toast-container"></div>
+
+    <header class="top-nav">
+        <div class="nav-inner">
+            <a href="/dashboard/" class="logo">Guard Command</a>
+            <nav class="nav-links" id="nav-links"></nav>
+            <div class="nav-right">
+                <span class="org-name" id="org-name">SecOps</span>
+                <span class="role-badge" id="role-badge"></span>
+                <button class="logout-btn" id="logout-btn" title="Logout">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="content" class="content">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block page_js %}{% endblock %}
+</body>
+</html>

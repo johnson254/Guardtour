@@ -32,16 +32,11 @@ API:
 
 .ctp-layout {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 }
 
-@media (min-width: 480px) {
-  .ctp-layout {
-    flex-direction: row;
-  }
-  .ctp-calendar-pane { width: 280px; flex-shrink: 0; }
-  .ctp-time-pane { flex: 1; border-left: 1px solid var(--border, rgba(255,255,255,0.07)); }
-}
+.ctp-calendar-pane { width: 280px; flex-shrink: 0; }
+.ctp-time-pane { flex: 1; border-left: 1px solid var(--border, rgba(255,255,255,0.07)); }
 
 .ctp-calendar-pane {
   padding: 16px;

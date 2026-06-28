@@ -1,5 +1,5 @@
 {% extends base_template %}
-{% load htmx_base %}{% block content %}
+{% block content %}
 <div class="card"><h3>System Administration</h3><p>Manage users, organizations, and system settings</p></div>
 <div class="card"><h3>System Overview</h3><div id="adminStats" hx-get="/api/admin-stats-partial/" hx-trigger="load, every 120s" hx-target="this"><p style="text-align:center;padding:20px;color:var(--text-muted);">Loading stats...</p></div></div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
