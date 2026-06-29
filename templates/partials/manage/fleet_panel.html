@@ -193,11 +193,12 @@
                        name="q" style="font-size:0.65rem;padding:5px 8px;">
             </div>
         </div>
-        <div style="display:flex;gap:3px;padding:0 10px 8px;">
-             <button type="button" class="mg-filter-chip active" data-status="all" onclick="mgDeviceFilter('all',this)"
-                    hx-get="/api/devices-partial/" hx-target="#deviceList" hx-trigger="click" style="font-size:0.5rem;padding:3px 8px;">All</button>
-             <button type="button" class="mg-filter-chip" data-status="online" onclick="mgDeviceFilter('online',this)"
-                    hx-get="/api/devices-partial/?status=online" hx-target="#deviceList" hx-trigger="click" style="font-size:0.5rem;padding:3px 8px;">Online</button>
+        <div style="display:flex;gap:3px;padding:0 10px 8px;flex-wrap:wrap;">
+             <button type="button" class="mg-filter-chip active" data-status="all" onclick="mgDeviceFilter('all',this)" style="font-size:0.5rem;padding:3px 8px;">All</button>
+             <button type="button" class="mg-filter-chip" data-status="online" onclick="mgDeviceFilter('online',this)" style="font-size:0.5rem;padding:3px 8px;">Online</button>
+             <button type="button" class="mg-filter-chip" data-status="mission" onclick="mgDeviceFilter('mission',this)" style="font-size:0.5rem;padding:3px 8px;">On Mission</button>
+             <button type="button" class="mg-filter-chip" data-status="available" onclick="mgDeviceFilter('available',this)" style="font-size:0.5rem;padding:3px 8px;">Available</button>
+             <button type="button" class="mg-filter-chip" data-status="nfc" onclick="mgDeviceFilter('nfc',this)" style="font-size:0.5rem;padding:3px 8px;">NFC Pending</button>
         </div>
         <div class="mg-list" id="deviceList" style="padding:0 8px;">
             <div class="mg-empty" style="padding:20px;"><i class="fas fa-circle-notch fa-spin" style="font-size:1rem;opacity:0.3;"></i></div>

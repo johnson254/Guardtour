@@ -736,12 +736,15 @@ function mgRenderDeviceStats(){
     const assigned=allDevices.filter(d=>d.assigned_callsign).length;
     const batLow=allDevices.filter(d=>d.battery_pct!==null&&d.battery_pct!==undefined&&parseInt(d.battery_pct)<=20).length;
     const ttsPending=allDevices.filter(d=>d.tts_acked===false && d.tts_pending).length;
+    const onMission=allDevices.filter(d=>d.current_mission && d.current_mission.route_name).length;
+    const nfcPending=allDevices.filter(d=>d.nfc_fetch_requested).length;
     $('deviceStats').innerHTML=`
         <div class="mg-stat"><div class="mg-stat-val">${total}</div><div class="mg-stat-lbl">Devices</div></div>
         <div class="mg-stat"><div class="mg-stat-val green">${online}</div><div class="mg-stat-lbl">Online</div></div>
-        <div class="mg-stat"><div class="mg-stat-val red">${total - online}</div><div class="mg-stat-lbl">Offline</div></div>
+        <div class="mg-stat"><div class="mg-stat-val blue">${onMission}</div><div class="mg-stat-lbl">On Mission</div></div>
         <div class="mg-stat"><div class="mg-stat-val ${ttsPending ? 'amber' : ''}">${ttsPending}</div><div class="mg-stat-lbl">TTS Pending</div></div>
-        <div class="mg-stat"><div class="mg-stat-val amber">${assigned}</div><div class="mg-stat-lbl">Assigned</div></div>
+        <div class="mg-stat"><div class="mg-stat-val ${nfcPending ? 'amber' : ''}">${nfcPending}</div><div class="mg-stat-lbl">NFC Fetch</div></div>
+        <div class="mg-stat"><div class="mg-stat-val red">${total - online}</div><div class="mg-stat-lbl">Offline</div></div>
     `;
     var tcFleet = $('tcFleet');
     if (tcFleet) tcFleet.textContent = String(total + (allAssets||[]).length);
@@ -767,6 +770,9 @@ function mgRenderDevices(){
     const q=($('deviceSearch')?.value||'').toLowerCase();
     let list = allDevices.slice();
     if(deviceFilter==='online') list=list.filter(d=>d.is_online);
+    if(deviceFilter==='mission') list=list.filter(d=>d.current_mission && d.current_mission.route_name);
+    if(deviceFilter==='available') list=list.filter(d=>!d.current_mission || !d.current_mission.route_name);
+    if(deviceFilter==='nfc') list=list.filter(d=>d.nfc_fetch_requested);
     if(q) list=list.filter(d=>(d.device_name||d.device_id||'').toLowerCase().includes(q));
 
     const container=$('deviceList');
@@ -790,19 +796,21 @@ function mgRenderDevices(){
             else lastSeenStr = Math.floor(diff/86400) + 'd ago';
         }
         var batPct = d.battery_pct != null ? parseInt(d.battery_pct) : null;
-        var batColor = batPct != null ? (batPct > 50 ? '#5DCAA5' : batPct > 20 ? '#EF9F27' : 'var(--primary-light)') : '';
+        var batColor = batPct != null ? (batPct > 50 ? '#5DCAA5' : batPct > 20 ? '#EF9F27' : '#FF6659') : '';
         var batIcon = batPct != null ? (batPct > 50 ? 'fa-battery-three-quarters' : batPct > 20 ? 'fa-battery-quarter' : 'fa-battery-empty') : '';
         var callsign = d.assigned_callsign || d.callsign || '';
         var accentColor = d.is_online ? '#5DCAA5' : 'rgba(255,255,255,0.15)';
-        return `<div class="mg-card mg-card-device" data-device-id="${d.id}" style="cursor:pointer;--i:${i};--card-accent:${accentColor};">
-            <div class="mg-card-topline" style="background:${accentColor};"></div>
+        var mission = d.current_mission || null;
+        var hasMission = mission && mission.route_name;
+        return `<div class="mg-card mg-card-device${d.nfc_fetch_requested ? ' staged' : ''}" data-device-id="${d.id}" style="cursor:pointer;--i:${i};--card-accent:${hasMission ? '#6C8EEF' : accentColor};">
+            <div class="mg-card-topline" style="background:${hasMission ? '#6C8EEF' : accentColor};"></div>
             <div class="mg-card-avatar" style="background:${d.is_online?'rgba(29,158,117,.12)':'rgba(255,255,255,.03)'};position:relative;width:42px;height:42px;border-radius:14px;">
                 <i class="fas fa-mobile-screen" style="color:${d.is_online?'#5DCAA5':'rgba(255,255,255,.25)'};font-size:0.95rem;"></i>
                 ${d.is_online ? '<span class="mg-card-live-dot" style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#5DCAA5;border:2px solid #14141c;box-shadow:0 0 6px rgba(93,202,165,0.4);"></span>' : ''}
             </div>
             <div class="mg-card-info">
                 <div class="mg-card-name" style="display:flex;align-items:center;gap:8px;">
-                    <span>${d.device_name || d.device_id || 'Device #'+d.id}</span>
+                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">${d.device_name || d.device_id || 'Device #'+d.id}</span>
                     <span style="font-size:0.58rem;font-weight:700;color:${d.is_online?'rgba(93,202,165,0.7)':'rgba(255,255,255,0.2)'};">${d.is_online?'● Live':'○ Offline'}</span>
                 </div>
                 <div class="mg-card-sub" style="display:flex;align-items:center;gap:10px;margin-top:3px;">
@@ -813,12 +821,13 @@ function mgRenderDevices(){
                     ${batPct != null ? `<span style="display:flex;align-items:center;gap:3px;font-size:0.58rem;color:${batColor}"><i class="fas ${batIcon}" style="font-size:0.55rem;"></i>${batPct}%</span>` : ''}
                     ${lastSeenStr ? `<span style="font-size:0.55rem;color:rgba(255,255,255,0.25);">${lastSeenStr}</span>` : ''}
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
-                    ${[d.manufacturer, d.model].filter(Boolean).join(' ') ? `<span style="font-size:0.52rem;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.03);padding:1px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.04);">${[d.manufacturer, d.model].filter(Boolean).join(' ')}</span>` : ''}
-                    ${d.is_online ? '<span style="font-size:0.52rem;color:rgba(93,202,165,0.3);">active</span>' : ''}
+                ${hasMission ? `<div style="margin-top:6px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><i class="fas fa-route" style="font-size:0.5rem;color:#6C8EEF;"></i><span style="font-size:0.55rem;color:#6C8EEF;font-weight:700;">${mission.route_name}</span><span style="margin-left:auto;font-size:0.55rem;font-weight:800;color:#5DCAA5;">${mission.completed_checkpoints}/${mission.total_checkpoints}</span></div><div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${mission.progress_pct}%;background:linear-gradient(90deg,#6C8EEF,#5DCAA5);border-radius:2px;transition:width .3s;"></div></div>${mission.next_checkpoint ? `<div style="margin-top:3px;font-size:0.5rem;color:rgba(255,255,255,0.35);"><i class="fas fa-arrow-right" style="font-size:0.4rem;margin-right:3px;"></i>${mission.next_checkpoint.name} ${mission.next_checkpoint.planned_time ? '· ' + mission.next_checkpoint.planned_time : ''}</div>` : ''}</div>` : ''}
+                <div style="display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap;">
+                    ${d.nfc_fetch_requested ? '<span style="font-size:0.48rem;color:#EF9F27;background:rgba(239,159,39,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(239,159,39,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-wifi" style="font-size:0.4rem;"></i>NFC Pending</span>' : ''}
                     ${d.tts_acked === false && d.tts_pending ? '<span style="font-size:0.48rem;color:#EF9F27;background:rgba(239,159,39,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(239,159,39,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-volume-high" style="font-size:0.4rem;"></i>TTS pending</span>' : ''}
-                    ${d.nfc_fetch_requested ? '<span style="font-size:0.48rem;color:#EF9F27;background:rgba(239,159,39,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(239,159,39,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-wifi" style="font-size:0.4rem;"></i>NFC pending</span>' : ''}
-                    ${d.current_mission && d.current_mission.route_name ? `<span style="font-size:0.48rem;color:#5DCAA5;background:rgba(93,202,165,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(93,202,165,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-route" style="font-size:0.4rem;"></i>${d.current_mission.progress_pct}%</span>` : ''}
+                    ${!hasMission && d.is_online ? '<span style="font-size:0.48rem;color:rgba(93,202,165,0.5);background:rgba(93,202,165,0.08);padding:1px 7px;border-radius:4px;border:1px solid rgba(93,202,165,0.15);">Available</span>' : ''}
+                    ${!hasMission && !d.is_online ? '<span style="font-size:0.48rem;color:rgba(255,255,255,0.2);">Idle</span>' : ''}
+                    ${[d.manufacturer, d.model].filter(Boolean).join(' ') ? `<span style="font-size:0.52rem;color:rgba(255,255,255,0.2);">${[d.manufacturer, d.model].filter(Boolean).join(' ')}</span>` : ''}
                 </div>
             </div>
             <div class="mg-card-actions" style="gap:3px;">
