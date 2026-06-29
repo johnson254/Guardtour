@@ -47,6 +47,9 @@ _api_v1_patterns = [
         path('<int:route_id>/scheduled-checkpoints/', views.scheduled_checkpoints, name='scheduled-checkpoints'),
         path('<int:route_id>/peer-audit/', views.peer_audit_report, name='peer-audit'),
     ])),
+    path('audit/', include([
+        path('create-shift/', views.create_audit_shift, name='create-audit-shift'),
+    ])),
     path('reports/', include([
         path('admin-stats/', views.admin_stats, name='admin-stats'),
         path('org-stats/', views.organization_stats, name='org-stats'),

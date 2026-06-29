@@ -175,6 +175,145 @@ def assign_guard_to_blueprint_shift(request):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_audit_shift(request):
+    """Create peer-to-peer audit shifts for multiple guards on an audit route.
+
+    Creates ShiftAssignments for all selected guards and sets up peer
+    session keys so their devices know to scan each other.
+
+    Request body:
+    {
+        "route_id": 1,
+        "guard_ids": [1, 2, 3],
+        "scheduled_date": "2027-07-15",
+        "shift_type": "Day",
+        "start_time": "08:00",
+        "end_time": "16:00"
+    }
+    """
+    import secrets
+    from api.models import PatrolRoute, GuardSupervisor, ShiftAssignment, CallSign
+
+    route_id = request.data.get('route_id')
+    guard_ids = request.data.get('guard_ids', [])
+    scheduled_date = request.data.get('scheduled_date')
+    shift_type = request.data.get('shift_type', 'Day')
+    start_time = request.data.get('start_time')
+    end_time = request.data.get('end_time')
+
+    if not route_id or not guard_ids:
+        return Response({'detail': 'route_id and guard_ids required'}, status=400)
+    if shift_type not in SHIFT_TYPE_CHOICES:
+        return Response({'detail': 'Invalid shift_type. Must be Day, Night, or Flex.'}, status=400)
+    if not isinstance(guard_ids, list) or len(guard_ids) < 2:
+        return Response({'detail': 'At least 2 guards required for peer audit.'}, status=400)
+
+    try:
+        route = PatrolRoute.objects.get(id=route_id)
+    except PatrolRoute.DoesNotExist:
+        return Response({'detail': 'Route not found'}, status=404)
+
+    if not route.is_audit:
+        return Response({'detail': 'Route is not an audit route. Set is_audit=True first.'}, status=400)
+
+    user = request.user
+    if not (user.is_superuser or hasattr(user, 'admin_profile')):
+        if hasattr(user, 'dispatcher_profile') and user.dispatcher_profile.organization:
+            if route.organization and route.organization != user.dispatcher_profile.organization:
+                return Response({'detail': 'Permission denied'}, status=403)
+
+    with transaction.atomic():
+        guards = GuardSupervisor.objects.filter(id__in=guard_ids)
+        if guards.count() != len(guard_ids):
+            return Response({'detail': 'One or more guards not found'}, status=404)
+
+        # Verify all guards belong to route's organization
+        for guard in guards:
+            if route.organization and guard.organization != route.organization:
+                return Response({
+                    'detail': f'Guard {guard.first_name} {guard.last_name} belongs to different organization'
+                }, status=400)
+
+        # Build peer scan expectations (all pairs)
+        guard_list = list(guards)
+        peer_pairs = []
+        for i, g1 in enumerate(guard_list):
+            for g2 in guard_list[i+1:]:
+                peer_pairs.append({
+                    'scanner': g1,
+                    'target': g2,
+                })
+                peer_pairs.append({
+                    'scanner': g2,
+                    'target': g1,
+                })
+
+        # Create shifts for all guards
+        created_shifts = []
+        for guard in guards:
+            # Get or create device for this guard
+            cs = CallSign.objects.filter(current_guard=guard).select_related('device').first()
+            device = cs.device if cs else None
+
+            # Generate peer session key for this guard's device
+            nonce = secrets.token_hex(8)
+            if device:
+                device.peer_session_key = nonce
+                device.save(update_fields=['peer_session_key'])
+
+            # Parse scheduled times
+            scheduled_start_dt = None
+            scheduled_end_dt = None
+            if scheduled_date and start_time:
+                start_str = f"{scheduled_date} {start_time}:00"
+                scheduled_start_dt = timezone.make_aware(
+                    timezone.datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S'),
+                    timezone=timezone.get_current_timezone()
+                )
+            if scheduled_date and end_time:
+                end_str = f"{scheduled_date} {end_time}:00"
+                scheduled_end_dt = timezone.make_aware(
+                    timezone.datetime.strptime(end_str, '%Y-%m-%d %H:%M:%S'),
+                    timezone=timezone.get_current_timezone()
+                )
+
+            shift = ShiftAssignment.objects.create(
+                dispatcher=user,
+                guard_supervisor=guard,
+                device=device,
+                route=route,
+                scheduled_date=scheduled_date,
+                scheduled_start=scheduled_start_dt,
+                scheduled_end=scheduled_end_dt,
+                shift_type=shift_type,
+                is_active=True,
+                is_completed=False,
+            )
+            created_shifts.append(shift)
+
+    return Response({
+        'status': 'created',
+        'route_id': route.id,
+        'route_name': route.name,
+        'is_audit': True,
+        'shifts_created': len(created_shifts),
+        'shifts': [{
+            'id': s.id,
+            'guard_id': s.guard_supervisor.id,
+            'guard_name': f"{s.guard_supervisor.first_name} {s.guard_supervisor.last_name}".strip(),
+            'device_id': s.device.device_id if s.device else None,
+            'peer_session_key': s.device.peer_session_key if s.device else None,
+        } for s in created_shifts],
+        'peer_pairs': [{
+            'scanner': {'id': p['scanner'].id, 'name': f"{p['scanner'].first_name} {p['scanner'].last_name}".strip()},
+            'target': {'id': p['target'].id, 'name': f"{p['target'].first_name} {p['target'].last_name}".strip()},
+        } for p in peer_pairs],
+        'total_pairs': len(peer_pairs),
+    }, status=201)
+
+
+@api_view(['POST'])
 def resend_tts(request):
     assignment_id = request.data.get('assignment_id')
     if not assignment_id:

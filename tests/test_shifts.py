@@ -1,7 +1,7 @@
 import pytest
 from django.test import TestCase
 from rest_framework.test import APIClient
-from api.models import ShiftAssignment, ScanRecord, GuardSupervisor
+from api.models import ShiftAssignment, ScanRecord, GuardSupervisor, PatrolRoute
 from django.utils import timezone
 
 
@@ -144,3 +144,121 @@ class TestSwapOperator:
             is_active=True
         ).first()
         assert old_assignment is None or old_assignment.is_active is False
+
+
+@pytest.mark.django_db
+class TestCreateAuditShift:
+    """Tests for peer-to-peer audit shift creation."""
+
+    @pytest.fixture
+    def audit_route(self, db, default_organization):
+        route = PatrolRoute.objects.create(
+            name='Audit Route 1',
+            organization=default_organization,
+            is_audit=True,
+            status='active',
+        )
+        return route
+
+    @pytest.fixture
+    def audit_guards(self, db, default_organization):
+        g1 = GuardSupervisor.objects.create(
+            first_name='Alice', last_name='Audit',
+            organization=default_organization, role='guard', shift='Day',
+            callsign='TST-A1',
+        )
+        g2 = GuardSupervisor.objects.create(
+            first_name='Bob', last_name='Audit',
+            organization=default_organization, role='guard', shift='Day',
+            callsign='TST-A2',
+        )
+        g3 = GuardSupervisor.objects.create(
+            first_name='Charlie', last_name='Audit',
+            organization=default_organization, role='guard', shift='Day',
+            callsign='TST-A3',
+        )
+        return [g1, g2, g3]
+
+    def test_create_audit_shift_success(self, api_client, dispatcher_user, audit_route, audit_guards, auth_headers):
+        """Creating audit shift creates assignments for all guards."""
+        guard_ids = [g.id for g in audit_guards]
+        response = api_client.post(
+            '/api/v1/audit/create-shift/',
+            {
+                'route_id': audit_route.id,
+                'guard_ids': guard_ids,
+                'scheduled_date': '2027-07-15',
+                'shift_type': 'Day',
+                'start_time': '08:00',
+                'end_time': '16:00',
+            },
+            format='json',
+            **auth_headers
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data['status'] == 'created'
+        assert data['shifts_created'] == 3
+        assert data['is_audit'] is True
+        assert data['total_pairs'] == 6  # 3 guards × 2 directions = 6 pairs
+
+        # Verify shifts were created in DB
+        shifts = ShiftAssignment.objects.filter(route=audit_route, is_active=True)
+        assert shifts.count() == 3
+
+    def test_create_audit_shift_requires_audit_route(self, api_client, dispatcher_user, patrol_route_with_checkpoints, audit_guards, auth_headers):
+        """Non-audit routes are rejected."""
+        guard_ids = [g.id for g in audit_guards]
+        response = api_client.post(
+            '/api/v1/audit/create-shift/',
+            {
+                'route_id': patrol_route_with_checkpoints.id,
+                'guard_ids': guard_ids,
+                'shift_type': 'Day',
+            },
+            format='json',
+            **auth_headers
+        )
+
+        assert response.status_code == 400
+        assert 'not an audit route' in response.json()['detail'].lower()
+
+    def test_create_audit_shift_requires_min_2_guards(self, api_client, dispatcher_user, audit_route, audit_guards, auth_headers):
+        """Single guard is rejected for peer audit."""
+        response = api_client.post(
+            '/api/v1/audit/create-shift/',
+            {
+                'route_id': audit_route.id,
+                'guard_ids': [audit_guards[0].id],
+                'shift_type': 'Day',
+            },
+            format='json',
+            **auth_headers
+        )
+
+        assert response.status_code == 400
+        assert 'at least 2 guards' in response.json()['detail'].lower()
+
+    def test_create_audit_shift_sets_peer_keys(self, api_client, dispatcher_user, audit_route, audit_guards, auth_headers):
+        """Each guard's device gets a peer_session_key."""
+        guard_ids = [g.id for g in audit_guards]
+        response = api_client.post(
+            '/api/v1/audit/create-shift/',
+            {
+                'route_id': audit_route.id,
+                'guard_ids': guard_ids,
+                'shift_type': 'Day',
+            },
+            format='json',
+            **auth_headers
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+
+        # Each shift should have a peer_session_key
+        for shift in data['shifts']:
+            if shift['device_id']:
+                assert shift['peer_session_key'] is not None
+                assert len(shift['peer_session_key']) == 16  # hex(8 bytes) = 16 chars
