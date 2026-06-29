@@ -94,6 +94,7 @@ class DeviceSerializer(serializers.ModelSerializer):
     assigned_callsign = serializers.SerializerMethodField()
     assigned_guard_id = serializers.SerializerMethodField()
     device_name = serializers.SerializerMethodField()
+    current_mission = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
 
     class Meta:
@@ -101,7 +102,7 @@ class DeviceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'device_id', 'device_name', 'callsign', 'is_active', 'is_online',
             'last_seen', 'registered_at', 'organization', 'organization_name',
-            'assigned_callsign', 'assigned_guard_id', 'status',
+            'assigned_callsign', 'assigned_guard_id', 'status', 'current_mission',
             'imei', 'imsi', 'sim_phone_number', 'os_version', 'manufacturer', 'model', 'sdk_int',
             'nfc_mode', 'last_nfc_scan', 'last_nfc_scan_uid',
             'last_latitude', 'last_longitude', 'last_gps_accuracy', 'battery_pct',
@@ -153,6 +154,76 @@ class DeviceSerializer(serializers.ModelSerializer):
         if obj.last_seen and (now - obj.last_seen).total_seconds() <= 120:
             return 'online'
         return 'idle'
+
+    def get_current_mission(self, obj):
+        """Return active mission progress for this device."""
+        from api.models import ShiftAssignment
+        from django.utils import timezone as dj_timezone
+
+        # Try prefetched data first
+        active = None
+        if hasattr(obj, 'prefetched_active_shifts') and obj.prefetched_active_shifts:
+            active = obj.prefetched_active_shifts[0]
+        else:
+            active = ShiftAssignment.objects.filter(
+                device=obj, is_active=True, is_completed=False
+            ).select_related('route', 'guard_supervisor').order_by('-assigned_at').first()
+
+        if not active:
+            return None
+
+        total = 0
+        completed = 0
+        next_cp = None
+        progress_pct = 0
+
+        if active.route:
+            today = dj_timezone.now().date()
+            from django.db.models import Q
+            cps = active.route.checkpoints.filter(
+                Q(scheduled_date__isnull=True) | Q(scheduled_date__lte=today)
+            )
+            total = cps.count()
+
+            if total > 0:
+                scan_filter = {
+                    'route': active.route,
+                    'timestamp__gte': active.assigned_at,
+                    'checkpoint__isnull': False,
+                }
+                if active.guard_supervisor:
+                    scan_filter['guard_supervisor'] = active.guard_supervisor
+                else:
+                    scan_filter['device'] = obj
+
+                hit_ids = set(
+                    ScanRecord.objects.filter(**scan_filter)
+                    .values_list('checkpoint_id', flat=True)
+                    .distinct()
+                )
+                completed = len(hit_ids)
+                progress_pct = int((completed / total) * 100) if total > 0 else 0
+
+                for cp in cps.order_by('scheduled_date', 'order'):
+                    if cp.id not in hit_ids:
+                        next_cp = {
+                            'id': cp.id,
+                            'name': cp.name,
+                            'planned_time': cp.planned_time.strftime('%H:%M') if cp.planned_time else None,
+                            'scheduled_date': cp.scheduled_date.isoformat() if cp.scheduled_date else None,
+                        }
+                        break
+
+        return {
+            'assignment_id': active.id,
+            'route_name': active.route.name if active.route else None,
+            'shift_type': active.shift_type,
+            'guard_name': f"{active.guard_supervisor.first_name} {active.guard_supervisor.last_name}".strip() if active.guard_supervisor else None,
+            'total_checkpoints': total,
+            'completed_checkpoints': completed,
+            'progress_pct': progress_pct,
+            'next_checkpoint': next_cp,
+        }
 
 class CallSignSerializer(serializers.ModelSerializer):
     device_name = serializers.SerializerMethodField()

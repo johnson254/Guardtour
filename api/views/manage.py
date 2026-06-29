@@ -11,7 +11,7 @@ Performance:
 """
 import secrets
 
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -163,13 +163,29 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_superuser or hasattr(user, 'admin_profile'):
-            return Device.objects.select_related('organization')
+        qs = Device.objects.select_related('organization')
 
-        org = get_user_organization_or_none(user)
-        if org:
-            return Device.objects.filter(organization=org).select_related('organization')
-        return Device.objects.none()
+        if user.is_superuser or hasattr(user, 'admin_profile'):
+            pass
+        else:
+            org = get_user_organization_or_none(user)
+            if org:
+                qs = qs.filter(organization=org)
+            else:
+                return Device.objects.none()
+
+        # Prefetch active assignment + route + guard for current_mission
+        qs = qs.prefetch_related(
+            Prefetch(
+                'current_assignments',
+                queryset=ShiftAssignment.objects.filter(
+                    is_active=True, is_completed=False
+                ).select_related('route', 'guard_supervisor')
+                .prefetch_related('route__checkpoints'),
+                to_attr='prefetched_active_shifts',
+            ),
+        )
+        return qs
 
     @action(detail=True, methods=['post'])
     def fetch_nfc(self, request, pk=None):

@@ -113,9 +113,10 @@ class TestQueryCountOptimization:
         with CaptureQueriesContext(connection) as ctx:
             response = client.get('/api/devices/')
             assert response.status_code == 200
-        # assigned_callsign/assigned_guard_id are SerializerMethodFields with per-row queries
-        assert len(ctx.captured_queries) <= 15, (
-            f"Device list used {len(ctx.captured_queries)} queries (max 15)"
+        # current_mission adds per-device scan count queries (prefetch not possible for scans)
+        # Prefetch eliminates assignment/route/checkpoint queries: 1 base + 1 prefetch + scans
+        assert len(ctx.captured_queries) <= 25, (
+            f"Device list used {len(ctx.captured_queries)} queries (max 25)"
         )
 
     @override_settings(DEBUG=True)
