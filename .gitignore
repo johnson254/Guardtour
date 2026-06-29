@@ -92,3 +92,4 @@ New Microsoft Excel Worksheet.xlsx
 
 # Codebase memory / index artifacts (auto-generated, never commit)
 .codebase-memory/
+.workflow/
