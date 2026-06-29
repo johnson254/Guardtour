@@ -1885,7 +1885,7 @@ window.mgOpenModal=function(type, existing=null){
             <div id="cpManualFields">
                 <div class="mg-g2">
                     <div class="form-group">
-                        <label class="mg-fi-label">NFC Serial (Manual)</label> <!-- Changed ID to mCpNfcTag to avoid conflict -->
+                        <label class="mg-fi-label">NFC Serial (Manual)</label>
                     <input id="mCpNfcTag" class="mg-fi" placeholder="UID: 04:A1:..." value="${existing?.nfc_tag||''}" oninput="mgOnCpTagInput(this.value)">
                     </div>
                     <div>
@@ -1904,6 +1904,26 @@ window.mgOpenModal=function(type, existing=null){
                                 <span class="su">min</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="mg-g2" style="margin-top:10px;">
+                    <div class="form-group">
+                        <label class="mg-fi-label" for="mCpTol">Time Tolerance (min)</label>
+                        <input type="number" id="mCpTol" class="mg-fi" value="${existing?.time_tolerance||15}" min="0" max="120">
+                    </div>
+                    <div class="form-group">
+                        <label class="mg-fi-label" for="mCpTime">Planned Time</label>
+                        <input type="time" id="mCpTime" class="mg-fi" value="${existing?.planned_time||''}">
+                    </div>
+                </div>
+                <div class="mg-g2" style="margin-top:10px;">
+                    <div class="form-group">
+                        <label class="mg-fi-label" for="mCpDate">Scheduled Date (optional)</label>
+                        <input type="date" id="mCpDate" class="mg-fi" value="${existing?.scheduled_date||''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="mg-fi-label" style="visibility:hidden;">Spacer</label>
+                        <div style="height:38px;"></div>
                     </div>
                 </div>
             </div>

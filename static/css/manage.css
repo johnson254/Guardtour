@@ -1,3 +1,8 @@
+
+
+/* ── NFC Scan Window ── */
+#cbScanBackdrop.open { display: flex; }
+#cbScanResult.show { display: block !important; }
 /* ── Dark Ops Nav Shell ─────────────────────────────────── */
 :root {
   --r-crim: #d32f2f;

@@ -63,6 +63,32 @@
     </div>
 </div>
 
+<!-- NFC Scan Window -->
+<div id="cbScanBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:none;align-items:center;justify-content:center;">
+    <div style="background:var(--panel,#1a1a2e);border:1px solid var(--border);border-radius:20px;padding:28px;width:360px;max-width:90vw;text-align:center;">
+        <div id="cbScanRing" style="width:120px;height:120px;border-radius:50%;border:3px solid rgba(211,47,47,.35);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;transition:border-color .3s;">
+            <i class="fas fa-wifi" style="font-size:2.5rem;color:rgba(211,47,47,.6);"></i>
+        </div>
+        <div style="font-size:0.85rem;font-weight:800;color:#fff;margin-bottom:6px;">Scan NFC Tag</div>
+        <div id="cbScanStatus" style="font-size:0.65rem;color:rgba(255,255,255,0.5);margin-bottom:12px;">Hold NFC tag near device to scan</div>
+        <select id="scanCallsign" class="mg-fi" style="width:100%;margin-bottom:12px;"></select>
+        <div id="cbScanResult" style="display:none;margin-bottom:12px;padding:10px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:8px;">
+            <div style="font-size:0.6rem;color:rgba(255,255,255,0.4);margin-bottom:4px;">Tag Captured</div>
+            <div id="cbScanUID" style="font-family:monospace;font-size:0.85rem;font-weight:800;color:#4caf50;"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px;">
+            <span id="cbCountdown" style="font-size:1.4rem;font-weight:900;font-family:monospace;color:var(--primary-light);">30</span>
+            <div style="flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+                <div id="cbCountdownBar" style="height:100%;width:100%;background:var(--primary);border-radius:2px;transition:width 1s linear;"></div>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button type="button" id="cbAcceptScanBtn" class="mg-btn mg-btn-primary" style="flex:1;display:none;"><i class="fas fa-check"></i> Accept</button>
+            <button type="button" class="mg-btn" onclick="cbCloseScan()"><i class="fas fa-xmark"></i> Cancel</button>
+        </div>
+    </div>
+</div>
+
 {% block page_js %}
   {% load static %}
   {% load vite %}

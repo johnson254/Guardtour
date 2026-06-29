@@ -189,8 +189,8 @@
                        hx-target="#deviceList"
                        hx-trigger="input changed delay:200ms"
                        hx-swap="innerHTML"
-                       hx-vals='js:{q: event.target.value, status: document.querySelector(".mg-filter-chip.active")?.dataset.status || "all"}'
-                       name="q" style="font-size:0.65rem;padding:5px 8px;">
+                       hx-vals='js:{q: event.target.value, status: (document.querySelector(".mg-filter-chip.active") || {}).dataset?.status || "all"}'
+                       style="font-size:0.65rem;padding:5px 8px;">
             </div>
         </div>
         <div style="display:flex;gap:3px;padding:0 10px 8px;flex-wrap:wrap;">
