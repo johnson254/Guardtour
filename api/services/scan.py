@@ -12,7 +12,7 @@ each be tested in isolation. The process_scan() function is preserved as a
 thin wrapper for backward compatibility.
 """
 from django.utils import timezone
-from django.db.models import F as models_F
+from django.db.models import F as models_F, Q
 from datetime import timedelta
 from rest_framework import serializers
 
@@ -801,7 +801,11 @@ def get_mission_status(assignment):
     if not route:
         return None
 
-    cps = list(route.checkpoints.all().order_by('order'))
+    # Filter checkpoints: only scheduled for today or earlier, or unscheduled
+    today = now.date()
+    cps = list(route.checkpoints.filter(
+        Q(scheduled_date__isnull=True) | Q(scheduled_date__lte=today)
+    ).order_by('scheduled_date', 'order'))
     if not cps:
         return None
 
@@ -838,9 +842,11 @@ def get_mission_status(assignment):
 
     time_remaining_seconds = None
     is_window_missed = False
-    if next_cp.planned_time and assignment.scheduled_date:
+    # Use the checkpoint's scheduled_date if available, otherwise fall back to assignment date
+    eta_date = next_cp.scheduled_date or assignment.scheduled_date
+    if next_cp.planned_time and eta_date:
         planned_dt = dj_timezone.make_aware(
-            dj_timezone.datetime.combine(assignment.scheduled_date, next_cp.planned_time),
+            dj_timezone.datetime.combine(eta_date, next_cp.planned_time),
             timezone=now.tzinfo,
         )
         time_remaining_seconds = int((planned_dt - now).total_seconds())

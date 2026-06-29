@@ -250,10 +250,18 @@ def my_mission(request):
 
     from api.models import Device, ShiftAssignment
     from api.services.scan import get_mission_status
+    from api.password import verify_device_password, hash_device_password
 
     device = Device.objects.filter(device_id=device_id).first()
-    if not device or device.password != password:
+    if not device:
         return Response({'detail': 'Auth failed'}, status=401)
+
+    is_valid, needs_rehash = verify_device_password(password, device.password)
+    if not is_valid:
+        return Response({'detail': 'Auth failed'}, status=401)
+
+    if needs_rehash:
+        Device.objects.filter(id=device.id).update(password=hash_device_password(password))
 
     # Find active assignment for this device
     assignment = ShiftAssignment.objects.filter(
@@ -270,13 +278,19 @@ def my_mission(request):
     route = assignment.route
     checkpoints = []
     if route:
-        cps = route.checkpoints.all().order_by('order')
+        from django.utils import timezone as dj_timezone
+        today = dj_timezone.now().date()
+        # Only show scheduled checkpoints for today or earlier (or unscheduled)
+        cps = route.checkpoints.filter(
+            Q(scheduled_date__isnull=True) | Q(scheduled_date__lte=today)
+        ).order_by('scheduled_date', 'order')
         checkpoints = [{
             'id': cp.id,
             'name': cp.name,
             'nfc_tag': cp.nfc_tag or '',
             'order': cp.order,
             'planned_time': cp.planned_time.strftime('%H:%M:%S') if cp.planned_time else None,
+            'scheduled_date': cp.scheduled_date.isoformat() if cp.scheduled_date else None,
             'time_tolerance': cp.time_tolerance or 15,
             'dwell_time': cp.dwell_time or 0,
             'lat': cp.lat,
@@ -616,3 +630,87 @@ def deployment_checkpoint_live(request):
         })
 
     return Response({'items': results})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def peer_audit_report(request, route_id):
+    """Peer-to-peer audit report for a route.
+
+    Returns which guard pairs have scanned each other vs expected pairs.
+    Only works for routes with is_audit=True.
+    """
+    from api.models import PatrolRoute, ShiftAssignment, GuardSupervisor, ScanRecord
+
+    try:
+        route = PatrolRoute.objects.get(id=route_id)
+    except PatrolRoute.DoesNotExist:
+        return Response({'detail': 'Route not found'}, status=404)
+
+    if not route.is_audit:
+        return Response({'detail': 'Route is not an audit route'}, status=400)
+
+    # Get all guards assigned to this route who are on active shifts
+    active_shifts = ShiftAssignment.objects.filter(
+        route=route, is_active=True, is_completed=False
+    ).select_related('guard_supervisor', 'device')
+
+    guards = []
+    for shift in active_shifts:
+        if shift.guard_supervisor and shift.device:
+            guards.append({
+                'guard_id': shift.guard_supervisor.id,
+                'guard_name': f"{shift.guard_supervisor.first_name} {shift.guard_supervisor.last_name}".strip(),
+                'device_id': shift.device.device_id,
+                'callsign': shift.guard_supervisor.callsign,
+            })
+
+    # Build expected pairs (every guard should scan every other guard)
+    expected_pairs = []
+    for i, g1 in enumerate(guards):
+        for g2 in guards[i+1:]:
+            expected_pairs.append({
+                'scanner': g1,
+                'target': g2,
+            })
+            expected_pairs.append({
+                'scanner': g2,
+                'target': g1,
+            })
+
+    # Get actual peer scans for this route
+    peer_scans = ScanRecord.objects.filter(
+        route=route, scan_type='peer', checkpoint__isnull=False
+    ).select_related('guard_supervisor', 'device')
+
+    scanned_pairs = set()
+    for scan in peer_scans:
+        if scan.guard_supervisor and scan.device:
+            scanned_pairs.add((scan.guard_supervisor.id, scan.nfc_value))
+
+    # Build report
+    pairs_report = []
+    for pair in expected_pairs:
+        scanner_device_id = pair['scanner']['device_id']
+        target_device_id = pair['target']['device_id']
+        completed = (pair['scanner']['guard_id'], target_device_id) in scanned_pairs
+        pairs_report.append({
+            'scanner': pair['scanner'],
+            'target': pair['target'],
+            'scanned': completed,
+        })
+
+    return Response({
+        'route_id': route_id,
+        'route_name': route.name,
+        'is_audit': route.is_audit,
+        'total_guards': len(guards),
+        'total_pairs': len(pairs_report),
+        'scanned_pairs': sum(1 for p in pairs_report if p['scanned']),
+        'completion_pct': round(
+            (sum(1 for p in pairs_report if p['scanned']) / len(pairs_report) * 100)
+            if pairs_report else 0, 1
+        ),
+        'guards': guards,
+        'pairs': pairs_report,
+    })

@@ -314,9 +314,10 @@ class Checkpoint(models.Model):
         help_text="Context-aware radius multiplier: strict=0.5x, normal=1x, loose=2x"
     )
     next_announcement_text = models.TextField(blank=True, null=True, help_text="Per-checkpoint TTS announcement text")
+    scheduled_date = models.DateField(null=True, blank=True, help_text="Date this checkpoint is scheduled for. Null = unscheduled/always active.")
 
     class Meta:
-        ordering = ['order']
+        ordering = ['scheduled_date', 'order']
 
     def clean(self):
         if self.checkpoint_type == 'nfc' and not self.nfc_tag:
@@ -337,21 +338,21 @@ class Checkpoint(models.Model):
         if self.checkpoint_type == 'geo':
             self.nfc_tag = None
 
-        # Prevent duplicate planned_time within same route
+        # Prevent duplicate planned_time within same route on same date
         if self.planned_time and self.route_id:
-            dupes = Checkpoint.objects.filter(route_id=self.route_id, planned_time=self.planned_time)
+            dupes = Checkpoint.objects.filter(route_id=self.route_id, planned_time=self.planned_time, scheduled_date=self.scheduled_date)
             if self.pk:
                 dupes = dupes.exclude(pk=self.pk)
             if dupes.exists():
-                raise ValidationError({'planned_time': f'Another checkpoint in this route already has planned time {self.planned_time}.'})
+                raise ValidationError({'planned_time': f'Another checkpoint in this route already has planned time {self.planned_time} on {self.scheduled_date}.'})
 
-        # Prevent duplicate order within same route
+        # Prevent duplicate order within same route on same date
         if self.route_id and self.order is not None:
-            dupes = Checkpoint.objects.filter(route_id=self.route_id, order=self.order)
+            dupes = Checkpoint.objects.filter(route_id=self.route_id, order=self.order, scheduled_date=self.scheduled_date)
             if self.pk:
                 dupes = dupes.exclude(pk=self.pk)
             if dupes.exists():
-                raise ValidationError({'order': f'Duplicate order {self.order} for this route.'})
+                raise ValidationError({'order': f'Duplicate order {self.order} for this route on {self.scheduled_date}.'})
 
     def save(self, *args, **kwargs):
         self.clean()

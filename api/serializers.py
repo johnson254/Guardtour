@@ -233,7 +233,7 @@ class CheckpointSerializer(serializers.ModelSerializer):
             'id', 'name', 'nfc_tag', 'lat', 'lng', 'order', 'planned_time', 
             'time_tolerance', 'dwell_time', 'radius', 'precision_level', 'route', 'organization',
             'checkpoint_type', 'organization_name', 'asset_class', 'type', 'geometry',
-            'next_announcement_text'
+            'next_announcement_text', 'scheduled_date',
         ]
         read_only_fields = ['organization']
 

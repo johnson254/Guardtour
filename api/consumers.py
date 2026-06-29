@@ -95,13 +95,23 @@ class GuardConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.group_name, broadcast)
 
     async def _handle_scan(self, data):
+        """Handle scan event from device via WebSocket.
+
+        For NFC tag scans: broadcasts to org group (real-time map update).
+        For peer scans (when scan_type='peer'): also creates ScanRecord via
+        process_scan so peer audit trail is persisted.
+        """
         if not self.device_id:
             await self.send(json.dumps({'error': 'Not authenticated'}))
             return
 
         nfc_value = data.get('nfc_value')
+        raw_nfc = data.get('raw_nfc')
         lat = data.get('lat')
         lng = data.get('lng')
+        scan_type = data.get('scan_type', 'tag')
+        sequence_id = data.get('sequence_id')
+        sensor_context = data.get('sensor_context')
 
         broadcast = {
             'type': 'scan_event',
@@ -109,13 +119,43 @@ class GuardConsumer(AsyncWebsocketConsumer):
             'nfc_value': nfc_value,
             'lat': lat,
             'lng': lng,
+            'scan_type': scan_type,
             'timestamp': timezone.now().isoformat(),
         }
 
         if self.org_group:
             await self.channel_layer.group_send(self.org_group, broadcast)
 
+        if scan_type == 'peer' and nfc_value:
+            await self._create_peer_scan_record(nfc_value, raw_nfc, lat, lng, sequence_id, sensor_context)
+
         await self.send(json.dumps({'type': 'SCAN_RECEIVED', 'nfc_value': nfc_value}))
+
+    @database_sync_to_async
+    def _create_peer_scan_record(self, nfc_value, raw_nfc, lat, lng, sequence_id, sensor_context):
+        """Create a ScanRecord for a peer-to-peer scan event."""
+        from api.services.scan import process_scan
+        from api.models import Device
+        from django.utils import timezone as dj_timezone
+
+        try:
+            device = Device.objects.get(device_id=self.device_id)
+        except Device.DoesNotExist:
+            return
+
+        process_scan(
+            device_id=self.device_id,
+            password=device.password,
+            route_id=None,
+            nfc_value=nfc_value,
+            peer_key=None,
+            now=dj_timezone.now(),
+            raw_nfc=raw_nfc,
+            scan_lat=lat,
+            scan_lng=lng,
+            sequence_id=sequence_id,
+            sensor_context=sensor_context,
+        )
 
     async def _handle_tts_ack(self, data):
         if not self.device_id:

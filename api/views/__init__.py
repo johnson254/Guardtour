@@ -26,11 +26,12 @@ from api.views.heartbeat import heartbeat
 from api.views.scans import (
     ScanRecordViewSet, gps_batch_sync, scan_batch_sync,
     device_trails, device_recent_scans, _deactivate_assignments,
+    schedule_checkpoints, scheduled_checkpoints,
 )
 from api.views.dispatch import (
     end_shift, assign_guard_to_blueprint_shift, blueprint_shift_availability,
     resend_tts, mission_status, my_mission, transfer_shift, route_gap_analysis_view,
-    map_residency_events, deployment_checkpoint_live,
+    map_residency_events, deployment_checkpoint_live, peer_audit_report,
 )
 from api.views.reports import (
     admin_stats, organization_stats, profile_list, profile_detail,

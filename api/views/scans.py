@@ -411,3 +411,129 @@ def device_recent_scans(request):
             'route_name': s.route.name if s.route else None,
         })
     return Response({'results': data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def schedule_checkpoints(request):
+    """Bulk create scheduled checkpoints for a route.
+
+    Request body:
+    {
+        "route_id": 1,
+        "checkpoints": [
+            {
+                "name": "Gate Morning",
+                "checkpoint_type": "nfc",
+                "nfc_tag": "TAG-001",
+                "order": 1,
+                "planned_time": "08:00:00",
+                "scheduled_date": "2027-07-15",
+                "time_tolerance": 15,
+                "dwell_time": 0,
+                "radius": 50,
+                "lat": null,
+                "lng": null
+            }
+        ]
+    }
+
+    Each checkpoint in the list is created with the specified scheduled_date.
+    To schedule the same checkpoint for multiple days, include it multiple
+    times with different scheduled_date values.
+    """
+    route_id = request.data.get('route_id')
+    checkpoints_data = request.data.get('checkpoints', [])
+
+    if not route_id:
+        return Response({'detail': 'route_id required'}, status=400)
+    if not isinstance(checkpoints_data, list) or not checkpoints_data:
+        return Response({'detail': 'checkpoints array required'}, status=400)
+
+    from api.models import PatrolRoute, Checkpoint
+
+    try:
+        route = PatrolRoute.objects.get(id=route_id)
+    except PatrolRoute.DoesNotExist:
+        return Response({'detail': 'Route not found'}, status=404)
+
+    # Org context for the route
+    org = route.organization
+    if not org:
+        return Response({'detail': 'Route has no organization'}, status=400)
+
+    created = []
+    errors = []
+    for idx, cp_data in enumerate(checkpoints_data):
+        try:
+            cp_data = cp_data.copy()
+            cp_data['route'] = route_id
+            cp_data['organization'] = org.id
+
+            serializer = CheckpointSerializer(data=cp_data)
+            if serializer.is_valid():
+                checkpoint = serializer.save()
+                created.append(CheckpointSerializer(checkpoint).data)
+            else:
+                errors.append({'index': idx, 'errors': serializer.errors})
+        except Exception as e:
+            errors.append({'index': idx, 'error': str(e)})
+
+    return Response({
+        'status': 'success' if not errors else 'partial',
+        'created_count': len(created),
+        'error_count': len(errors),
+        'created': created,
+        'errors': errors,
+    }, status=201 if not errors else 207)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def scheduled_checkpoints(request, route_id):
+    """Get scheduled checkpoints for a route, optionally filtered by date.
+
+    Query params:
+    - date: filter to specific date (YYYY-MM-DD)
+    - upcoming: if true, only show scheduled_date >= today
+    """
+    from api.models import PatrolRoute, Checkpoint
+    from django.utils import timezone as dj_timezone
+
+    try:
+        route = PatrolRoute.objects.get(id=route_id)
+    except PatrolRoute.DoesNotExist:
+        return Response({'detail': 'Route not found'}, status=404)
+
+    qs = Checkpoint.objects.filter(route=route)
+
+    date_filter = request.GET.get('date')
+    if date_filter:
+        qs = qs.filter(scheduled_date=date_filter)
+    elif request.GET.get('upcoming') == 'true':
+        today = dj_timezone.now().date()
+        qs = qs.filter(scheduled_date__gte=today)
+
+    qs = qs.order_by('scheduled_date', 'order')
+
+    data = [{
+        'id': cp.id,
+        'name': cp.name,
+        'checkpoint_type': cp.checkpoint_type,
+        'nfc_tag': cp.nfc_tag,
+        'lat': cp.lat,
+        'lng': cp.lng,
+        'order': cp.order,
+        'planned_time': cp.planned_time.strftime('%H:%M:%S') if cp.planned_time else None,
+        'scheduled_date': cp.scheduled_date.isoformat() if cp.scheduled_date else None,
+        'time_tolerance': cp.time_tolerance,
+        'dwell_time': cp.dwell_time,
+        'radius': cp.radius,
+    } for cp in qs]
+
+    return Response({
+        'route_id': route_id,
+        'route_name': route.name,
+        'count': len(data),
+        'checkpoints': data,
+    })

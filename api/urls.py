@@ -91,6 +91,13 @@ urlpatterns = [
     # Device-authenticated recent scans (for Android app dashboard)
     path('device-scans/', views.device_recent_scans, name='device_recent_scans'),
 
+    # Scheduled checkpoints (future days per hour)
+    path('checkpoints/schedule/', views.schedule_checkpoints, name='schedule_checkpoints'),
+    path('routes/<int:route_id>/scheduled-checkpoints/', views.scheduled_checkpoints, name='scheduled_checkpoints'),
+
+    # Peer audit report (for audit routes)
+    path('routes/<int:route_id>/peer-audit/', views.peer_audit_report, name='peer_audit_report'),
+
     # Seed attendance data for testing
     path('seed-attendance/', views.seed_attendance, name='seed_attendance'),
 ]
