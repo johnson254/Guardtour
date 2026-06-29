@@ -1,3 +1,16 @@
+"""Mission state machine and event sourcing.
+
+WHY THIS EXISTS:
+Mission stage transitions (assigned → deployed → active → completing → completed)
+were previously scattered across process_scan() and heartbeat() with inline
+if/elif chains. This caused two bugs:
+1. Invalid transitions were possible (e.g., assigned → completed skipping deployed)
+2. Stage changes and MissionStateLog entries could get out of sync
+
+This module is the SINGLE SOURCE OF TRUTH for mission lifecycle changes.
+All transitions are validated against a state machine definition, and every
+transition creates an audit log entry atomically.
+"""
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 

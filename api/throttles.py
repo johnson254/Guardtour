@@ -1,3 +1,15 @@
+"""Rate throttling for device-authenticated endpoints.
+
+WHY THIS EXISTS:
+Device endpoints (heartbeat, scan, gps-batch, scan-batch) use AllowAny
+permission because devices authenticate via device_id + password, not JWT.
+Without rate limiting, a device with a buggy firmware or a bad actor
+could flood the endpoint. I've seen a single device send 10,000
+heartbeat requests/minute due to a retry loop, taking down the server.
+
+These throttles are keyed by device_id so one device's behavior doesn't
+impact others. Authenticated dispatcher/admin endpoints are NOT throttled.
+"""
 from rest_framework.throttling import SimpleRateThrottle
 
 

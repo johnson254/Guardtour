@@ -1,3 +1,14 @@
+"""Device heartbeat endpoint.
+
+Security notes:
+- Passwords are verified against PBKDF2 hashes via api.password.verify_device_password.
+  Legacy plaintext hashes are transparently upgraded on first successful auth.
+- Rate-limited to 30/min per device via DeviceHeartbeatThrottle to prevent
+  firmware bugs or abuse from flooding the server.
+- No select_for_update(): removed because overlapping heartbeats from flaky
+  mobile networks caused connection pile-up. Device updates use atomic
+  .update() calls instead of row-level locks.
+"""
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta, datetime
@@ -362,6 +373,11 @@ def _build_map_update(device, session, assignment, lat, lng, now):
 @permission_classes([AllowAny])
 @throttle_classes([DeviceHeartbeatThrottle])
 def heartbeat(request):
+    """Main device polling endpoint. Called every ~30-60s by field devices.
+
+    Returns: TTS directives, mission state, telemetry config, geofence events.
+    Auth: device_id + password (hashed). Rate: 30 req/min per device.
+    """
     device_id = request.data.get('device_id')
     password = request.data.get('password')
 
@@ -370,11 +386,14 @@ def heartbeat(request):
     if not password:
         return Response({'status': 'error', 'message': 'password required'}, status=400)
 
+    # AUTH: plain get() — no select_for_update. Concurrent heartbeats from the
+    # same device are safe because we only call .update() on individual fields.
     try:
         device = Device.objects.get(device_id=device_id)
     except Device.DoesNotExist:
         return Response({'status': 'device_not_found'}, status=404)
 
+    # Password verify with automatic hash upgrade (legacy plaintext → PBKDF2).
     is_valid, needs_rehash = verify_device_password(password, device.password)
     if not is_valid:
         return Response({'status': 'auth_failed'}, status=401)

@@ -1,3 +1,20 @@
+"""Organization context resolution for multi-tenant access control.
+
+WHY THIS EXISTS:
+Before this module, 12+ locations across views.py had the same anti-pattern:
+    if not user.organization:
+        user.organization = Organization.objects.first()  # DANGEROUS
+        user.save()
+
+This silently assigned users to whatever org happened to be first in the DB.
+In a multi-tenant system this is a DATA LEAK — dispatchers could see another
+org's guards, devices, and routes if their org field was ever null.
+
+This module centralizes org resolution and makes the failure mode explicit:
+- get_user_organization() raises PermissionDenied instead of auto-assigning
+- get_user_organization_or_none() returns None for optional contexts
+- user_can_access_organization() is the guard for resource-level checks
+"""
 from rest_framework.exceptions import PermissionDenied
 
 

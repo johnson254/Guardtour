@@ -1,3 +1,16 @@
+"""Scan processing pipeline.
+
+WHY A PIPELINE CLASS:
+The original process_scan() was a 230-line function that did 14 distinct things:
+auth, drift check, sequence validation, NFC parsing, cooldown, assignment
+resolution, checkpoint resolution, sequence checking, emergency triggering,
+dwell checking, zone verification, mission completion, stage transition, TTS
+selection, and response assembly. Impossible to unit-test individual behaviors.
+
+The ScanPipeline class decomposes this into discrete _step_* methods that can
+each be tested in isolation. The process_scan() function is preserved as a
+thin wrapper for backward compatibility.
+"""
 from django.utils import timezone
 from django.db.models import F as models_F
 from datetime import timedelta

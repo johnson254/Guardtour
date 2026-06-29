@@ -1,3 +1,8 @@
+"""Tests for the mission state machine (api.services.mission).
+
+Verifies valid/invalid stage transitions, status transitions,
+complete_mission helper, and timeline retrieval.
+"""
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.exceptions import ValidationError

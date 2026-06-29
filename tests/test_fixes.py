@@ -1,3 +1,8 @@
+"""Tests for the backend security and architecture fixes.
+
+Covers: password hashing, org permissions, ScanPipeline steps,
+standalone authenticate_device, ViewSet query optimization, heartbeat auth.
+"""
 import pytest
 from django.contrib.auth.models import User
 from rest_framework.exceptions import PermissionDenied

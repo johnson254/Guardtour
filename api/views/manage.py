@@ -1,3 +1,14 @@
+"""Admin ViewSets for managing organizations, guards, devices, routes, etc.
+
+Multi-tenancy:
+- All ViewSets filter by get_user_organization_or_none(user)
+- No silent auto-assignment to Organization.objects.first()
+- Raises PermissionDenied if user has no org context
+
+Performance:
+- All get_queryset() methods use select_related/prefetch_related
+- Query counts guarded by tests/test_query_counts.py
+"""
 import secrets
 
 from django.db.models import Q

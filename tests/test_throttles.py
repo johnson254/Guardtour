@@ -1,3 +1,8 @@
+"""Tests for device endpoint rate limiting.
+
+Verifies that DeviceHeartbeatThrottle (30/min) and DeviceScanThrottle (60/min)
+correctly throttle per-device without affecting other devices or authenticated users.
+"""
 import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient

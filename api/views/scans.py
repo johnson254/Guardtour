@@ -1,3 +1,14 @@
+"""Scan recording and batch sync endpoints.
+
+Security:
+- Device auth uses hashed passwords (api.password.verify_device_password)
+- Rate-limited via DeviceScanThrottle (60/min per device)
+- Org-scoped queries use get_user_organization_or_none() — no silent auto-assign
+
+Performance:
+- ScanRecordViewSet.get_queryset uses select_related for guard/device/route/checkpoint
+- Query count is guarded by tests/test_query_counts.py
+"""
 from django.utils import timezone
 from django.db.models import Q
 from datetime import datetime

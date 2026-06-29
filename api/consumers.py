@@ -1,3 +1,7 @@
+"""WebSocket consumers for real-time device ↔ server communication.
+
+Security: device auth uses hashed passwords with automatic legacy upgrade.
+"""
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async

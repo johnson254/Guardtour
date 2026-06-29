@@ -1,3 +1,10 @@
+"""Query-count regression tests for ViewSet optimization.
+
+These tests guard against N+1 query reintroduction. If a future change
+adds an unpreloaded serializer field or removes a select_related, these
+will fail. Thresholds are set slightly above current counts to allow
+for minor variations but catch O(n) regressions.
+"""
 import pytest
 from django.test.utils import override_settings
 from django.contrib.auth.models import User

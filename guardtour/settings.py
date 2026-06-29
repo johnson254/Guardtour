@@ -41,6 +41,9 @@ ROOT_URLCONF = 'guardtour.urls'
 ASGI_APPLICATION = 'guardtour.asgi.application'
 
 CHANNEL_LAYERS = {
+    # CONFIGURABLE: defaults to InMemory for dev. Set CHANNEL_LAYERS_BACKEND
+    # to channels_redis.core.RedisChannelLayer in production — InMemory
+    # silently breaks WebSocket broadcasts across multiple Daphne workers.
     'default': {
         'BACKEND': os.environ.get('CHANNEL_LAYERS_BACKEND', 'channels.layers.InMemoryChannelLayer'),
         'CONFIG': {
