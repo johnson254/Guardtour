@@ -276,6 +276,31 @@ def my_mission(request):
         })
 
     route = assignment.route
+
+    # Handle archived/deleted route: shift still active but blueprint gone
+    if not route:
+        return Response({
+            'has_mission': True,
+            'assignment_id': assignment.id,
+            'device_id': device.device_id,
+            'route': None,
+            'guard': {
+                'id': assignment.guard_supervisor.id if assignment.guard_supervisor else None,
+                'name': f"{assignment.guard_supervisor.first_name} {assignment.guard_supervisor.last_name}".strip() if assignment.guard_supervisor else None,
+                'callsign': assignment.guard_supervisor.callsign if assignment.guard_supervisor else None,
+                'shift': assignment.guard_supervisor.shift if assignment.guard_supervisor else None,
+            } if assignment.guard_supervisor else None,
+            'checkpoints': [],
+            'total_checkpoints': 0,
+            'mission_status': {
+                'completed': False,
+                'error': 'blueprint_archived',
+                'hit_count': 0,
+                'total': 0,
+            },
+            'message': 'Blueprint has been archived. Mission data preserved for audit.',
+        })
+
     checkpoints = []
     if route:
         from django.utils import timezone as dj_timezone

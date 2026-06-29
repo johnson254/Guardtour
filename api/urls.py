@@ -19,7 +19,46 @@ router.register('map-objects', MapObjectViewSet, basename='mapobject')
 router.register('incidents', IncidentReportViewSet, basename='incidentreport')
 router.register('alerts', OperatorAlertViewSet, basename='operatoralert')
 
+_api_v1_patterns = [
+    path('auth/', include([
+        path('register/', views.register, name='register'),
+        path('login/', views.login, name='login'),
+    ])),
+    path('devices/', include([
+        path('register/', views.register_device, name='register-device'),
+        path('scans/', views.device_recent_scans, name='device-scans'),
+        path('mission/', views.my_mission, name='my-mission'),
+    ])),
+    path('sync/', include([
+        path('gps-batch/', views.gps_batch_sync, name='gps-batch'),
+        path('scan-batch/', views.scan_batch_sync, name='scan-batch'),
+        path('scan/', views.ScanRecordViewSet.as_view({'create': 'create'}), name='scan-create'),
+    ])),
+    path('missions/', include([
+        path('<int:assignment_id>/status/', views.mission_status, name='mission-status'),
+        path('<int:assignment_id>/gap-analysis/', views.route_gap_analysis_view, name='route-gap-analysis'),
+        path('<int:pk>/end/', views.end_shift, name='end-shift'),
+        path('transfer/', views.transfer_shift, name='transfer-shift'),
+    ])),
+    path('checkpoints/', include([
+        path('schedule/', views.schedule_checkpoints, name='schedule-checkpoints'),
+    ])),
+    path('routes/', include([
+        path('<int:route_id>/scheduled-checkpoints/', views.scheduled_checkpoints, name='scheduled-checkpoints'),
+        path('<int:route_id>/peer-audit/', views.peer_audit_report, name='peer-audit'),
+    ])),
+    path('reports/', include([
+        path('admin-stats/', views.admin_stats, name='admin-stats'),
+        path('org-stats/', views.organization_stats, name='org-stats'),
+    ])),
+    path('', include(router.urls)),
+]
+
 urlpatterns = [
+    # v1 API (stable, versioned contract for external clients)
+    path('v1/', include((_api_v1_patterns, 'v1'))),
+
+    # Legacy unversioned API (used by internal frontend/htmx partials)
     path('', include(router.urls)),
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),

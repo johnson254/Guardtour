@@ -26,6 +26,11 @@ class Organization(models.Model):
         default='simple',
         help_text="Controls whether shift-based logic (Day/Night/Flex) is enforced"
     )
+    is_archived = models.BooleanField(default=False, help_text="If True, organization is soft-deleted and hidden from queries")
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['is_archived'])]
 
     @staticmethod
     def _derive_code(name):
@@ -264,7 +269,12 @@ class PatrolRoute(models.Model):
     assigned_devices = models.ManyToManyField(Device, blank=True, related_name='assigned_blueprints')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_routes')
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    is_archived = models.BooleanField(default=False, help_text="If True, route is soft-deleted and hidden from queries")
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['is_archived'])]
+
     @property
     def logic_type(self):
         if self.is_audit:
@@ -278,6 +288,21 @@ class PatrolRoute(models.Model):
         if self.enforce_time:
             return "Flexible"
         return "Flexible"
+
+    def delete(self, *args, **kwargs):
+        """Soft-delete if active shifts exist, otherwise hard delete.
+
+        Prevents accidental data loss when a blueprint has active missions.
+        The route stays in DB for audit/history but is hidden from queries.
+        """
+        from django.utils import timezone as dj_timezone
+        active_shifts = self.current_shifts.filter(is_active=True).exists()
+        if active_shifts:
+            self.is_archived = True
+            self.archived_at = dj_timezone.now()
+            self.save(update_fields=['is_archived', 'archived_at'])
+            return
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -354,6 +379,15 @@ class Checkpoint(models.Model):
             if dupes.exists():
                 raise ValidationError({'order': f'Duplicate order {self.order} for this route on {self.scheduled_date}.'})
 
+        # Organization consistency: if both organization and route are set,
+        # they must belong to the same org
+        if self.organization_id and self.route_id:
+            route_org = self.route.organization_id
+            if route_org and self.organization_id != route_org:
+                raise ValidationError({
+                    'organization': f'Checkpoint organization ({self.organization.name}) must match route organization ({self.route.organization.name}).'
+                })
+
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
@@ -362,9 +396,9 @@ class Checkpoint(models.Model):
         return self.name
 
 class ScanRecord(models.Model):
-    guard_supervisor = models.ForeignKey(GuardSupervisor, on_delete=models.CASCADE, related_name='scans', null=True, blank=True)
+    guard_supervisor = models.ForeignKey(GuardSupervisor, on_delete=models.SET_NULL, related_name='scans', null=True, blank=True)
     device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, related_name='scans')
-    route = models.ForeignKey(PatrolRoute, on_delete=models.CASCADE, related_name='scans', null=True, blank=True)
+    route = models.ForeignKey(PatrolRoute, on_delete=models.SET_NULL, related_name='scans', null=True, blank=True)
     checkpoint = models.ForeignKey(Checkpoint, on_delete=models.SET_NULL, related_name='scans', null=True, blank=True)
     checkpoint_name = models.CharField(max_length=200)
     nfc_value = models.CharField(max_length=200, blank=True, null=True)

@@ -798,8 +798,15 @@ def get_mission_status(assignment):
     from api.models import ScanRecord
     now = dj_timezone.now()
     route = assignment.route
+
+    # Handle archived/deleted route: shift still active but blueprint gone
     if not route:
-        return None
+        return {
+            'completed': False,
+            'error': 'blueprint_archived',
+            'hit_count': 0,
+            'total': 0,
+        }
 
     # Filter checkpoints: only scheduled for today or earlier, or unscheduled
     today = now.date()
