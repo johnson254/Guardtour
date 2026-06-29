@@ -126,6 +126,11 @@ def complete_mission(assignment, device=None, scan=None):
 
     Sets both stage and status to completed, deactivates the assignment,
     and creates the final state log.
+
+    NOTE: This bypasses the state machine validation intentionally.
+    Completion is a terminal operation that can happen from any stage
+    (e.g., emergency patrol where guard skips remaining checkpoints).
+    The state machine prevents accidental skips; completion is deliberate.
     """
     from api.models import MissionStateLog
 

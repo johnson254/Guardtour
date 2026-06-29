@@ -1,11 +1,11 @@
 import pytest
-from api.scan_service import (
+from api.services.scan import (
     calculate_scan_validity,
     is_on_time,
     resolve_asset,
     resolve_assignment,
-    _haversine
 )
+from api.services.gps import _haversine
 from api.models import Device, Checkpoint, PatrolRoute, ShiftAssignment, ScanRecord
 from datetime import time
 

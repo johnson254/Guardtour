@@ -397,11 +397,11 @@ class ScanPipeline:
         self.context['zone_result'] = zone_result
 
     def _step_check_mission_complete(self):
-        from api.models import ScanRecord, MissionStateLog
+        from api.models import ScanRecord
+        from api.services.mission import complete_mission
         assignment = self.context['assignment']
         route = self.context['route']
         checkpoint = self.context['checkpoint']
-        zone_result = self.context['zone_result']
         emergency_triggered = self.context['emergency_triggered']
 
         mission_completed = False
@@ -420,26 +420,22 @@ class ScanPipeline:
                 hit_ids = set(ScanRecord.objects.filter(**scan_filter).values_list('checkpoint_id', flat=True).distinct())
                 if checkpoint:
                     hit_ids.add(checkpoint.id)
+                # complete_mission() handles all field updates atomically —
+                # no risk of is_completed/status/mission_stage getting out of sync.
                 if len(hit_ids) >= len(cps):
-                    assignment.is_completed = True
-                    assignment.is_active = False
-                    assignment.status = 'completed'
-                    assignment.mission_stage = 'completed'
-                    assignment.ended_at = self.now
-                    assignment.save(update_fields=['is_completed', 'is_active', 'status', 'mission_stage', 'ended_at'])
+                    complete_mission(assignment, device=self.context['device'])
                     mission_completed = True
-                    MissionStateLog.objects.create(
-                        assignment=assignment,
-                        from_stage='active',
-                        to_stage='completed',
-                        reason='all_checkpoints_scanned',
-                        device=self.context['device'],
-                    )
 
         self.context['mission_completed'] = mission_completed
 
     def _step_transition_mission_stage(self):
-        from api.models import MissionStateLog
+        """Delegate to mission service for validated state transitions.
+
+        Before: inline dual-write that could leave mission_stage and
+        MissionStateLog out of sync. Now: single function enforces
+        valid transitions and creates audit log atomically.
+        """
+        from api.services.mission import transition_mission_stage
         assignment = self.context['assignment']
         emergency_triggered = self.context['emergency_triggered']
         zone_result = self.context['zone_result']
@@ -447,22 +443,14 @@ class ScanPipeline:
 
         if assignment and not emergency_triggered:
             if assignment.mission_stage == 'assigned':
-                assignment.mission_stage = 'deployed'
-                assignment.save(update_fields=['mission_stage'])
-                MissionStateLog.objects.create(
-                    assignment=assignment,
-                    from_stage='assigned',
-                    to_stage='deployed',
+                transition_mission_stage(
+                    assignment, 'deployed',
                     reason='first_heartbeat_after_assignment',
                     device=device,
                 )
             elif assignment.mission_stage == 'deployed' and not zone_result['dropped']:
-                assignment.mission_stage = 'active'
-                assignment.save(update_fields=['mission_stage'])
-                MissionStateLog.objects.create(
-                    assignment=assignment,
-                    from_stage='deployed',
-                    to_stage='active',
+                transition_mission_stage(
+                    assignment, 'active',
                     reason='first_successful_scan',
                     device=device,
                 )

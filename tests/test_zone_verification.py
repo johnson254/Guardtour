@@ -6,11 +6,12 @@ from api.models import (
     Organization, Device, Checkpoint, PatrolRoute, ShiftAssignment,
     ScanRecord, DeviceSession, MissionStateLog, AlertRule, DeviceTrail
 )
-from api.scan_service import (
-    verify_zone_scan, _compute_effective_radius, _detect_anomalies,
-    device_has_clean_progression_record, _walk_dwell_trail,
-    _sensor_confirms_presence, _sensor_mismatch
+from api.services.scoring import (
+    verify_zone_scan, _compute_effective_radius,
+    device_has_clean_progression_record,
 )
+from api.services.anomalies import _detect_anomalies, _sensor_confirms_presence, _sensor_mismatch
+from api.services.dwell import _walk_dwell_trail
 
 
 @pytest.fixture

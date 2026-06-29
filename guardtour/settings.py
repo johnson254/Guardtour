@@ -127,6 +127,10 @@ REST_FRAMEWORK = {
         'device_heartbeat': '30/min',
         'device_scan': '60/min',
     },
+    # Pagination: all list endpoints return max 50 items per page.
+    # Prevents unbounded responses that crash browsers with large datasets.
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
 }
 
 SIMPLE_JWT = {
@@ -138,7 +142,14 @@ SIMPLE_JWT = {
     ),
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS: only allow all origins in development. Production must
+# explicitly set DJANGO_CORS_ALLOWED_ORIGINS env var.
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# If not in DEBUG, optionally restrict to specific origins.
+_cors_origins = os.environ.get('DJANGO_CORS_ALLOWED_ORIGINS', '')
+if not DEBUG and _cors_origins:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
 
 CACHES = {
     'default': {
