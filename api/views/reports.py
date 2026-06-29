@@ -47,6 +47,8 @@ def admin_stats(request):
     })
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def organization_stats(request):
     devices = Device.objects.none()
     scans = ScanRecord.objects.none()

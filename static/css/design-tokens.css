@@ -76,6 +76,12 @@ body {
   line-height: 1.4;
 }
 
+/* ── Glass shell (app-level wrap) ───────────────────────── */
+.glass-shell {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--r-line);
+}
 /* ── Card / panel system ───────────────────────────────── */
 .glass-card, .card {
   background: linear-gradient(165deg, rgba(22, 22, 34, 0.82) 0%, rgba(16, 16, 26, 0.92) 60%, rgba(18, 18, 30, 0.86) 100%);

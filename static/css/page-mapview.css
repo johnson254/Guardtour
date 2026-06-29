@@ -31,7 +31,7 @@
 #tmMap {
     position: absolute;
     inset: 0;
-    background: #050508;
+    background: linear-gradient(145deg, #0a0a22, #0a1118, #0a1020, #180a0a);
     z-index: 1;
     border-radius: 24px;
 }
@@ -377,6 +377,48 @@ select.dc-fi { height:34px; appearance:none; background-image:url("data:image/sv
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 .tm-toast .td { width: 7px; height: 7px; border-radius: 50%; background: #5DCAA5; flex-shrink: 0; }
+
+/* ── Route select chips (map demo styling) ───────────────── */
+.tm-route-pill {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.65);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+}
+.tm-route-pill:hover { border-color: rgba(255,255,255,0.18); color: #fff; }
+.tm-route-pill.active {
+    background: linear-gradient(135deg, #d32f2f, #9a0007);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(211,47,47,0.25);
+}
+.tm-route-pill .tm-pill-meta { display: flex; gap: 8px; align-items: center; }
+
+/* ── Guard progress pill ──────────────────────────────────── */
+.tm-guard-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.74rem;
+    color: rgba(255,255,255,0.75);
+}
+.tm-guard-pill .tm-guard-trail {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+}
 .tm-toast .tde { background: var(--primary); }
 
 /* ── Guard marker pulse ──────────────────────────────────── */

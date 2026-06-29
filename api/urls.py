@@ -65,6 +65,8 @@ urlpatterns = [
 
     # Mission staging: single assignment status (used by app + frontend)
     path('mission-status/<int:assignment_id>/', views.mission_status, name='mission_status'),
+    # Device self-service: get current mission by device auth (no assignment_id needed)
+    path('my-mission/', views.my_mission, name='my_mission'),
 
     # Shift handover: transfer a partially completed route to another guard
     path('transfer-shift/', views.transfer_shift, name='transfer_shift'),

@@ -1,52 +1,67 @@
 {% extends base_template %}
 {% block content %}
 {% load static %}
+<link rel="stylesheet" href="{% static 'css/page-routes.css' %}" />
 <link rel="stylesheet" href="{% static 'css/page-reports.css' %}" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-<div class="card-header" style="background: transparent; border: none; padding: 0 0 20px 0;">
-    <div class="card-title" style="font-size: 1.2rem;">Tactical Audit Vault</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 16px 0;">
+    <h3 style="font-size:0.85rem;font-weight:700;color:var(--r-text);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-box-archive" style="color:var(--r-crim)"></i> Tactical Audit Vault
+    </h3>
 </div>
 
-    <div class="report-layout spa-page">
-        <div class="filter-panel">
-            <h3>Filter Parameters</h3>
+<div class="spa-page" style="display:grid;grid-template-columns:260px 1fr;gap:16px;">
+    <div class="rs-panel" style="height:fit-content;">
+        <div class="rs-panel-head">
+            <h3 class="rs-panel-title"><i class="fas fa-filter"></i> Filter Parameters</h3>
+        </div>
+        <div style="padding:12px 14px;">
             <form id="reportFilters" hx-get="/api/scans-table-partial/" hx-target="#reportContainer" hx-include="#startDate,#endDate,#filterGuard,#filterRoute,#filterStatus">
-                <label for="startDate" class="label-mini">Date Horizon</label>
-                <input type="date" id="startDate" name="start_date">
-                <label for="endDate" class="label-mini">End Date</label>
-                <input type="date" id="endDate" name="end_date">
+                <label class="rs-lbl">Date Horizon</label>
+                <input class="rs-fi" type="date" id="startDate" name="start_date" style="margin-bottom:10px;">
+                <label class="rs-lbl">End Date</label>
+                <input class="rs-fi" type="date" id="endDate" name="end_date" style="margin-bottom:10px;">
 
-                <label for="filterGuard" class="label-mini">Personnel</label>
-                <select id="filterGuard" name="guard_id"
+                <label class="rs-lbl">Personnel</label>
+                <select class="rs-fi" id="filterGuard" name="guard_id" style="margin-bottom:10px;"
                         hx-get="/api/reports-guards-options-partial/"
                         hx-trigger="load"
                         hx-swap="innerHTML"></select>
 
-                <label for="filterRoute" class="label-mini">Operational Route</label>
-                <select id="filterRoute" name="route_id"
+                <label class="rs-lbl">Operational Route</label>
+                <select class="rs-fi" id="filterRoute" name="route_id" style="margin-bottom:10px;"
                         hx-get="/api/reports-routes-options-partial/"
                         hx-trigger="load"
                         hx-swap="innerHTML"></select>
 
-                <label for="filterStatus" class="label-mini">Compliance Status</label>
-                <select id="filterStatus" name="is_on_time">
+                <label class="rs-lbl">Compliance Status</label>
+                <select class="rs-fi" id="filterStatus" name="is_on_time" style="margin-bottom:14px;">
                     <option value="">All Scans</option>
                     <option value="true">On-Time Only</option>
                     <option value="false">Violations Only</option>
                 </select>
 
-                <button type="submit" class="action-btn">Apply Filters</button>
+                <button type="submit" class="rs-btn rs-btn-primary rs-btn-block" style="margin-bottom:6px;"><i class="fas fa-search"></i> Apply Filters</button>
             </form>
-            <button type="button" onclick="exportFullPDF()" class="export-btn">Export Full Audit (PDF)</button>
+            <button type="button" class="rs-btn rs-btn-block" onclick="exportFullPDF()" style="margin-top:8px;"><i class="fas fa-file-pdf"></i> Export Full Audit (PDF)</button>
         </div>
+    </div>
 
-        <div class="report-display">
+    <div class="rs-panel">
+        <div class="rs-panel-head">
+            <h3 class="rs-panel-title"><i class="fas fa-table"></i> Scan Records</h3>
+        </div>
+        <div class="rs-ed-body" style="padding:0;">
             <div id="reportContainer" hx-get="/api/scans-table-partial/" hx-trigger="load, every 300s" hx-include="#reportFilters" hx-target="this">
-                <p style="text-align: center; padding: 100px; color: var(--text-muted);">Initializing Audit Engine...</p>
+                <div class="rs-block" style="text-align:center;padding:60px 20px;color:var(--r-mute);">
+                    <i class="fas fa-spinner fa-spin" style="font-size:1.2rem;display:block;margin-bottom:10px;"></i>
+                    Initializing Audit Engine...
+                </div>
             </div>
         </div>
     </div>
+</div>
 
 {% block page_js %}
   {% load static %}

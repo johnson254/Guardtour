@@ -31,7 +31,7 @@
 <div class="rs-panel rs-editor">
 
     <!-- ── Overlay wizard ── -->
-    <div id="bpOverlay" class="rs-overlay rs-hidden" style="align-items: flex-start; padding-top: 60px; pointer-events: auto;">
+    <div id="bpOverlay" class="rs-overlay rs-hidden" style="pointer-events: auto;">
 
         <!-- STEP 1: Choose strategy -->
         <div class="rs-wiz rs-hidden" id="wizStep1">
@@ -40,47 +40,53 @@
                     <div class="rs-wiz-title"><i class="fas fa-compass-drafting" style="color:var(--r-crim)"></i> Mission Builder</div>
                     <div class="rs-wiz-sub">Choose how this patrol will be structured.</div>
                 </div>
-                <button type="button" class="rs-btn-back" onclick="hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="rs-wiz-close" onclick="hideOverlay()" title="Close"><i class="fas fa-xmark"></i></button>
             </div>
 
-            <!-- Quick Deploy hero -->
-            <div class="rs-quick-hero" onclick="wizGo('quick')">
-                <div class="rs-quick-hero-icon"><i class="fas fa-bolt" style="color:#FFD54F"></i></div>
-                <div>
-                    <div class="rs-quick-hero-label">Quick Deploy</div>
-                    <div class="rs-quick-hero-sub">Fastest path — name, guard, tags, deploy.</div>
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(211,47,47,0.05), rgba(20,20,32,0.96) 50%);">
+                <div class="rs-form-section-title" style="margin-bottom:14px;">
+                    <span><i class="fas fa-bolt" style="color:#FFD54F;margin-right:6px;"></i> Quick Start</span>
+                    <small><i class="fas fa-circle" style="color:var(--r-teal);font-size:0.45rem;"></i> fastest path</small>
                 </div>
-                <i class="fas fa-arrow-right" style="margin-left:auto;color:var(--r-mute)"></i>
-            </div>
 
-            <div class="rs-or-divider">Or choose a structured strategy</div>
+                <div class="rs-quick-hero" onclick="wizGo('quick')">
+                    <div class="rs-quick-hero-icon"><i class="fas fa-bolt" style="color:#FFD54F"></i></div>
+                    <div>
+                        <div class="rs-quick-hero-label">Quick Deploy</div>
+                        <div class="rs-quick-hero-sub">Fastest path — name, guard, tags, deploy.</div>
+                    </div>
+                    <i class="fas fa-arrow-right" style="margin-left:auto;color:var(--r-mute)"></i>
+                </div>
 
-            <div class="rs-strat-grid">
-                <button type="button" class="rs-strat-chip rs-chip-flex" onclick="wizGo(2,'Flexible')">
-                    <i class="fas fa-random"></i>
-                    <div class="rs-strat-chip-label">Flexible</div>
-                    <div class="rs-strat-chip-sub">Any order, volume-based</div>
-                </button>
-                <button type="button" class="rs-strat-chip rs-chip-seq" onclick="wizGo(2,'Sequential')">
-                    <i class="fas fa-arrow-down-1-9"></i>
-                    <div class="rs-strat-chip-label">Sequential</div>
-                    <div class="rs-strat-chip-sub">Fixed order enforced</div>
-                </button>
-                <button type="button" class="rs-strat-chip rs-chip-sched" onclick="wizGo(2,'Scheduled')">
-                    <i class="fas fa-stopwatch"></i>
-                    <div class="rs-strat-chip-label">Scheduled</div>
-                    <div class="rs-strat-chip-sub">Time windows per point</div>
-                </button>
-                <button type="button" class="rs-strat-chip rs-chip-audit" onclick="wizGo('audit')">
-                    <i class="fas fa-user-shield"></i>
-                    <div class="rs-strat-chip-label">Peer Audit</div>
-                    <div class="rs-strat-chip-sub">Auditor sweeps guards</div>
-                </button>
-                <button type="button" class="rs-strat-chip rs-chip-custom" onclick="wizGo(2,'Custom')">
-                    <i class="fas fa-sliders"></i>
-                    <div class="rs-strat-chip-label">Custom Design</div>
-                    <div class="rs-strat-chip-sub">Full manual override</div>
-                </button>
+                <div class="rs-or-divider">Or choose a structured strategy</div>
+
+                <div class="rs-strat-grid">
+                    <button type="button" class="rs-strat-chip rs-chip-flex" onclick="wizGo(2,'Flexible')">
+                        <i class="fas fa-random"></i>
+                        <div class="rs-strat-chip-label">Flexible</div>
+                        <div class="rs-strat-chip-sub">Any order, volume-based</div>
+                    </button>
+                    <button type="button" class="rs-strat-chip rs-chip-seq" onclick="wizGo(2,'Sequential')">
+                        <i class="fas fa-arrow-down-1-9"></i>
+                        <div class="rs-strat-chip-label">Sequential</div>
+                        <div class="rs-strat-chip-sub">Fixed order enforced</div>
+                    </button>
+                    <button type="button" class="rs-strat-chip rs-chip-sched" onclick="wizGo(2,'Scheduled')">
+                        <i class="fas fa-stopwatch"></i>
+                        <div class="rs-strat-chip-label">Scheduled</div>
+                        <div class="rs-strat-chip-sub">Time windows per point</div>
+                    </button>
+                    <button type="button" class="rs-strat-chip rs-chip-audit" onclick="wizGo('audit')">
+                        <i class="fas fa-user-shield"></i>
+                        <div class="rs-strat-chip-label">Peer Audit</div>
+                        <div class="rs-strat-chip-sub">Auditor sweeps guards</div>
+                    </button>
+                    <button type="button" class="rs-strat-chip rs-chip-custom" onclick="wizGo(2,'Custom')">
+                        <i class="fas fa-sliders"></i>
+                        <div class="rs-strat-chip-label">Custom Design</div>
+                        <div class="rs-strat-chip-sub">Full manual override</div>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -92,57 +98,64 @@
                 <div class="rs-wiz-sub" id="wizStep2Sub"></div>
             </div>
 
-            <div class="rs-g2">
-                <div style="grid-column: span 2; margin-bottom: 8px;">
-                    <label class="rs-lbl">Blueprint Name *</label>
-                    <input id="wiz2Name" class="rs-fi rs-fi-sm" placeholder="e.g. North Wing Patrol">
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(211,47,47,0.05), rgba(20,20,32,0.96) 50%);">
+                <div class="rs-form-section-title" style="margin-bottom:12px;">
+                    <span><i class="fas fa-sliders" style="color:var(--r-crim);margin-right:6px;"></i> <span id="wizStep2SectionTitle">Configuration</span></span>
+                    <small><i class="fas fa-circle" style="color:var(--r-indigo);font-size:0.45rem;"></i> mission parameters</small>
                 </div>
-                <div>
-                    <label class="rs-lbl">Start Date</label>
-                    <input id="wiz2Date" type="date" class="rs-fi rs-fi-sm">
-                </div>
-                <div>
-                    <label class="rs-lbl">Duty Cycle</label>
-                    <div class="rs-shift-pill">
-                        <input type="radio" name="wiz2Shift" value="Day" id="wiz2ShiftDay" class="rs-shift-radio">
-                        <label for="wiz2ShiftDay" class="rs-shift-btn rs-shift-btn-day"><i class="fas fa-sun"></i> Day</label>
-                        <input type="radio" name="wiz2Shift" value="" id="wiz2ShiftAny" checked class="rs-shift-radio">
-                        <label for="wiz2ShiftAny" class="rs-shift-btn rs-shift-btn-any"><i class="fas fa-infinity"></i></label>
-                        <input type="radio" name="wiz2Shift" value="Night" id="wiz2ShiftNight" class="rs-shift-radio">
-                        <label for="wiz2ShiftNight" class="rs-shift-btn rs-shift-btn-night"><i class="fas fa-moon"></i> Night</label>
+
+                <div class="rs-g2">
+                    <div style="grid-column: span 2; margin-bottom: 4px;">
+                        <label class="rs-lbl">Blueprint Name *</label>
+                        <input id="wiz2Name" class="rs-fi rs-fi-sm" placeholder="e.g. North Wing Patrol">
                     </div>
-                </div>
-                <div>
-                    <label class="rs-lbl">Start Time</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <input id="wiz2StartTime" type="time" class="rs-fi rs-fi-sm" style="flex:1;">
-                        <div class="rs-toggle-wrap">
-                            <label class="db-toggle"><input type="checkbox" id="wiz2Alert" checked><span class="db-toggle-sl"></span></label>
-                            <span class="rs-toggle-label">Alert</span>
+                    <div>
+                        <label class="rs-lbl">Start Date</label>
+                        <input id="wiz2Date" type="date" class="rs-fi rs-fi-sm">
+                    </div>
+                    <div>
+                        <label class="rs-lbl">Duty Cycle</label>
+                        <div class="rs-shift-pill">
+                            <input type="radio" name="wiz2Shift" value="Day" id="wiz2ShiftDay" class="rs-shift-radio">
+                            <label for="wiz2ShiftDay" class="rs-shift-btn rs-shift-btn-day"><i class="fas fa-sun"></i> Day</label>
+                            <input type="radio" name="wiz2Shift" value="" id="wiz2ShiftAny" checked class="rs-shift-radio">
+                            <label for="wiz2ShiftAny" class="rs-shift-btn rs-shift-btn-any"><i class="fas fa-infinity"></i></label>
+                            <input type="radio" name="wiz2Shift" value="Night" id="wiz2ShiftNight" class="rs-shift-radio">
+                            <label for="wiz2ShiftNight" class="rs-shift-btn rs-shift-btn-night"><i class="fas fa-moon"></i> Night</label>
                         </div>
                     </div>
-                </div>
-                <div>
-                    <label class="rs-lbl">Dwell Time (min)</label>
-                    <input id="wiz2Stay" type="number" min="0" value="0" class="rs-fi rs-fi-sm">
-                </div>
-                <div style="grid-column:span 2; margin-top: 8px;">
-                    <label class="rs-lbl">Assigned Personnel (callsigns)</label>
-                    <div style="position:relative;">
-                        <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
-                            <div id="wiz2GuardTags" style="display:contents"></div>
-                            <input id="wiz2GuardInput" class="rs-tag-input" placeholder="Type callsign + Enter…">
+                    <div>
+                        <label class="rs-lbl">Start Time</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input id="wiz2StartTime" type="time" class="rs-fi rs-fi-sm" style="flex:1;">
+                            <div class="rs-toggle-wrap">
+                                <label class="db-toggle"><input type="checkbox" id="wiz2Alert" checked><span class="db-toggle-sl"></span></label>
+                                <span class="rs-toggle-label">Alert</span>
+                            </div>
                         </div>
-                        <div id="wiz2GuardSuggest" class="rs-suggest-list rs-hidden"></div>
                     </div>
-                </div>
-                <div>
-                    <label class="rs-lbl" for="wiz2Repeat">Checkpoints to generate</label>
-                    <input id="wiz2Repeat" type="number" min="1" value="3" class="rs-fi rs-fi-sm">
-                </div>
-                <div id="wiz2IntervalWrap" class="rs-hidden">
-                    <label class="rs-lbl" for="wiz2Interval">Interval (min)</label>
-                    <input id="wiz2Interval" type="number" min="1" value="15" class="rs-fi rs-fi-sm">
+                    <div>
+                        <label class="rs-lbl">Dwell Time (min)</label>
+                        <input id="wiz2Stay" type="number" min="0" value="0" class="rs-fi rs-fi-sm">
+                    </div>
+                    <div style="grid-column:span 2; margin-top: 4px;">
+                        <label class="rs-lbl">Assigned Personnel (callsigns)</label>
+                        <div style="position:relative;">
+                            <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
+                                <div id="wiz2GuardTags" style="display:contents"></div>
+                                <input id="wiz2GuardInput" class="rs-tag-input" placeholder="Type callsign + Enter…">
+                            </div>
+                            <div id="wiz2GuardSuggest" class="rs-suggest-list rs-hidden"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="rs-lbl" for="wiz2Repeat">Checkpoints to generate</label>
+                        <input id="wiz2Repeat" type="number" min="1" value="3" class="rs-fi rs-fi-sm">
+                    </div>
+                    <div id="wiz2IntervalWrap" class="rs-hidden">
+                        <label class="rs-lbl" for="wiz2Interval">Interval (min)</label>
+                        <input id="wiz2Interval" type="number" min="1" value="15" class="rs-fi rs-fi-sm">
+                    </div>
                 </div>
             </div>
 
@@ -160,62 +173,69 @@
                 <div class="rs-wiz-sub">Name it, assign guards, add points, deploy.</div>
             </div>
 
-            <div class="rs-g2">
-                <div style="grid-column: span 2;" class="form-group">
-                    <label class="rs-lbl" for="qName">Blueprint Name *</label>
-                    <input id="qName" class="rs-fi rs-fi-sm" placeholder="e.g. Rapid Sweep A">
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(211,47,47,0.05), rgba(20,20,32,0.96) 50%);">
+                <div class="rs-form-section-title" style="margin-bottom:12px;">
+                    <span><i class="fas fa-bolt" style="color:#FFD54F;margin-right:6px;"></i> Mission Parameters</span>
+                    <small><i class="fas fa-circle" style="color:var(--r-amber);font-size:0.45rem;"></i> quick setup</small>
                 </div>
-                <div style="grid-column:span 2;">
-                    <label class="rs-lbl" for="qGuardInput">Assigned Personnel</label>
-                    <div style="position:relative;">
-                        <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
-                            <div id="qGuardTags" style="display:contents"></div>
-                            <input id="qGuardInput" class="rs-tag-input" placeholder="Type callsign + Enter…">
-                        </div>
-                        <div id="qGuardSuggest" class="rs-suggest-list rs-hidden"></div>
-                    </div>
-                </div>
-                <div style="grid-column:span 2;">
-                    <label class="rs-lbl" for="qShiftAny">Duty Cycle</label>
-                    <div class="rs-shift-pill" style="width: 100%;">
-                        <input type="radio" name="qShift" value="Day" id="qShiftDay" class="rs-shift-radio" onchange="qHandleShift()">
-                        <label for="qShiftDay" class="rs-shift-btn rs-shift-btn-day" style="flex:1; justify-content: center;"><i class="fas fa-sun"></i> Day Shift</label>
-                        <input type="radio" name="qShift" value="" id="qShiftAny" checked class="rs-shift-radio" onchange="qHandleShift()">
-                        <label for="qShiftAny" class="rs-shift-btn rs-shift-btn-any" style="flex:1; justify-content: center;"><i class="fas fa-infinity"></i> Flexible</label>
-                        <input type="radio" name="qShift" value="Night" id="qShiftNight" class="rs-shift-radio" onchange="qHandleShift()">
-                        <label for="qShiftNight" class="rs-shift-btn rs-shift-btn-night" style="flex:1; justify-content: center;"><i class="fas fa-moon"></i> Night Shift</label>
-                    </div>
-                </div>
-                <div>
-                    <label class="rs-lbl" for="qTime">Start Time</label>
-                    <input id="qTime" type="time" class="rs-fi rs-fi-sm" style="width:100%;">
-                </div>
-                <div>
-                    <label class="rs-lbl" for="qLead">Alert Lead (min)</label>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <input id="qLead" type="number" min="0" value="15" class="rs-fi rs-fi-sm" style="flex:1;">
-                        <div class="rs-toggle-wrap" for="qAlert">
-                            <label class="db-toggle"><input type="checkbox" id="qAlert" checked><span class="db-toggle-sl"></span></label>
-                            <span class="rs-toggle-label">Alert</span>
-                        </div>
-                    </div>
-                </div>
-                <div style="grid-column:span 2;">
-                    <label class="rs-lbl" for="qAnnouncementText">TTS Announcement</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <input id="qAnnouncementText" class="rs-fi rs-fi-sm" placeholder="Radio instructions…" style="flex:1;">
-                        <div class="rs-toggle-wrap">
-                            <label class="db-toggle"><input type="checkbox" id="qAnnounceToggle" checked><span class="db-toggle-sl"></span></label>
-                            <span class="rs-toggle-label">Broadcast</span>
-                        </div>
-                    </div>
-                </div>
-                <div style="grid-column:span 2;">
-                    <div style="font-size:0.68rem; color:var(--r-teal); font-weight:800; padding:4px 0;"><i class="fas fa-calendar-check"></i> Active for today only</div>
-                </div>
-            </div> 
 
-            <div class="rs-block" style="padding:10px 12px;">
+                <div class="rs-g2">
+                    <div style="grid-column: span 2;" class="form-group">
+                        <label class="rs-lbl" for="qName">Blueprint Name *</label>
+                        <input id="qName" class="rs-fi rs-fi-sm" placeholder="e.g. Rapid Sweep A">
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <label class="rs-lbl" for="qGuardInput">Assigned Personnel</label>
+                        <div style="position:relative;">
+                            <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
+                                <div id="qGuardTags" style="display:contents"></div>
+                                <input id="qGuardInput" class="rs-tag-input" placeholder="Type callsign + Enter…">
+                            </div>
+                            <div id="qGuardSuggest" class="rs-suggest-list rs-hidden"></div>
+                        </div>
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <label class="rs-lbl" for="qShiftAny">Duty Cycle</label>
+                        <div class="rs-shift-pill" style="width: 100%;">
+                            <input type="radio" name="qShift" value="Day" id="qShiftDay" class="rs-shift-radio" onchange="qHandleShift()">
+                            <label for="qShiftDay" class="rs-shift-btn rs-shift-btn-day" style="flex:1; justify-content: center;"><i class="fas fa-sun"></i> Day Shift</label>
+                            <input type="radio" name="qShift" value="" id="qShiftAny" checked class="rs-shift-radio" onchange="qHandleShift()">
+                            <label for="qShiftAny" class="rs-shift-btn rs-shift-btn-any" style="flex:1; justify-content: center;"><i class="fas fa-infinity"></i> Flexible</label>
+                            <input type="radio" name="qShift" value="Night" id="qShiftNight" class="rs-shift-radio" onchange="qHandleShift()">
+                            <label for="qShiftNight" class="rs-shift-btn rs-shift-btn-night" style="flex:1; justify-content: center;"><i class="fas fa-moon"></i> Night Shift</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="rs-lbl" for="qTime">Start Time</label>
+                        <input id="qTime" type="time" class="rs-fi rs-fi-sm" style="width:100%;">
+                    </div>
+                    <div>
+                        <label class="rs-lbl" for="qLead">Alert Lead (min)</label>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <input id="qLead" type="number" min="0" value="15" class="rs-fi rs-fi-sm" style="flex:1;">
+                            <div class="rs-toggle-wrap" for="qAlert">
+                                <label class="db-toggle"><input type="checkbox" id="qAlert" checked><span class="db-toggle-sl"></span></label>
+                                <span class="rs-toggle-label">Alert</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <label class="rs-lbl" for="qAnnouncementText">TTS Announcement</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input id="qAnnouncementText" class="rs-fi rs-fi-sm" placeholder="Radio instructions…" style="flex:1;">
+                            <div class="rs-toggle-wrap">
+                                <label class="db-toggle"><input type="checkbox" id="qAnnounceToggle" checked><span class="db-toggle-sl"></span></label>
+                                <span class="rs-toggle-label">Broadcast</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <div style="font-size:0.68rem; color:var(--r-teal); font-weight:800; padding:4px 0;"><i class="fas fa-calendar-check"></i> Active for today only</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(0,196,154,0.045), rgba(20,20,32,0.96) 45%, rgba(211,47,47,0.035));">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                     <span class="rs-lbl" style="margin-bottom:0;">Mission Sequence</span>
                     <div style="display:flex;gap:5px;">
@@ -271,66 +291,73 @@
                 <div class="rs-wiz-sub">One auditor sweeps a sequence of guards. Each guard becomes a timed checkpoint.</div>
             </div>
 
-            <div class="rs-g2">
-                <div>
-                    <label class="rs-lbl">Blueprint Name *</label>
-                    <input id="auditName" class="rs-fi rs-fi-sm" placeholder="e.g. Night Audit Round 1">
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(168,85,247,0.04), rgba(20,20,32,0.96) 50%);">
+                <div class="rs-form-section-title" style="margin-bottom:12px;">
+                    <span><i class="fas fa-user-shield" style="color:var(--r-violet);margin-right:6px;"></i> Audit Parameters</span>
+                    <small><i class="fas fa-circle" style="color:var(--r-violet);font-size:0.45rem;"></i> inspection config</small>
                 </div>
-                <div>
-                    <label class="rs-lbl">Audit Duty Context</label>
-                    <div class="rs-shift-pill" style="width: 100%;">
-                        <input type="radio" name="auditShift" value="Day" id="auditShiftDay" class="rs-shift-radio">
-                        <label for="auditShiftDay" class="rs-shift-btn rs-shift-btn-day" style="flex:1; justify-content: center;"><i class="fas fa-sun"></i> Day</label>
-                        <input type="radio" name="auditShift" value="" id="auditShiftAny" checked class="rs-shift-radio">
-                        <label for="auditShiftAny" class="rs-shift-btn rs-shift-btn-any" style="flex:1; justify-content: center;"><i class="fas fa-infinity"></i></label>
-                        <input type="radio" name="auditShift" value="Night" id="auditShiftNight" class="rs-shift-radio">
-                        <label for="auditShiftNight" class="rs-shift-btn rs-shift-btn-night" style="flex:1; justify-content: center;"><i class="fas fa-moon"></i> Night</label>
+
+                <div class="rs-g2">
+                    <div>
+                        <label class="rs-lbl">Blueprint Name *</label>
+                        <input id="auditName" class="rs-fi rs-fi-sm" placeholder="e.g. Night Audit Round 1">
                     </div>
-                </div>
-                <div>
-                    <label class="rs-lbl">Execution Date *</label>
-                    <input id="auditDate" type="date" class="rs-fi rs-fi-sm">
-                </div>
-                <div>
-                    <label class="rs-lbl">Start Time</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <input id="auditStartTime" type="time" class="rs-fi rs-fi-sm" style="flex:1;">
-                        <div class="rs-toggle-wrap">
-                            <label class="db-toggle"><input type="checkbox" id="auditAlert" checked><span class="db-toggle-sl"></span></label>
-                            <span class="rs-toggle-label">Alert</span>
+                    <div>
+                        <label class="rs-lbl">Audit Duty Context</label>
+                        <div class="rs-shift-pill" style="width: 100%;">
+                            <input type="radio" name="auditShift" value="Day" id="auditShiftDay" class="rs-shift-radio">
+                            <label for="auditShiftDay" class="rs-shift-btn rs-shift-btn-day" style="flex:1; justify-content: center;"><i class="fas fa-sun"></i> Day</label>
+                            <input type="radio" name="auditShift" value="" id="auditShiftAny" checked class="rs-shift-radio">
+                            <label for="auditShiftAny" class="rs-shift-btn rs-shift-btn-any" style="flex:1; justify-content: center;"><i class="fas fa-infinity"></i></label>
+                            <input type="radio" name="auditShift" value="Night" id="auditShiftNight" class="rs-shift-radio">
+                            <label for="auditShiftNight" class="rs-shift-btn rs-shift-btn-night" style="flex:1; justify-content: center;"><i class="fas fa-moon"></i> Night</label>
                         </div>
                     </div>
-                </div>
-                <div style="grid-column:span 2; margin-top: 8px;">
-                    <label class="rs-lbl">Conducting Auditor</label>
-                    <div style="position:relative;">
-                        <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
-                            <div id="auditAuditorTags" style="display:contents"></div>
-                            <input id="auditAuditorInput" class="rs-tag-input" placeholder="Auditor callsign…">
-                        </div>
-                        <div id="auditAuditorSuggest" class="rs-suggest-list rs-hidden"></div>
+                    <div>
+                        <label class="rs-lbl">Execution Date *</label>
+                        <input id="auditDate" type="date" class="rs-fi rs-fi-sm">
                     </div>
-                </div>
-                <div>
-                    <label class="rs-lbl" for="auditInterval">Interval between guards (min)</label>
-                    <input id="auditInterval" type="number" min="1" value="15" class="rs-fi rs-fi-sm">
-                </div>
-                <div>
-                    <label class="rs-lbl" for="auditStay">Stay at each guard (min)</label>
-                    <input id="auditStay" type="number" min="0" value="5" class="rs-fi rs-fi-sm">
-                </div>
-                <div style="display:flex;align-items:flex-end;padding-bottom:4px; margin-top: 8px;">
-                    <label style="display:flex;align-items:center;gap:8px;font-size:0.74rem;cursor:pointer;color:var(--r-mute);">
-                        <input type="checkbox" id="auditEnforceSeq" checked style="accent-color:var(--r-violet)">
-                        <span>Enforce sequence order</span>
-                    </label>
+                    <div>
+                        <label class="rs-lbl">Start Time</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input id="auditStartTime" type="time" class="rs-fi rs-fi-sm" style="flex:1;">
+                            <div class="rs-toggle-wrap">
+                                <label class="db-toggle"><input type="checkbox" id="auditAlert" checked><span class="db-toggle-sl"></span></label>
+                                <span class="rs-toggle-label">Alert</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="grid-column:span 2; margin-top: 4px;">
+                        <label class="rs-lbl">Conducting Auditor</label>
+                        <div style="position:relative;">
+                            <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
+                                <div id="auditAuditorTags" style="display:contents"></div>
+                                <input id="auditAuditorInput" class="rs-tag-input" placeholder="Auditor callsign…">
+                            </div>
+                            <div id="auditAuditorSuggest" class="rs-suggest-list rs-hidden"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="rs-lbl" for="auditInterval">Interval between guards (min)</label>
+                        <input id="auditInterval" type="number" min="1" value="15" class="rs-fi rs-fi-sm">
+                    </div>
+                    <div>
+                        <label class="rs-lbl" for="auditStay">Stay at each guard (min)</label>
+                        <input id="auditStay" type="number" min="0" value="5" class="rs-fi rs-fi-sm">
+                    </div>
+                    <div style="display:flex;align-items:flex-end;padding-bottom:4px; margin-top: 4px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:0.74rem;cursor:pointer;color:var(--r-mute);">
+                            <input type="checkbox" id="auditEnforceSeq" checked style="accent-color:var(--r-violet)">
+                            <span>Enforce sequence order</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <div>
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(168,85,247,0.04), rgba(20,20,32,0.96) 50%);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
                     <span class="rs-lbl" style="margin-bottom:0;color:var(--r-violet);">
-                        <i class="fas fa-grip-vertical" style="margin-right:4px;opacity:.5"></i>Target Guards (drag to reorder)
+                        <i class="fas fa-grip-vertical" style="margin-right:4px;opacity:.5"></i>Target Guards
                     </span>
                     <button type="button" class="rs-btn rs-btn-xs rs-btn-violet" onclick="auditAddTarget()"><i class="fas fa-plus"></i> Add</button>
                 </div>
@@ -348,13 +375,13 @@
         </div>
 
         <!-- STEP: Quick Deploy Full-Screen -->
-        <div class="rs-wiz rs-hidden" id="wizStepQuickDeploy" style="max-width:880px;">
+        <div class="rs-wiz rs-wiz-wide rs-hidden" id="wizStepQuickDeploy">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;">
                 <div class="rs-wiz-header">
                     <div class="rs-wiz-title" style="color:var(--r-teal);font-size:1.2rem;"><i class="fas fa-bolt" style="color:#FFD54F"></i> QUICK DEPLOY — FINAL REVIEW</div>
                     <div class="rs-wiz-sub">All checkpoints shown with their planned times. Review and confirm.</div>
                 </div>
-                <button type="button" class="rs-btn-back" onclick="rsDeployCancel();hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="rs-wiz-close" onclick="rsDeployCancel();hideOverlay()" title="Close"><i class="fas fa-xmark"></i></button>
             </div>
 
             <div style="display:flex;gap:14px;flex:1;min-height:0;margin-top:8px;">
@@ -433,16 +460,16 @@
         </div>
 
         <!-- STEP: Edit Confirmation (delta review) -->
-        <div class="rs-wiz rs-hidden" id="wizStepEditConfirm" style="max-width:700px;">
+        <div class="rs-wiz rs-wiz-wide rs-hidden" id="wizStepEditConfirm">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;">
                 <div class="rs-wiz-header">
                     <div class="rs-wiz-title" style="color:var(--r-amber);font-size:1.1rem;"><i class="fas fa-pen-to-square" style="color:var(--r-amber)"></i> EDIT CONFIRMATION</div>
                     <div class="rs-wiz-sub">Review the changes before saving this blueprint.</div>
                 </div>
-                <button type="button" class="rs-btn-back" onclick="hideOverlay()" title="Close" style="font-size:0.85rem;padding:4px 8px;"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="rs-wiz-close" onclick="hideOverlay()" title="Close"><i class="fas fa-xmark"></i></button>
             </div>
-            <div style="flex:1;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:6px;">
-                <div id="editDiffContent" style="font-size:0.65rem;color:var(--r-mute);padding:4px;">Calculating changes…</div>
+            <div class="rs-block" style="background:linear-gradient(135deg, rgba(251,191,36,0.04), rgba(20,20,32,0.96) 50%);margin-top:8px;">
+                <div id="editDiffContent" style="font-size:0.65rem;color:var(--r-mute);">Calculating changes…</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
                 <div style="display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;" onclick="var c=document.getElementById('editVerify');if(c)c.checked=!c.checked;editUpdateBtn()">

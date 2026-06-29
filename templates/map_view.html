@@ -2,8 +2,6 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 {% endblock %}
 {% block content %}
 {% load static %}
@@ -175,7 +173,6 @@
                         </div>
                     </div>
                 </div>
-        <!-- Geofence enforcement rules (shown for geofence/circle) -->
         <div id="tmGeoRules" style="display:none;flex-direction:column;gap:5px;margin:4px 0;padding:6px 8px;background:rgba(92,202,165,0.04);border-radius:10px;border:1px solid rgba(92,202,165,0.12);">
             <span class="tm-label" style="font-size:0.5rem;color:#5DCAA5;display:flex;align-items:center;gap:4px;"><i class="fas fa-shield-halved"></i> Perimeter Rules <span style="font-weight:400;opacity:0.4;">(geofence)</span></span>
             <div style="display:flex;gap:4px;">
@@ -228,20 +225,6 @@
                         No checkpoints yet<br><span style="opacity:0.25;font-size:0.5rem;">Add one below</span>
                     </div>
                 </div>
-                <!-- Quick-add pills -->
-                <div style="display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0;">
-                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('nfc')"><i class="fas fa-wifi"></i> NFC</button>
-                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('gps')"><i class="fas fa-map-pin"></i> GPS</button>
-                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmStartDraw('geofence')"><i class="fas fa-draw-polygon"></i> Fence</button>
-                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('peer')"><i class="fas fa-user-shield"></i> Peer</button>
-                    <button type="button" class="tm-tool-btn" style="flex:1;padding:4px 2px;font-size:0.5rem;" onclick="tmQuickAdd('custom')"><i class="fas fa-pen" style="color:var(--r-teal)"></i> Custom</button>
-                </div>
-                <!-- Save / Clear -->
-                <div style="display:flex;gap:4px;flex-shrink:0;">
-                    <button type="button" class="tm-btn tm-btn-primary" style="flex:3;padding:6px;font-size:0.55rem;" onclick="tmSaveCheckpoints()"><i class="fas fa-cloud-arrow-up"></i> Save All</button>
-                    <button type="button" class="tm-btn" style="flex:1;padding:6px;font-size:0.55rem;color:var(--r-mute);" onclick="tmClearStaged()"><i class="fas fa-trash-can"></i></button>
-                </div>
-            </div>
         </div>
 
         <!-- ══ ROUTES panel ══ -->
@@ -283,6 +266,8 @@
 {% block page_js %}
   {% load static %}
   {% load vite %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script type="module" src="{% vite_asset 'src/pages/map-view.js' %}"></script>
 {% endblock %}
 {% endblock %}

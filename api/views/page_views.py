@@ -7,7 +7,32 @@ def dashboard_page(request):
     from api.views.reports import organization_stats
     stats_response = organization_stats(request)
     context = stats_response.data if hasattr(stats_response, 'data') else {}
-    return render(request, 'dashboard.html', context or {})
+
+    # Add dashboard-specific data
+    user = request.user
+    from api.models import GuardSupervisor, ShiftAssignment, IncidentReport, Device
+
+    if user.is_superuser or hasattr(user, 'admin_profile'):
+        guards = GuardSupervisor.objects.all()
+        active_assignments = ShiftAssignment.objects.filter(is_active=True)
+        incidents = IncidentReport.objects.filter(is_resolved=False)
+    elif hasattr(user, 'dispatcher_profile'):
+        org = user.dispatcher_profile.organization
+        guards = GuardSupervisor.objects.filter(organization=org) if org else GuardSupervisor.objects.none()
+        active_assignments = ShiftAssignment.objects.filter(
+            guard_supervisor__organization=org, is_active=True
+        ) if org else ShiftAssignment.objects.none()
+        incidents = IncidentReport.objects.filter(organization=org, is_resolved=False) if org else IncidentReport.objects.none()
+    else:
+        guards = GuardSupervisor.objects.none()
+        active_assignments = ShiftAssignment.objects.none()
+        incidents = IncidentReport.objects.none()
+
+    context['on_duty_guards'] = guards.filter(is_on_shift=True).select_related('organization')[:12]
+    context['active_deployments'] = active_assignments.select_related('route', 'guard_supervisor', 'device')[:10]
+    context['unresolved_incidents_count'] = incidents.count()
+
+    return render(request, 'dashboard.html', context)
 
 
 @login_required

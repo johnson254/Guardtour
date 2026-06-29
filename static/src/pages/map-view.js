@@ -15,9 +15,6 @@ const escHtml = (s) => {
   return div.innerHTML;
 };
 
-/* ── API wrapper kept local for legacy shorthand ── */
-const apiWrapper = async (url, opts = {}) => api(url, opts);
-
 /* ── State ── */
 let map, currentDrawHandler, currentDrawLayer, currentDrawType;
 const markers = {}, pathLayers = {}, historyLayers = {}, blueprintLayers = {}, objectLayers = {}, deviceMarkers = {};
@@ -196,7 +193,7 @@ async function loadAll() {
   try {
     const [statsRes, routesRes, personRes, assignRes, devicesRes] = await Promise.all([
       apiWrapper('/api/org-stats/'), apiWrapper('/api/routes/'),
-      apiWrapper('/api/profiles/'), apiWrapper('/api/shift-assignments/'), apiWrapper('/api/devices/')
+      apiWrapper('/api/profiles/'), apiWrapper('/api/shifts/'), apiWrapper('/api/devices/')
     ]);
     if (statsRes.ok) {
       const data = await statsRes.json();
@@ -232,19 +229,22 @@ async function loadAll() {
 }
 
 /* Bootstrap */
-initMap();
-byId('tmHistoryDate').value = new Date().toISOString().split('T')[0];
-loadAll().then(() => {
-  var allLayers = [];
-  Object.values(objectLayers).forEach(l => allLayers.push(l));
-  Object.values(deviceMarkers).forEach(m => allLayers.push(m));
-  if (allLayers.length) {
-    var group = L.featureGroup(allLayers);
-    if (group.getBounds().isValid()) map.flyToBounds(group.getBounds().pad(0.2), { duration: 0.5 });
-  }
-});
-setInterval(loadAll, 15000);
-console.log('Map view initialized');
+(async function boot() {
+  while (typeof L === 'undefined') await new Promise(r => setTimeout(r, 50));
+  initMap();
+  byId('tmHistoryDate').value = new Date().toISOString().split('T')[0];
+  loadAll().then(() => {
+    var allLayers = [];
+    Object.values(objectLayers).forEach(l => allLayers.push(l));
+    Object.values(deviceMarkers).forEach(m => allLayers.push(m));
+    if (allLayers.length) {
+      var group = L.featureGroup(allLayers);
+      if (group.getBounds().isValid()) map.flyToBounds(group.getBounds().pad(0.2), { duration: 0.5 });
+    }
+  });
+  setInterval(loadAll, 15000);
+  console.log('Map view initialized');
+})();
 
 /* expose map-page globals expected by inline handlers */
 window.tmToggleSidebar = window.tmToggleSidebar;
@@ -353,6 +353,12 @@ window.tmToggleBlueprint = function(routeId) {
   renderBlueprint(route);
 };
 
+window.tmSelectRoute = function(routeId) {
+  window.tmSelectedRouteId = routeId;
+  renderRoutesList();
+  focusRoute(routeId);
+};
+
 window.tmPickOnMap = () => {
   if (window._tmPickHandler) map.off('click', window._tmPickHandler);
   window._tmPickMarker = L.marker([0,0], { opacity: 0 }).addTo(map);
@@ -444,8 +450,51 @@ function renderGuardMarkers(scans = []) {
 function renderRoutesList() {
   const container = byId('tmRoutesList');
   if (!container) return;
+
+  const fmtDuration = (s) => {
+    if (!s && s !== 0) return '';
+    const m = Math.round((s || 0) / 60);
+    if (m < 60) return m + ' min';
+    return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+  };
+
+  const fmtDist = (m) => {
+    if (!m && m !== 0) return '';
+    if (m < 1000) return Math.round(m) + ' m';
+    return (m / 1000).toFixed(1) + ' km';
+  };
+
+  // Sort by dummy preview so selected route floats to top.
+  const sorted = allRoutes
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => {
+      const aSel = a.r.id === window.tmSelectedRouteId ? -1 : 0;
+      const bSel = b.r.id === window.tmSelectedRouteId ? -1 : 0;
+      return aSel - bSel || 0;
+    });
+
   container.innerHTML = allRoutes.length
-    ? allRoutes.map(r => `<div class="tm-item" style="cursor:pointer;" onclick="tmToggleBlueprint('${r.id}')"><div class="tm-item-head"><div class="tm-item-name">${escHtml(r.name || 'Route')}</div></div><div class="tm-item-sub">${escHtml(r.organization || '')}</div></div>`).join('')
+    ? sorted
+        .map(({ r }) => {
+          const active = window.tmSelectedRouteId === r.id;
+          const fast = r.is_fastest ? '<span style="width:auto;border-radius:999px;padding:3px 7px;margin-left:8px;background:rgba(90,222,170,0.12);border:1px solid rgba(90,222,170,0.25);color:#5DCAA5;font-size:0.62rem;font-weight:900;white-space:nowrap;">Fastest</span>' : '';
+          const surf =
+            r.duration || r.distance
+              ? `<span class="tm-pill-meta"><span class="tm-guard-pill"><span class="tm-guard-trail"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="rgba(255,255,255,0.25)"/></svg></span><span>${escHtml(fmtDuration(r.duration))}${r.distance ? ' · ' + escHtml(fmtDist(r.distance)) : ''}</span></span></span>${fast}`
+              : fast;
+          return `
+            <button type="button"
+                class="tm-item tm-route-pill${active ? ' active' : ''}"
+                onclick="window.tmSelectRoute('${r.id}')"
+                style="text-align:left;border-radius:10px;">
+                <div style="display:flex;flex-direction:column">
+                    <div class="tm-item-name" style="font-weight:900;">${escHtml(r.name || 'Route')}</div>
+                    <div class="tm-item-sub">${escHtml(r.organization || '')}</div>
+                </div>
+                ${surf}
+            </button>`;
+        })
+        .join('')
     : '<div class="tm-empty"><i class="fas fa-route"></i>No routes</div>';
 }
 

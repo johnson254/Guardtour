@@ -31,7 +31,20 @@ def register_device(request):
 
     device = Device.objects.filter(device_id=operator_id).first()
     if not device:
-        return Response({'detail': 'Operator ID not found. Create a device in the web portal first.'}, status=404)
+        # Auto-create device from callsign for demo/self-service onboarding
+        # Looks up CallSign by callsign to find org, or uses first org
+        from api.models import CallSign, Organization
+        cs = CallSign.objects.filter(callsign=operator_id).first()
+        org = cs.organization if cs else Organization.objects.first()
+        device = Device.objects.create(
+            device_id=operator_id,
+            device_name=f"Device-{operator_id}",
+            organization=org,
+            callsign=operator_id,
+        )
+        if cs:
+            cs.device = device
+            cs.save()
 
     for field in ['imei', 'imsi', 'sim_phone_number', 'os_version', 'manufacturer', 'model', 'sdk_int']:
         if field in hardware_info:

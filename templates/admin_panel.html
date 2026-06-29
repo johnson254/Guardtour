@@ -1,63 +1,110 @@
 {% extends base_template %}
 {% block content %}
-<div class="card"><h3>System Administration</h3><p>Manage users, organizations, and system settings</p></div>
-<div class="card"><h3>System Overview</h3><div id="adminStats" hx-get="/api/admin-stats-partial/" hx-trigger="load, every 120s" hx-target="this"><p style="text-align:center;padding:20px;color:var(--text-muted);">Loading stats...</p></div></div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-    <div class="card"><h3>User Management</h3><button type="button" onclick="showUserForm()">+ Add New User</button><div id="usersList"></div></div>
-    <div class="card"><h3>Organization Management</h3><button type="button" onclick="showOrgForm()">+ Add Organization</button><div id="orgsList"></div></div>
-</div>
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/page-routes.css' %}" />
 
-<!-- User Form -->
-<div id="userForm" style="display:none" class="card"><h3 id="userFormTitle">Add User</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="newUsername" placeholder="Enter username" required>
-        </div>
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="newEmail" placeholder="Enter email" required>
-        </div>
+<div class="rs-panel" style="margin-bottom:12px;">
+    <div class="rs-panel-head">
+        <h3 class="rs-panel-title"><i class="fas fa-sliders"></i> System Administration</h3>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="newPassword" placeholder="Enter password" required>
-        </div>
-        <div class="form-group">
-            <label>Role</label>
-            <select id="newRole" required>
-                <option value="admin">System Administrator</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="guard">Guard / Field Officer</option>
-            </select>
-        </div>
-    </div>
-    <div style="margin-bottom: 15px;" class="form-group">
-        <label>Organization (for supervisors/guards)</label>
-        <select id="newOrgId">
-            <option value="">-- No Organization (System Admin only) --</option>
-        </select>
-    </div>
-    <div style="display: flex; gap: 10px;">
-        <button type="button" onclick="createUser()" style="flex: 1;">Create User</button>
-        <button type="button" onclick="cancelUserForm()" style="flex: 1;" class="btn-secondary">Cancel</button>
+    <div style="padding:12px 16px;font-size:0.78rem;color:var(--r-mute);">
+        Manage users, organizations, and system settings
     </div>
 </div>
 
-<!-- Organization Form -->
-<div id="orgForm" style="display:none" class="card"><h3 id="orgFormTitle">Add Organization</h3>
-    <div style="margin-bottom: 15px;" class="form-group">
-        <label for="orgName">Organization Name</label>
-        <input type="text" id="orgName" placeholder="Enter organization name" required>
+<div class="rs-panel" style="margin-bottom:12px;">
+    <div class="rs-panel-head">
+        <h3 class="rs-panel-title"><i class="fas fa-chart-simple"></i> System Overview</h3>
     </div>
-    <div style="margin-bottom: 15px;" class="form-group">
-        <label for="orgDesc">Address (optional)</label>
-        <textarea id="orgDesc" placeholder="Organization address" rows="3"></textarea>
+    <div style="padding:12px 16px;" id="adminStats"
+         hx-get="/api/admin-stats-partial/"
+         hx-trigger="load, every 120s"
+         hx-target="this">
+        <div class="rs-block" style="text-align:center;padding:20px;color:var(--r-mute);">Loading stats...</div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <button type="button" onclick="createOrganization()" style="flex: 1;">Create Organization</button>
-        <button type="button" onclick="cancelOrgForm()" style="flex: 1;" class="btn-secondary">Cancel</button>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+    <div class="rs-panel">
+        <div class="rs-panel-head">
+            <h3 class="rs-panel-title"><i class="fas fa-users"></i> User Management</h3>
+            <button type="button" class="rs-btn rs-btn-xs" onclick="showUserForm()"><i class="fas fa-plus"></i> Add User</button>
+        </div>
+        <div class="rs-ed-body" id="usersList">
+            <div style="text-align:center;padding:20px;color:var(--r-mute);font-size:0.72rem;">No users loaded</div>
+        </div>
+    </div>
+    <div class="rs-panel">
+        <div class="rs-panel-head">
+            <h3 class="rs-panel-title"><i class="fas fa-building"></i> Organization Management</h3>
+            <button type="button" class="rs-btn rs-btn-xs" onclick="showOrgForm()"><i class="fas fa-plus"></i> Add Org</button>
+        </div>
+        <div class="rs-ed-body" id="orgsList">
+            <div style="text-align:center;padding:20px;color:var(--r-mute);font-size:0.72rem;">No organizations loaded</div>
+        </div>
+    </div>
+</div>
+
+<!-- User Form Overlay -->
+<div id="userForm" class="rs-overlay rs-hidden" style="pointer-events:auto;">
+    <div class="rs-wiz">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div class="rs-wiz-header">
+                <div class="rs-wiz-title" id="userFormTitle"><i class="fas fa-user-plus" style="color:var(--r-crim)"></i> Add User</div>
+                <div class="rs-wiz-sub">Create a new system user.</div>
+            </div>
+            <button type="button" class="rs-wiz-close" onclick="cancelUserForm()" title="Close"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="rs-block">
+            <div class="rs-g2">
+                <div><label class="rs-lbl">Username</label><input class="rs-fi" type="text" id="newUsername" placeholder="Enter username" required></div>
+                <div><label class="rs-lbl">Email</label><input class="rs-fi" type="email" id="newEmail" placeholder="Enter email" required></div>
+            </div>
+            <div class="rs-g2" style="margin-top:10px;">
+                <div><label class="rs-lbl">Password</label><input class="rs-fi" type="password" id="newPassword" placeholder="Enter password" required></div>
+                <div><label class="rs-lbl">Role</label>
+                    <select class="rs-fi" id="newRole" required>
+                        <option value="admin">System Administrator</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="guard">Guard / Field Officer</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top:10px;"><label class="rs-lbl">Organization</label>
+                <select class="rs-fi" id="newOrgId">
+                    <option value="">-- No Organization (System Admin only) --</option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <button type="button" class="rs-btn rs-btn-primary" style="flex:1;" onclick="createUser()"><i class="fas fa-check"></i> Create User</button>
+            <button type="button" class="rs-btn" style="flex:1;" onclick="cancelUserForm()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Organization Form Overlay -->
+<div id="orgForm" class="rs-overlay rs-hidden" style="pointer-events:auto;">
+    <div class="rs-wiz">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div class="rs-wiz-header">
+                <div class="rs-wiz-title" id="orgFormTitle"><i class="fas fa-building" style="color:var(--r-crim)"></i> Add Organization</div>
+                <div class="rs-wiz-sub">Register a new organization.</div>
+            </div>
+            <button type="button" class="rs-wiz-close" onclick="cancelOrgForm()" title="Close"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="rs-block">
+            <div style="margin-bottom:12px;"><label class="rs-lbl">Organization Name</label>
+                <input class="rs-fi" type="text" id="orgName" placeholder="Enter organization name" required>
+            </div>
+            <div><label class="rs-lbl">Address (optional)</label>
+                <textarea class="rs-fi" id="orgDesc" placeholder="Organization address" rows="3"></textarea>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <button type="button" class="rs-btn rs-btn-primary" style="flex:1;" onclick="createOrganization()"><i class="fas fa-check"></i> Create Organization</button>
+            <button type="button" class="rs-btn" style="flex:1;" onclick="cancelOrgForm()">Cancel</button>
+        </div>
     </div>
 </div>
 

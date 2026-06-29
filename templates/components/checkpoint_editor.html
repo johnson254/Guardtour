@@ -1,22 +1,16 @@
 {% comment %}
 Checkpoint Editor — editable checkpoint rows with type selector,
-                   conditional fields, and sliders
+                   conditional fields, sliders,
+                   NFC device selector + fetch affordance,
+                   and safer option generation.
 
-  Dependencies: escHtml() function
-
-  Usage:
-    {% include "components/checkpoint_editor.html" %}
-    <script>
-      CheckpointEditor.init({
-        container: 'cpEditorContainer',  // ID of container div
-        countEl: 'cpCount',              // ID for count display
-        footerEl: 'cpFooter',            // ID for footer display
-        emptyText: 'No checkpoints',     // text when empty
-        onChange: function(cps) { }      // called on every mutation
-      });
-      CheckpointEditor.render(myCheckpoints);
-      CheckpointEditor.getData(); // returns current checkpoint array
-    </script>
+Usage:
+  {% include "components/checkpoint_editor.html" %}
+  <script>
+    CheckpointEditor.init({container:'cpEditorContainer', onChange: fn});
+    CheckpointEditor.render(myCheckpoints);
+    CheckpointEditor.getData();
+  </script>
 {% endcomment %}
 <style>
 .cpe-row {
@@ -24,18 +18,26 @@ Checkpoint Editor — editable checkpoint rows with type selector,
     padding:5px 6px; background:#1A1A2A; border:1px solid rgba(255,255,255,0.06);
     border-radius:5px; font-size:0.52rem;
 }
-.cpe-head { display:flex; align-items:center; gap:4px; }
+.cpe-head { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 .cpe-idx { color:#6C8EEF; font-weight:800; font-size:0.48rem; min-width:14px; }
 .cpe-type {
-    width:46px; padding:1px 2px; border-radius:3px; border:1px solid rgba(255,255,255,0.08);
+    width:64px; padding:1px 2px; border-radius:3px; border:1px solid rgba(255,255,255,0.08);
     background:#0D0D14; color:#6C8EEF; font-size:0.5rem; font-weight:700; cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    background-image: linear-gradient(135deg, rgba(108,142,239,0.1), rgba(13,13,20,0.95));
 }
-.cpe-name, .cpe-tag {
+.cpe-name, .cpe-tag, .cpe-device {
     padding:1px 4px; border-radius:3px; border:1px solid rgba(255,255,255,0.06);
     background:#0D0D14; color:#fff; font-size:0.52rem;
 }
 .cpe-name { flex:1; min-width:40px; }
 .cpe-tag { width:50px; }
+.cpe-device { width:auto; min-width:120px; }
+.cpe-fetch {
+    background:rgba(108,142,239,0.12); border:1px solid rgba(108,142,239,0.3);
+    color:#6C8EEF; cursor:pointer; font-size:0.6rem; padding:1px 6px; border-radius:3px;
+}
+.cpe-fetch:hover { background:rgba(108,142,239,0.25); }
 .cpe-del {
     background:transparent; border:none; color:rgba(211,47,47,0.5); cursor:pointer;
     font-size:0.6rem; padding:1px 3px; border-radius:3px; flex-shrink:0;
@@ -79,14 +81,34 @@ Checkpoint Editor — editable checkpoint rows with type selector,
 
     function escHtml(s) {
         if (typeof s !== 'string') return s || '';
-        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
     }
 
     function $(id) { return document.getElementById(id); }
 
     var TYPE_OPTS = [
-        {v:'nfc',l:'NFC'},{v:'gps',l:'GPS'},{v:'geo',l:'GEO'},{v:'peer',l:'Peer'},{v:'custom',l:'Custom'}
-    ].map(function(o) { return '<option value="' + o.v + '">' + o.l + '</option>'; }).join('');
+        {v:'nfc',l:'NFC'},
+        {v:'gps',l:'GPS'},
+        {v:'geo',l:'Geofence'},
+        {v:'peer',l:'Peer'}
+    ];
+
+    function buildTypeOpts(current) {
+        return TYPE_OPTS.map(function(o) {
+            return '<option value="' + o.v + '"' + (o.v === current ? ' selected' : '') + '>' + o.l + '</option>';
+        }).join('');
+    }
+
+    function buildDeviceOpts(selectedDeviceId) {
+        var list = (window.__fleetDevices || []);
+        var opts = '<option value="">Unassigned</option>';
+        list.forEach(function(d) {
+            var id = escHtml(d.device_id || '');
+            var label = escHtml(d.device_name || d.device_id || 'Device');
+            opts += '<option value="' + id + '"' + (id === selectedDeviceId ? ' selected' : '') + '>' + label + '</option>';
+        });
+        return opts;
+    }
 
     function render() {
         var container = $(editorConfig.container);
@@ -116,23 +138,22 @@ Checkpoint Editor — editable checkpoint rows with type selector,
             var lat = cp.lat ?? '';
             var lng = cp.lng ?? '';
             var nfcTag = cp.nfc_tag ?? '';
+            var assignedDevice = cp.assigned_device || '';
             var cpType = cp.checkpoint_type || 'gps';
             var showNfc = cpType === 'nfc';
             var showLatLng = cpType === 'gps' || cpType === 'geo' || cpType === 'custom';
             var showRadius = cpType === 'gps' || cpType === 'geo' || cpType === 'custom';
-            var selHtml = TYPE_OPTS.replace('value="' + cpType + '"', 'value="' + cpType + '" selected');
             return '<div class="cpe-row" data-idx="' + i + '">' +
                 '<div class="cpe-head">' +
                     '<span class="cpe-idx">#' + (i+1) + '</span>' +
-                    '<select class="cpe-type" onchange="window.CPE_UPDATE(' + i + ',\'checkpoint_type\',this.value);window.CPE_RENDER()">' + selHtml + '</select>' +
+                    '<select class="cpe-type" onchange="window.CPE_UPDATE(' + i + ',\'checkpoint_type\',this.value);window.CPE_RENDER()">' + buildTypeOpts(cpType) + '</select>' +
                     '<input class="cpe-name" value="' + escHtml(cp.name || '') + '" placeholder="Name" onchange="window.CPE_UPDATE(' + i + ',\'name\',this.value)">' +
-                    (showNfc ? '<input class="cpe-tag" value="' + escHtml(nfcTag) + '" placeholder="NFC UID" onchange="window.CPE_UPDATE(' + i + ',\'nfc_tag\',this.value)">' : '') +
+                    (showNfc ? '<select class="cpe-device" onchange="window.CPE_UPDATE(' + i + ',\'assigned_device\',this.value)">' + buildDeviceOpts(assignedDevice) + '</select><button type="button" class="cpe-fetch" onclick="window.CPE_FETCH(' + i + ')" title="Read tag from assigned device"><i class="fas fa-tower-broadcast"></i></button>' : '') +
                     '<button type="button" class="cpe-del" onclick="window.CPE_REMOVE(' + i + ')" title="Remove"><i class="fas fa-xmark"></i></button>' +
                 '</div>' +
                 '<div class="cpe-fields">' +
                     '<input class="cpe-time" type="time" value="' + planned + '" onchange="window.CPE_UPDATE(' + i + ',\'planned_time\',this.value)">' +
                     (showLatLng ? '<span class="cpe-fl">Lat</span><input class="cpe-lat" value="' + lat + '" placeholder="0.0000" onchange="window.CPE_UPDATE(' + i + ',\'lat\',this.value?parseFloat(this.value):null)"><span class="cpe-fl">Lng</span><input class="cpe-lng" value="' + lng + '" placeholder="0.0000" onchange="window.CPE_UPDATE(' + i + ',\'lng\',this.value?parseFloat(this.value):null)">' : '') +
-
                 '</div>' +
                 '<div class="cpe-sliders">' +
                     (showRadius ? '<label>R <input type="range" min="5" max="500" step="5" value="' + rad + '" oninput="window.CPE_UPDATE(' + i + ',\'radius\',Number(this.value));this.nextElementSibling.textContent=this.value+\'m\'"><span class="cpe-sv">' + rad + 'm</span></label>' : '') +
@@ -159,6 +180,11 @@ Checkpoint Editor — editable checkpoint rows with type selector,
         internalCps.splice(idx, 1);
         render();
         if (editorConfig.onChange) editorConfig.onChange(internalCps);
+    };
+
+    window.CPE_FETCH = function(idx) {
+        // Placeholder: replace with real NFC read when Android app/tag-reader endpoint is live.
+        alert('NFC read flow not wired yet. Connect the device select -> tag read action here.');
     };
 
     window.CheckpointEditor = {

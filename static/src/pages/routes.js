@@ -2012,9 +2012,8 @@ document.addEventListener('click', e => {
 /* ═══════════════════════════════════════════════════
    BOOT
 ═══════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
+function bpBoot() {
     bpLoad().then(function() {
-        // Start with the Mission Builder wizard visible
         showOverlay('wizStep1');
     });
     // Wire callsign inputs
@@ -2039,4 +2038,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Wire start time for validation
     $('bpStartTime')?.addEventListener('change', bpValidateShiftTime);
+}
+
+// Initial page load
+document.addEventListener('DOMContentLoaded', bpBoot);
+
+// htmx SPA navigation — show overlay when routes page is swapped into main content
+document.addEventListener('htmx:afterSettle', function(evt) {
+    var target = evt.detail && evt.detail.target;
+    if (target && target.id === 'spa-content' && $('bpOverlay')) {
+        bpBoot();
+    }
 });

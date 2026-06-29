@@ -232,6 +232,84 @@ def mission_status(request, assignment_id):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def my_mission(request):
+    """Device self-service: get current mission + checkpoints by device auth.
+    
+    The app calls this after login to get:
+    - Current active assignment
+    - Route details + checkpoint list (for offline staging)
+    - Next checkpoint + ETA
+    - Recent scans
+    """
+    device_id = request.data.get('device_id')
+    password = request.data.get('password')
+
+    if not device_id or not password:
+        return Response({'detail': 'device_id and password required'}, status=400)
+
+    from api.models import Device, ShiftAssignment
+    from api.services.scan import get_mission_status
+
+    device = Device.objects.filter(device_id=device_id).first()
+    if not device or device.password != password:
+        return Response({'detail': 'Auth failed'}, status=401)
+
+    # Find active assignment for this device
+    assignment = ShiftAssignment.objects.filter(
+        device=device, is_active=True, is_completed=False
+    ).select_related('route', 'guard_supervisor').order_by('-assigned_at').first()
+
+    if not assignment:
+        return Response({
+            'has_mission': False,
+            'device_id': device.device_id,
+            'message': 'No active mission assigned',
+        })
+
+    route = assignment.route
+    checkpoints = []
+    if route:
+        cps = route.checkpoints.all().order_by('order')
+        checkpoints = [{
+            'id': cp.id,
+            'name': cp.name,
+            'nfc_tag': cp.nfc_tag or '',
+            'order': cp.order,
+            'planned_time': cp.planned_time.strftime('%H:%M:%S') if cp.planned_time else None,
+            'time_tolerance': cp.time_tolerance or 15,
+            'dwell_time': cp.dwell_time or 0,
+            'lat': cp.lat,
+            'lng': cp.lng,
+            'radius': cp.radius or 50,
+            'checkpoint_type': cp.checkpoint_type or 'nfc',
+        } for cp in cps]
+
+    mission_status = get_mission_status(assignment) if route else None
+
+    return Response({
+        'has_mission': True,
+        'assignment_id': assignment.id,
+        'device_id': device.device_id,
+        'route': {
+            'id': route.id if route else None,
+            'name': route.name if route else None,
+            'status': route.status if route else None,
+            'enforce_order': route.enforce_order if route else False,
+        },
+        'guard': {
+            'id': assignment.guard_supervisor.id if assignment.guard_supervisor else None,
+            'name': f"{assignment.guard_supervisor.first_name} {assignment.guard_supervisor.last_name}".strip() if assignment.guard_supervisor else None,
+            'callsign': assignment.guard_supervisor.callsign if assignment.guard_supervisor else None,
+            'shift': assignment.guard_supervisor.shift if assignment.guard_supervisor else None,
+        } if assignment.guard_supervisor else None,
+        'checkpoints': checkpoints,
+        'total_checkpoints': len(checkpoints),
+        'mission_status': mission_status,
+    })
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def transfer_shift(request):
     assignment_id = request.data.get('assignment_id')

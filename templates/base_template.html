@@ -7,6 +7,7 @@
     {% block extra_head %}{% endblock %}
     {% load static %}{% load vite %}
     <link rel="stylesheet" href="{% static 'css/design-tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/manage.css' %}">
     <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
     <link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
@@ -14,17 +15,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="global-loader"><div class="loader-bar"></div></div>
     <div id="toast-container"></div>
 
     <header class="top-nav">
-        <div class="nav-inner">
-            <a href="/dashboard/" class="logo">Guard Command</a>
+        <div class="top-nav-inner">
+            <div class="org-brand">
+                <div class="org-avatar">
+                    <i class="fas fa-shield-halved org-avatar-icon"></i>
+                </div>
+                <div class="org-identity">
+                    <span class="org-name">Guard Command</span>
+                    <span class="org-detail" id="org-name">SecOps</span>
+                </div>
+            </div>
             <nav class="nav-links" id="navMenu"></nav>
-            <div class="nav-right">
-                <span class="org-name" id="org-name">SecOps</span>
+            <div class="nav-actions">
                 <span class="role-badge" id="role-badge"></span>
-                <button type="button" class="logout-btn" id="logout-btn" title="Logout"><i class="fas fa-power-off"></i></button>
+                <span class="nav-user" id="user-name"></span>
+                <button type="button" class="ghost-btn" id="logout-btn" title="Logout"><i class="fas fa-power-off"></i></button>
             </div>
         </div>
     </header>
@@ -35,8 +43,6 @@
 
     {% block page_js %}{% endblock %}
 
-    <div id="spa-transition" class="spa-transition-overlay" style="display:none;"><div class="spa-spinner"></div></div>
-
     <script>
         const ROLE_LABELS = {
             admin: 'Admin',
@@ -44,13 +50,16 @@
             guard: 'Guard',
             dispatcher: 'Dispatcher',
             user_role: 'Dispatcher',
+            'user role': 'Dispatcher',
             'User Role': 'Dispatcher',
+            'User': 'Dispatcher',
+            user: 'Dispatcher',
             guest: 'Guest',
         };
 
         function labelFor(role, fallback) {
             const key = String(role || '').trim();
-            return ROLE_LABELS[key] || fallback || 'Guest';
+            return ROLE_LABELS[key] || ROLE_LABELS[key.toLowerCase()] || fallback || 'Guest';
         }
 
         function setUser(raw) {
@@ -64,24 +73,27 @@
             try {
                 const raw = JSON.parse(localStorage.getItem('gt_user') || 'null') || {};
                 const role = String(raw.role || '').trim().toLowerCase();
+                const hasRole = ['admin', 'supervisor', 'guard', 'dispatcher', 'user role', 'user_role'].includes(role);
                 const orgId = raw.organization_id;
                 const isSystemAdmin = role === 'admin' && [null, undefined, ''].includes(orgId);
                 const isDispatcher = ['dispatcher', 'user role', 'user_role'].includes(role);
                 const isSupervisor = role === 'supervisor';
                 const isGuard = role === 'guard';
                 const isAdmin = role === 'admin' && !isSystemAdmin;
+                const showAll = !hasRole;
                 const links = [
-                    { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
-                    { url: '/map-view/', name: 'Open Maps', icon: 'fa-map-location-dot', allow: [isAdmin, isSupervisor, isDispatcher] },
-                    { url: '/routes/', name: 'Routes Dispatch', icon: 'fa-route', allow: [isAdmin, isDispatcher] },
-                    { url: '/dispatch/', name: 'Mission Control', icon: 'fa-satellite-dish', allow: [isAdmin, isDispatcher] },
-                    { url: '/incidents/', name: 'Analytics', icon: 'fa-chart-line', allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
-                    { url: '/manage/', name: 'Manage', icon: 'fa-gears', allow: [isAdmin, isSupervisor, isDispatcher] },
-                    { url: '/analytics/', name: 'Reports', icon: 'fa-box-archive', allow: [isAdmin, isSupervisor, isGuard, isDispatcher] },
-                    { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: [isSystemAdmin] },
+                    { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
+                    { url: '/map-view/', name: 'Open Maps', icon: 'fa-map-location-dot', allow: showAll || [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
+                    { url: '/routes/', name: 'Routes Dispatch', icon: 'fa-route', allow: [isAdmin, isDispatcher].some(Boolean) },
+                    { url: '/mission-builder/', name: 'Mission Builder', icon: 'fa-clipboard-list', allow: [isAdmin, isDispatcher].some(Boolean) },
+                    { url: '/dispatch/', name: 'Mission Control', icon: 'fa-satellite-dish', allow: [isAdmin, isDispatcher].some(Boolean) },
+                    { url: '/incidents/', name: 'Analytics', icon: 'fa-chart-line', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
+                    { url: '/manage/', name: 'Manage', icon: 'fa-gears', allow: [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
+                    { url: '/analytics/', name: 'Reports', icon: 'fa-box-archive', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
+                    { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: isSystemAdmin },
                 ];
                 links.forEach(l => {
-                    if (!l.allow.some(Boolean)) return;
+                    if (!l.allow) return;
                     const a = document.createElement('a');
                     a.href = l.url;
                     if (window.location.pathname === l.url) a.className = 'active';
@@ -90,7 +102,6 @@
                     a.setAttribute('hx-target', '#spa-content');
                     a.setAttribute('hx-swap', 'innerHTML transition:true');
                     a.setAttribute('hx-push-url', 'true');
-                    a.setAttribute('hx-indicator', '#spa-transition');
                     a.addEventListener('click', (e) => { if (a.classList.contains('active')) { e.preventDefault(); return false; } });
                     nav.appendChild(a);
                 });
@@ -117,20 +128,6 @@
 
             renderNav();
         }
-
-        document.body.addEventListener('htmx:beforeRequest', (evt) => {
-            if (evt.detail.target.id === 'spa-content') {
-                const overlay = document.getElementById('spa-transition');
-                if (overlay) overlay.style.display = 'flex';
-            }
-        });
-        document.body.addEventListener('htmx:afterSwap', (evt) => {
-            if (evt.detail.target.id === 'spa-content') {
-                const overlay = document.getElementById('spa-transition');
-                if (overlay) overlay.style.display = 'none';
-                window.dispatchEvent(new CustomEvent('spa:pageLoaded', { detail: { url: evt.detail.requestConfig?.path || '' } }));
-            }
-        });
 
         init();
     </script>

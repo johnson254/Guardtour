@@ -29,7 +29,7 @@ from api.views.scans import (
 )
 from api.views.dispatch import (
     end_shift, assign_guard_to_blueprint_shift, blueprint_shift_availability,
-    resend_tts, mission_status, transfer_shift, route_gap_analysis_view,
+    resend_tts, mission_status, my_mission, transfer_shift, route_gap_analysis_view,
     map_residency_events, deployment_checkpoint_live,
 )
 from api.views.reports import (

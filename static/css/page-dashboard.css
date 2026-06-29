@@ -229,7 +229,6 @@
     @media (prefers-reduced-motion: reduce) {
         .guard-card, .mission-card, .daily-pin-item, .action-button { transition: none; }
         .progress-bar-fill { transition: none; }
-        #global-loader div { animation: none; }
     }
     .guard-card:focus-visible, .mission-card:focus-visible, .daily-pin-item:focus-visible,
     .action-button:focus-visible, .alert-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
