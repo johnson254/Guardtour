@@ -26,7 +26,7 @@ from api.views.heartbeat import heartbeat
 from api.views.scans import (
     ScanRecordViewSet, gps_batch_sync, scan_batch_sync,
     device_trails, device_recent_scans, _deactivate_assignments,
-    schedule_checkpoints, scheduled_checkpoints,
+    schedule_checkpoints, scheduled_checkpoints, bulk_schedule_checkpoints,
 )
 from api.views.dispatch import (
     end_shift, assign_guard_to_blueprint_shift, blueprint_shift_availability,

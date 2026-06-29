@@ -66,30 +66,6 @@
 {% block page_js %}
   {% load static %}
   {% load vite %}
-  <script>
-    var _activePanel = 'staff';
-    document.body.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target.id === 'mgPanelContainer') {
-            document.querySelectorAll('.mg-tab').forEach(function(t) { t.classList.remove('active'); });
-            var url = evt.detail.requestConfig?.path || '';
-            var panel = url.split('-panel-partial')[0].split('/').pop();
-            if (panel) {
-                _activePanel = panel;
-                var btn = document.querySelector('.mg-tab[data-panel="' + panel + '"]');
-                if (btn) btn.classList.add('active');
-            }
-        }
-    });
-    document.body.addEventListener('click', function(evt) {
-        var tab = evt.target.closest('.mg-tab');
-        if (!tab) return;
-        if (tab.dataset.panel === _activePanel) {
-            evt.stopImmediatePropagation();
-            evt.preventDefault();
-            return false;
-        }
-    }, true);
-  </script>
   <script type="module" src="{% vite_asset 'src/pages/manage.js' %}"></script>
 {% endblock %}
 {% endblock %}

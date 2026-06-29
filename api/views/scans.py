@@ -537,3 +537,92 @@ def scheduled_checkpoints(request, route_id):
         'count': len(data),
         'checkpoints': data,
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bulk_schedule_checkpoints(request):
+    """Bulk create checkpoints without requiring a route.
+
+    Used by the inline checkpoint registry on the Fleet panel.
+
+    Request body:
+    {
+        "checkpoints": [
+            {
+                "name": "Gate A",
+                "checkpoint_type": "nfc",
+                "nfc_tag": "TAG-001",
+                "geometry": [-1.2921, 36.8219],
+                "radius": 50,
+                "dwell_time": 0,
+                "time_tolerance": 15,
+                "planned_time": "08:00:00",
+                "scheduled_date": "2027-07-15"
+            }
+        ]
+    }
+
+    geometry is optional [lat, lng] — omit if not yet geolocated.
+    """
+    checkpoints_data = request.data.get('checkpoints', [])
+
+    if not isinstance(checkpoints_data, list) or not checkpoints_data:
+        return Response({'detail': 'checkpoints array required'}, status=400)
+
+    from api.serializers import CheckpointSerializer
+
+    org = get_user_organization(request)
+    if not org:
+        return Response({'detail': 'Organization context required'}, status=400)
+
+    created = []
+    errors = []
+    for idx, cp_data in enumerate(checkpoints_data):
+        try:
+            data = cp_data.copy()
+            data['organization'] = org.id
+
+            # Convert geometry [lat, lng] → lat/lng fields
+            geometry = data.pop('geometry', None)
+            if geometry and isinstance(geometry, (list, tuple)) and len(geometry) == 2:
+                data['lat'] = geometry[0]
+                data['lng'] = geometry[1]
+
+            # Map type → checkpoint_type if needed
+            if 'type' in data and 'checkpoint_type' not in data:
+                data['checkpoint_type'] = data.pop('type')
+
+            # Remove fields not on the Checkpoint model
+            data.pop('fetch_location_on_scan', None)
+            data.pop('assigned_personnel', None)
+            data.pop('geo_shape', None)
+
+            # Build checkpoint directly, bypassing strict serializer validation
+            # (allows creating checkpoints without nfc_tag — tag assigned later via scan)
+            checkpoint = Checkpoint(
+                name=data.get('name', ''),
+                nfc_tag=data.get('nfc_tag'),
+                lat=data.get('lat'),
+                lng=data.get('lng'),
+                radius=data.get('radius'),
+                dwell_time=data.get('dwell_time'),
+                time_tolerance=data.get('time_tolerance'),
+                planned_time=data.get('planned_time'),
+                scheduled_date=data.get('scheduled_date'),
+                checkpoint_type=data.get('checkpoint_type', 'nfc'),
+                order=data.get('order', idx),
+                organization=org,
+            )
+            checkpoint.save()
+            created.append(CheckpointSerializer(checkpoint).data)
+        except Exception as e:
+            errors.append({'index': idx, 'error': str(e)})
+
+    return Response({
+        'status': 'success' if not errors else 'partial',
+        'created_count': len(created),
+        'error_count': len(errors),
+        'created': created,
+        'errors': errors,
+    }, status=201 if not errors else 207)

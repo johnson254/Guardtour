@@ -42,6 +42,7 @@ _api_v1_patterns = [
     ])),
     path('checkpoints/', include([
         path('schedule/', views.schedule_checkpoints, name='schedule-checkpoints'),
+        path('bulk-schedule/', views.bulk_schedule_checkpoints, name='bulk-schedule-checkpoints'),
     ])),
     path('routes/', include([
         path('<int:route_id>/scheduled-checkpoints/', views.scheduled_checkpoints, name='scheduled-checkpoints'),
@@ -135,6 +136,7 @@ urlpatterns = [
 
     # Scheduled checkpoints (future days per hour)
     path('checkpoints/schedule/', views.schedule_checkpoints, name='schedule_checkpoints'),
+    path('checkpoints/bulk-schedule/', views.bulk_schedule_checkpoints, name='bulk_schedule_checkpoints'),
     path('routes/<int:route_id>/scheduled-checkpoints/', views.scheduled_checkpoints, name='scheduled_checkpoints'),
 
     # Peer audit report (for audit routes)

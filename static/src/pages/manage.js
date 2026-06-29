@@ -52,13 +52,6 @@ window.mgClearSearch = function(inpId, btnId) {
     if (btn) btn.classList.remove('visible');
 };
 
-window.mgTab = function(id, el){
-     /* Legacy — kept for backward compat but tabs now use htmx.
-        This just updates currentTab for the refresh interval guard. */
-     currentTab = id;
-};
-
-
 /* ══════════════════════════════════════════════════
    PERSONNEL
 ══════════════════════════════════════════════════ */
@@ -1098,36 +1091,61 @@ window.mgDcRequestGps = async function(deviceId) {
     }
 };
 
-window.mgDcPollGps = function(deviceId) {
+/* ── Generic device poll utility ── */
+function _pollDeviceField(deviceId, options) {
     if(!deviceId) deviceId = _dcDeviceId;
+    const maxAttempts = options.maxAttempts || 24;
+    const interval = options.interval || 5000;
+    const check = options.check;           // function(data) => boolean (stop polling when true)
+    const onTick = options.onTick;         // function(data, attempts, maxAttempts)
+    const onDone = options.onDone;         // function(data)
+    const onTimeout = options.onTimeout;   // function(attempts, maxAttempts)
     let attempts = 0;
-    const maxAttempts = 12;
     const pollTimer = setInterval(async () => {
         attempts++;
         try {
             const res = await api(`/api/devices/${deviceId}/`);
             if(res.ok) {
                 const data = await res.json();
-                if(data.last_latitude && data.last_longitude) {
+                if(check(data)) {
                     clearInterval(pollTimer);
                     var idx = _dcPollTimers.indexOf(pollTimer);
                     if(idx>=0) _dcPollTimers.splice(idx,1);
-                    $('dcGpsStatus_' + deviceId).textContent = `GPS: ${parseFloat(data.last_latitude).toFixed(5)}, ${parseFloat(data.last_longitude).toFixed(5)}${data.last_gps_accuracy ? ' · Acc: '+data.last_gps_accuracy+'m' : ''}${data.last_battery != null ? ' · Bat: '+data.last_battery+'%' : ''}`;
-                    const dev = allDevices.find(x=>x.id===deviceId);
-                    if(dev) Object.assign(dev, data);
+                    if(onDone) onDone(data);
                     return;
                 }
+                if(onTick) onTick(data, attempts, maxAttempts);
             }
         } catch(e) {}
-        $('dcGpsStatus_' + deviceId).textContent = `Waiting for GPS… ${attempts}/${maxAttempts}`;
+        if(!onTick) return;
         if(attempts >= maxAttempts) {
             clearInterval(pollTimer);
             var idx = _dcPollTimers.indexOf(pollTimer);
             if(idx>=0) _dcPollTimers.splice(idx,1);
+            if(onTimeout) onTimeout(attempts, maxAttempts);
+        }
+    }, interval);
+    _dcPollTimers.push(pollTimer);
+}
+
+window.mgDcPollGps = function(deviceId) {
+    if(!deviceId) deviceId = _dcDeviceId;
+    _pollDeviceField(deviceId, {
+        maxAttempts: 12,
+        interval: 5000,
+        check: function(data) { return data.last_latitude && data.last_longitude; },
+        onDone: function(data) {
+            $('dcGpsStatus_' + deviceId).textContent = `GPS: ${parseFloat(data.last_latitude).toFixed(5)}, ${parseFloat(data.last_longitude).toFixed(5)}${data.last_gps_accuracy ? ' · Acc: '+data.last_gps_accuracy+'m' : ''}${data.last_battery != null ? ' · Bat: '+data.last_battery+'%' : ''}`;
+            const dev = allDevices.find(x=>x.id===deviceId);
+            if(dev) Object.assign(dev, data);
+        },
+        onTick: function(data, attempts, max) {
+            $('dcGpsStatus_' + deviceId).textContent = `Waiting for GPS… ${attempts}/${max}`;
+        },
+        onTimeout: function(attempts, max) {
             $('dcGpsStatus_' + deviceId).textContent = 'Device offline — GPS will update when it reconnects';
         }
-    }, 5000);
-    _dcPollTimers.push(pollTimer);
+    });
 };
 
 window.mgDcCancNfc = async function(deviceId) {
@@ -1176,44 +1194,25 @@ window.mgDcRequestNfc = async function(deviceId) {
 
 window.mgDcPollNfc = function(deviceId) {
     if(!deviceId) deviceId = _dcDeviceId;
-    let attempts = 0;
-    const maxAttempts = 24;
-    const pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-            const res = await api(`/api/devices/${deviceId}/`);
-            if(res.ok) {
-                const data = await res.json();
-                if(data.last_nfc_scan && data.last_nfc_scan_uid) {
-                    clearInterval(pollTimer);
-                    var idx = _dcPollTimers.indexOf(pollTimer);
-                    if(idx>=0) _dcPollTimers.splice(idx,1);
-
-                    var statusMsg = `NFC: ${data.last_nfc_scan_uid} · ${new Date(data.last_nfc_scan).toLocaleTimeString()}`;
-                    if (!data.nfc_fetch_requested) {
-                        statusMsg += ' ✓ Checkpoint registered';
-                    }
-                    $('dcNfcStatus_' + deviceId).textContent = statusMsg;
-
-                    const dev = allDevices.find(x=>x.id===deviceId);
-                    if(dev) Object.assign(dev, data);
-
-                    if (!data.nfc_fetch_requested) {
-                        mgDeviceControls(deviceId);
-                    }
-                    return;
-                }
-            }
-        } catch(e) {}
-        $('dcNfcStatus_' + deviceId).textContent = `Waiting for device… ${attempts}/${maxAttempts}`;
-        if(attempts >= maxAttempts) {
-            clearInterval(pollTimer);
-            var idx = _dcPollTimers.indexOf(pollTimer);
-            if(idx>=0) _dcPollTimers.splice(idx,1);
+    _pollDeviceField(deviceId, {
+        maxAttempts: 24,
+        interval: 5000,
+        check: function(data) { return data.last_nfc_scan && data.last_nfc_scan_uid; },
+        onDone: function(data) {
+            var statusMsg = `NFC: ${data.last_nfc_scan_uid} · ${new Date(data.last_nfc_scan).toLocaleTimeString()}`;
+            if (!data.nfc_fetch_requested) statusMsg += ' ✓ Checkpoint registered';
+            $('dcNfcStatus_' + deviceId).textContent = statusMsg;
+            const dev = allDevices.find(x=>x.id===deviceId);
+            if(dev) Object.assign(dev, data);
+            if (!data.nfc_fetch_requested) mgDeviceControls(deviceId);
+        },
+        onTick: function(data, attempts, max) {
+            $('dcNfcStatus_' + deviceId).textContent = `Waiting for device… ${attempts}/${max}`;
+        },
+        onTimeout: function(attempts, max) {
             $('dcNfcStatus_' + deviceId).textContent = 'Device offline — NFC will update when it reconnects';
         }
-    }, 5000);
-    _dcPollTimers.push(pollTimer);
+    });
 };
 
 window.mgDcSendTts = async function(deviceId) {
@@ -1311,36 +1310,20 @@ window.mgDcDismissPending = async function(deviceId) {
 
 window.mgDcPollTtsAck = function(deviceId) {
     if(!deviceId) deviceId = _dcDeviceId;
-    let attempts = 0;
-    const maxAttempts = 30;
-    const pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-            const res = await api(`/api/devices/${deviceId}/`);
-            if(res.ok) {
-                const data = await res.json();
-                if(data.tts_acked === true) {
-                    clearInterval(pollTimer);
-                    var idx = _dcPollTimers.indexOf(pollTimer);
-                    if(idx>=0) _dcPollTimers.splice(idx,1);
-                    toast('TTS acknowledged by device');
-                    const dev = allDevices.find(x=>x.id===deviceId);
-                    if(dev) { dev.tts_acked = true; dev.tts_pending = null; }
-                    if (_dcDeviceId === deviceId) mgDeviceControls(deviceId, document.querySelector(`[data-device-id="${deviceId}"] .mg-btn`));
-                    mgRenderDevices();
-                    var devName = dev ? (dev.device_name || dev.device_id || 'Device #'+deviceId) : 'Device #'+deviceId;
-                    mgLogFleetEvent('check', 'TTS confirmed on ' + devName, 'Device acknowledged');
-                    return;
-                }
-            }
-        } catch(e) {}
-        if(attempts >= maxAttempts) {
-            clearInterval(pollTimer);
-            var idx = _dcPollTimers.indexOf(pollTimer);
-            if(idx>=0) _dcPollTimers.splice(idx,1);
+    _pollDeviceField(deviceId, {
+        maxAttempts: 30,
+        interval: 3000,
+        check: function(data) { return data.tts_acked === true; },
+        onDone: function(data) {
+            toast('TTS acknowledged by device');
+            const dev = allDevices.find(x=>x.id===deviceId);
+            if(dev) { dev.tts_acked = true; dev.tts_pending = null; }
+            if (_dcDeviceId === deviceId) mgDeviceControls(deviceId, document.querySelector(`[data-device-id="${deviceId}"] .mg-btn`));
+            mgRenderDevices();
+            var devName = dev ? (dev.device_name || dev.device_id || 'Device #'+deviceId) : 'Device #'+deviceId;
+            mgLogFleetEvent('check', 'TTS confirmed on ' + devName, 'Device acknowledged');
         }
-    }, 3000);
-    _dcPollTimers.push(pollTimer);
+    });
 };
 
 /* ── Swap Operator ─────────────────────────────── */
@@ -1533,27 +1516,6 @@ window.mgToggleActivityFeed = function() {
         if (icon) icon.className = 'fas fa-chevron-down';
     }
 };
-
-/* ── Setup Map Engine ───────────────────────────── */
-let setupMap = null;
-function mgInitSetupMap() {
-    const mapEl = $('mgSetupMap');
-    if (!mapEl) return;
-    if (setupMap) { setupMap.remove(); setupMap = null; }
-
-    setupMap = L.map('mgSetupMap', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, touchZoom: false, doubleClickZoom: false, boxZoom: false }).setView([0, 0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(setupMap);
-
-    // Recalculate dimensions for hidden containers
-    setTimeout(() => setupMap.invalidateSize(), 100);
-
-    // Attempt to center on current site coordinates
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            setupMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
-        }, () => {}, { timeout: 4000 });
-    }
-}
 
 /* ── Device Helpers ─────────────────────────────── */
 window.mgGenerateLoginCode = async function() {
@@ -2235,20 +2197,17 @@ window.mgSubmit=async function(){
             }
         }
 
-    }else if(currentModal==='asset' || currentModal==='checkpoint'){
+    }else if(currentModal==='asset'){
         const name=$('mAname').value.trim();
         const tag=$('mAtag').value.trim();
         const lat=$('mAlat').value.trim();
         const lng=$('mAlng').value.trim();
-        const cpRadChip = document.querySelector('.rs-cp-setting[for="mCpRad"]');
-        const cpDwellChip = document.querySelector('.rs-cp-setting[for="mCpDwell"]');
-        const rad = cpRadChip?.classList.contains('on') ? ($('mArad')?.value || $('mCpRad')?.value) : null;
-        const dwell = cpDwellChip?.classList.contains('on') ? ($('mAdwell')?.value || $('mCpDwell')?.value) : 0;
+        const rad=$('mArad').value.trim();
         const time=$('mAtimer').value;
         const aid=$('mAauditor').value.trim();
         const tid=$('mAtarget').value.trim();
 
-        if(!name){ showToast('Designation name required', 'error'); return; }
+        if(!name){ toast('Name required',true); return; }
         let typeVal = $('mAtype').value;
         if (typeVal === 'patrol_point') typeVal = 'poi';
 
@@ -2262,7 +2221,6 @@ window.mgSubmit=async function(){
             type: typeVal,
             geometry: lat && lng ? [parseFloat(lat), parseFloat(lng)] : null,
             radius: rad ? parseInt(rad, 10) : null,
-            dwell_time: parseInt(dwell, 10),
             planned_time: time || null,
             auditor_id: aid || null,
             target_id: tid || null,
@@ -2321,24 +2279,36 @@ window.mgSubmit=async function(){
 
     }else if(currentModal==='checkpoint'){
         const name = $('mCpName').value.trim();
-        const tag  = $('mCpTag').value.trim();
+        const tag  = $('mCpNfcTag')?.value?.trim() || $('mCpTag')?.value?.trim() || '';
         const lat  = $('mCplat').value.trim();
         const lng  = $('mCplng').value.trim();
-        const rad  = $('mCpRad').value.trim();
+        const rad  = $('mCpRad')?.value?.trim() || $('mArad')?.value?.trim();
+        const dwell = $('mCpDwell')?.value?.trim() || $('mAdwell')?.value?.trim() || '0';
+        const tol  = $('mCpTol')?.value?.trim() || '15';
+        const time = $('mCpTime')?.value || $('mAtimer')?.value || '';
+        const scheduledDate = $('mCpDate')?.value || null;
         if(!name){ toast('Checkpoint name required', true); return; }
 
-        url = '/api/map-objects/';
-        method = editId ? 'PUT' : 'POST';
-        if(editId) url += `${editId}/`;
+        url = '/api/v1/checkpoints/schedule/';
+        method = 'POST';
 
         payload = {
             name,
             nfc_tag: tag || null,
-            type: 'poi',
+            checkpoint_type: 'nfc',
             geometry: (lat && lng) ? [parseFloat(lat), parseFloat(lng)] : null,
             radius: rad ? parseInt(rad, 10) : 50,
+            dwell_time: parseInt(dwell, 10),
+            time_tolerance: parseInt(tol, 10),
+            planned_time: time || null,
+            scheduled_date: scheduledDate,
             assigned_personnel: []
         };
+
+        if(editId) {
+            url = `/api/v1/checkpoints/${editId}/`;
+            method = 'PUT';
+        }
 
     }else if(currentModal==='shift'){
         const gid=$('mSguard').value;
@@ -2400,34 +2370,6 @@ window.mgSubmit=async function(){
             url='/api/assign-guard-to-blueprint-shift/';
             method='POST';
         }
-
-    }else if(currentModal==='asset'){
-
-        const name=$('mAname').value.trim();
-        const tag=$('mAtag').value.trim();
-        const lat=$('mAlat').value.trim();
-        const lng=$('mAlng').value.trim();
-        const rad=$('mArad').value.trim();
-        const time=$('mAtimer').value;
-        const aid=$('mAauditor').value.trim();
-        const tid=$('mAtarget').value.trim();
-
-        if(!name){ toast('Name required',true); return; }
-        let typeVal = $('mAtype').value;
-        if (typeVal === 'patrol_point') typeVal = 'poi';
-
-        url='/api/map-objects/';
-        payload={
-            name,
-            nfc_tag: tag || null,
-            type: typeVal,
-            geometry: lat && lng ? [parseFloat(lat), parseFloat(lng)] : null,
-            radius: rad ? parseInt(rad, 10) : null,
-            planned_time: time || null,
-            auditor_id: aid || null,
-            target_id: tid || null,
-            assigned_personnel: []
-        };
 
     }else if(currentModal==='shift-pair'){
         const deviceId=$('mSpDevice').value;
@@ -2751,13 +2693,6 @@ window.cbPickForRow = function(btn) {
     if (cbMap) cbMap.invalidateSize();
 };
 
-function addMapMarker(lat, lng, type) { }
-
-function drawRadiusCircle(key, lat, lng, col) { }
-
-function updateLiveMapPreview() { }
-function clearAllMapMarkers() { }
-
 function setInlineCoords(lat, lng) {
     var row = window._pickRow;
     if (row) {
@@ -2768,13 +2703,6 @@ function setInlineCoords(lat, lng) {
         window._pickRow = null;
     }
 }
-
-/* ── Map Tools (no-opped) ──────────────────────── */
-window.cbActivateTool = function(tool) { };
-
-/* ── Add Checkpoint flow (removed — use quick-add buttons) ── */
-window.cbShowTypeSelector = function() { toast('Use the quick-add buttons below', true); };
-window.cbSelectType = function() {};
 
 /* ── Populate device callsigns into dropdowns ──── */
 function populateDeviceCallsigns() {
@@ -2866,12 +2794,6 @@ window.cbStepProp = function(inputId, delta) {
     if (chip) { chip.style.transform = 'scale(0.97)'; setTimeout(() => chip.style.transform = '', 100); }
 };
 
-// Update map marker info tooltip with dwell and gap values
-function updateMarkerInfo() { }
-
-/* ── Geo-Anchor interactions (no-opped without map) ── */
-window.cbPickOnMapInline = function() { };
-
 
 window.cbGeolocateInline = function() {
     if (!navigator.geolocation) { toast('Geolocation not available', true); return; }
@@ -2899,19 +2821,23 @@ window.cbFetchGPSForNFC = function() {
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 };
 
-/* ── Fetch NFC tag from selected device ───────── */
+/* ── Find device by callsign/name/id helper ── */
+function _findDeviceByCallsign(callsign) {
+    if (!callsign) return null;
+    return allDevices.find(d =>
+        d.assigned_callsign === callsign ||
+        d.device_name === callsign ||
+        String(d.id) === callsign
+    );
+}
+
 /* ── Fetch NFC tag from selected device (works for offline too) ── */
 window.cbFetchDeviceScan = async function() {
     const input = $('nfcFetchDevice');
     const deviceCallsign = input?.value?.trim();
     if (!deviceCallsign) { toast('Enter or select a device callsign', true); return; }
-    
-    // Try to find by callsign first, then by device name
-    const device = allDevices.find(d => 
-        d.assigned_callsign === deviceCallsign || 
-        d.device_name === deviceCallsign ||
-        String(d.id) === deviceCallsign
-    );
+
+    const device = _findDeviceByCallsign(deviceCallsign);
     if (!device) { toast(`Device "${deviceCallsign}" not found`, true); return; }
 
     const statusEl = $('nfcDeviceStatus');
@@ -2920,7 +2846,6 @@ window.cbFetchDeviceScan = async function() {
     if (statusText) { statusText.textContent = `Requesting NFC scan from ${device.device_name}…`; }
 
     try {
-        // Send the fetch request to the device (works even if offline - stored in DB)
         const res = await api(`/api/devices/${device.id}/fetch_nfc/`, { method: 'POST' });
         if (res.ok) {
             toast(`NFC fetch request sent to ${device.device_name}`);
@@ -2932,32 +2857,24 @@ window.cbFetchDeviceScan = async function() {
         toast('Network error — request may still be queued', true);
     }
 
-    // Start polling for the result (ongoing even for offline devices)
-    let attempts = 0;
-    const maxAttempts = 24; // 2 minutes
-    const pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-            const res = await api(`/api/devices/${device.id}/`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.last_nfc_scan && data.last_nfc_scan_uid) {
-                    clearInterval(pollTimer);
-                    const uid = data.last_nfc_scan_uid;
-                    if ($('inlineNfcTag')) $('inlineNfcTag').value = uid;
-                    if (statusEl) statusEl.style.display = 'none';
-                    toast(`NFC tag received: ${uid}`);
-                    return;
-                }
-            }
-        } catch(e) {}
-        if (statusText) statusText.textContent = `Waiting for device… ${attempts}/${maxAttempts}`;
-        if (attempts >= maxAttempts) {
-            clearInterval(pollTimer);
+    _pollDeviceField(device.id, {
+        maxAttempts: 24,
+        interval: 5000,
+        check: function(data) { return data.last_nfc_scan && data.last_nfc_scan_uid; },
+        onDone: function(data) {
+            const uid = data.last_nfc_scan_uid;
+            if ($('inlineNfcTag')) $('inlineNfcTag').value = uid;
+            if (statusEl) statusEl.style.display = 'none';
+            toast(`NFC tag received: ${uid}`);
+        },
+        onTick: function(data, attempts, max) {
+            if (statusText) statusText.textContent = `Waiting for device… ${attempts}/${max}`;
+        },
+        onTimeout: function() {
             if (statusEl) statusEl.style.display = 'none';
             toast('Still waiting — device may be offline. It will update when online.', true);
         }
-    }, 5000);
+    });
 };
 
 /* ── Fetch GPS from selected device (works for offline too) ── */
@@ -2965,13 +2882,8 @@ window.cbFetchDeviceGPS = async function() {
     const input = $('nfcFetchDevice');
     const deviceCallsign = input?.value?.trim();
     if (!deviceCallsign) { toast('Enter or select a device callsign', true); return; }
-    
-    // Try to find by callsign first, then by device name
-    const device = allDevices.find(d => 
-        d.assigned_callsign === deviceCallsign || 
-        d.device_name === deviceCallsign ||
-        String(d.id) === deviceCallsign
-    );
+
+    const device = _findDeviceByCallsign(deviceCallsign);
     if (!device) { toast(`Device "${deviceCallsign}" not found`, true); return; }
 
     const statusEl = $('nfcDeviceStatus');
@@ -2980,7 +2892,6 @@ window.cbFetchDeviceGPS = async function() {
     if (statusText) { statusText.textContent = `Requesting GPS from ${device.device_name}…`; }
 
     try {
-        // Send the fetch request to the device (works even if offline - stored in DB)
         const res = await api(`/api/devices/${device.id}/fetch_gps/`, { method: 'POST' });
         if (res.ok) {
             toast(`GPS fetch request sent to ${device.device_name}`);
@@ -2992,118 +2903,53 @@ window.cbFetchDeviceGPS = async function() {
         toast('Network error — request may still be queued', true);
     }
 
-    // Start polling for the result (ongoing even for offline devices)
-    let attempts = 0;
-    const maxAttempts = 12;
-    const pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-            const res = await api(`/api/devices/${device.id}/`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.last_latitude && data.last_longitude) {
-                    clearInterval(pollTimer);
-                    const lat = parseFloat(data.last_latitude);
-                    const lng = parseFloat(data.last_longitude);
-                    if ($('inlineLat')) $('inlineLat').value = lat.toFixed(6);
-                    if ($('inlineLng')) $('inlineLng').value = lng.toFixed(6);
-                    toast(`GPS from device: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-                    if (statusEl) statusEl.style.display = 'none';
-                    return;
-                }
-            }
-        } catch(e) {}
-        if (statusText) statusText.textContent = `Waiting for GPS… ${attempts}/${maxAttempts}`;
-        if (attempts >= maxAttempts) {
-            clearInterval(pollTimer);
+    _pollDeviceField(device.id, {
+        maxAttempts: 12,
+        interval: 5000,
+        check: function(data) { return data.last_latitude && data.last_longitude; },
+        onDone: function(data) {
+            const lat = parseFloat(data.last_latitude);
+            const lng = parseFloat(data.last_longitude);
+            if ($('inlineLat')) $('inlineLat').value = lat.toFixed(6);
+            if ($('inlineLng')) $('inlineLng').value = lng.toFixed(6);
+            toast(`GPS from device: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+            if (statusEl) statusEl.style.display = 'none';
+        },
+        onTick: function(data, attempts, max) {
+            if (statusText) statusText.textContent = `Waiting for GPS… ${attempts}/${max}`;
+        },
+        onTimeout: function() {
             if (statusEl) statusEl.style.display = 'none';
             toast('Still waiting — device may be offline. Will update when online.', true);
         }
-    }, 5000);
+    });
 };
 
-/* ── Fetch GPS from selected device ───────────── */
-window.cbFetchDeviceGPS = function() {
-    const select = $('nfcFetchCallsign');
-    const deviceId = select?.value;
-    if (!deviceId) { toast('Select a device callsign first', true); return; }
-    const device = allDevices.find(d => String(d.id) === String(deviceId));
-    if (!device) { toast('Device not found', true); return; }
-    if (!device.is_online) { toast('Device is offline — cannot fetch GPS', true); return; }
-
-    toast(`Requesting GPS fix from ${device.device_name}…`);
-
-    let attempts = 0;
-    const maxAttempts = 6;
-    const pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-            const res = await api(`/api/devices/${device.id}/`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.last_latitude && data.last_longitude) {
-                    clearInterval(pollTimer);
-                    const lat = parseFloat(data.last_latitude);
-                    const lng = parseFloat(data.last_longitude);
-                    if ($('inlineLat')) $('inlineLat').value = lat.toFixed(6);
-                    if ($('inlineLng')) $('inlineLng').value = lng.toFixed(6);
-                    toast('GPS from device: ' + lat.toFixed(5) + ', ' + lng.toFixed(5));
-                    var status = $('cbCoordStatus');
-                    if (status) { status.style.display = 'block'; status.classList.remove('cb-coord-locked'); void status.offsetWidth; status.classList.add('cb-coord-locked'); }
-                    return;
-                }
-            }
-        } catch(e) {}
-        if (attempts >= maxAttempts) {
-            clearInterval(pollTimer);
-            toast('Device did not report GPS — try again', true);
-        }
-    }, 5000);
-};
-
-/* ── Fetch NFC tag from a remote device via API polling (legacy) ── */
-let _remoteNFCPollTimer = null;
+/* ── Fetch NFC tag from a remote device via API polling ── */
 window.cbFetchRemoteNFC = function() {
     const onlineUnits = allDevices.filter(d => d.is_online);
     if (!onlineUnits.length) { toast('No online devices available for remote fetch', true); return; }
-    // Pick first online device (or could show a selector)
     const device = onlineUnits[0];
     toast(`Requesting NFC scan from ${device.device_name}…`);
-    
-    // Poll the backend for the latest scan from this device
-    let attempts = 0;
-    const maxAttempts = 12; // 12 × 5s = 60s max wait
-    
-    if (_remoteNFCPollTimer) clearInterval(_remoteNFCPollTimer);
-    
-    _remoteNFCPollTimer = setInterval(async () => {
-        attempts++;
-        try {
-            // Check device status endpoint for pending NFC scans
-            const res = await api(`/api/devices/${device.id}/`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.last_nfc_scan && data.last_nfc_scan_uid) {
-                    clearInterval(_remoteNFCPollTimer);
-                    const uid = data.last_nfc_scan_uid;
-                    $('inlineNfcTag').value = uid;
-                    toast(`NFC tag received: ${uid}`);
-                    // If the device also reported GPS
-                    if (data.last_latitude && data.last_longitude) {
-                        $('inlineLat').value = parseFloat(data.last_latitude).toFixed(6);
-                        $('inlineLng').value = parseFloat(data.last_longitude).toFixed(6);
-                        toast('GPS from device: ' + data.last_latitude + ', ' + data.last_longitude);
-                    }
-                    return;
-                }
+
+    _pollDeviceField(device.id, {
+        maxAttempts: 12,
+        interval: 5000,
+        check: function(data) { return data.last_nfc_scan && data.last_nfc_scan_uid; },
+        onDone: function(data) {
+            const uid = data.last_nfc_scan_uid;
+            $('inlineNfcTag').value = uid;
+            toast(`NFC tag received: ${uid}`);
+            if (data.last_latitude && data.last_longitude) {
+                $('inlineLat').value = parseFloat(data.last_latitude).toFixed(6);
+                $('inlineLng').value = parseFloat(data.last_longitude).toFixed(6);
+                toast('GPS from device: ' + data.last_latitude + ', ' + data.last_longitude);
             }
-        } catch(e) {}
-        
-        if (attempts >= maxAttempts) {
-            clearInterval(_remoteNFCPollTimer);
+        },
+        onTimeout: function() {
             toast('Remote fetch timed out — device did not respond', true);
         }
-    }, 5000);
+    });
 };
 
 /* ── Registry Engine ──────────────────────────── */
@@ -3805,23 +3651,6 @@ window.mgLoadSavedCps = function() {
     }
 };
 
-/* ── Legacy add (kept for backward compat) ── */
-window.cbAddInlineCheckpoint = function() {
-    inlineAddPoint(inlineType || 'nfc');
-};
-
-/* (replaced by addRegistryRow / updateRegistryStats) */
-
-/* ── Geofence shape ────────────────────────────── */
-window.cbSetInlineGeoShape = function(shape, el) {
-    if (el) {
-        el.parentElement.querySelectorAll('.cb-shape-pill').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-    }
-    if (shape === 'polygon') cbActivateTool('polygon');
-    else cbActivateTool(null);
-};
-
 /* ── NFC Scan window (per-row) ─────────────────── */
 window.cbOpenScanWindow = function(btn) {
     const row = btn?.closest('.cb-reg-row');
@@ -3950,13 +3779,14 @@ window.cbSaveInlineCheckpoints = async function() {
     };
 
     try {
-        var res = await api('/api/map-objects/bulk_create/', { method:'POST', body:JSON.stringify(payload) });
+        var res = await api('/api/v1/checkpoints/bulk-schedule/', { method:'POST', body:JSON.stringify(payload) });
         var data = await res.json().catch(function() { return {}; });
 
-        if (res.ok && data.created_count !== undefined) {
-            toast('Saved ' + data.created_count + ' checkpoint' + (data.created_count !== 1 ? 's' : ''));
+        if (res.ok && (data.created_count !== undefined || data.checkpoints)) {
+            var count = data.created_count || (data.checkpoints ? data.checkpoints.length : 0);
+            toast('Saved ' + count + ' checkpoint' + (count !== 1 ? 's' : ''));
             if (data.errors && data.errors.length) {
-                var errorDetails = data.errors.map(function(e) { return Object.values(e).join(', '); }).join('; ');
+                var errorDetails = data.errors.map(function(e) { return typeof e === 'object' ? Object.values(e).join(', ') : e; }).join('; ');
                 if (errorDetails) toast('Errors: ' + errorDetails, true);
             }
             if (btn) {
@@ -3964,10 +3794,9 @@ window.cbSaveInlineCheckpoints = async function() {
                 btn.classList.add('cb-success-burst');
                 setTimeout(function() { btn.innerHTML = origText; btn.classList.remove('cb-success-burst'); btn.disabled = false; }, 2000);
             }
-            // Reload assets to refresh the list
             await mgLoadAssets();
             mgLoadSavedCps();
-            mgLogFleetEvent('check', 'Staged checkpoints committed', data.created_count + ' saved');
+            mgLogFleetEvent('check', 'Staged checkpoints committed', count + ' saved');
         } else {
             var err = data.errors ? (Array.isArray(data.errors) ? data.errors.map(function(e) { return typeof e === 'object' ? Object.values(e).join(', ') : e; }).join('; ') : data.detail) : (data.detail || 'Save failed');
             toast(err.slice(0, 150), true);
@@ -4043,6 +3872,12 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.detail.target.id !== 'mgPanelContainer') return;
     var url = evt.detail.requestConfig?.path || '';
     var panel = url.includes('fleet-panel') ? 'fleet' : url.includes('audit-panel') ? 'audit' : 'staff';
+
+    // Update active tab
+    document.querySelectorAll('.mg-tab').forEach(function(t) { t.classList.remove('active'); });
+    var btn = document.querySelector('.mg-tab[data-panel="' + panel + '"]');
+    if (btn) btn.classList.add('active');
+
     _panelLoaded[panel] = true;
     if (panel === 'fleet') {
         setTimeout(function(){ mgLoadDevices(); mgLoadAssets(); }, 100);
