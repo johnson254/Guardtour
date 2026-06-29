@@ -1,7 +1,19 @@
+"""Scan recording and batch sync endpoints.
+
+Security:
+- Device auth uses hashed passwords (api.password.verify_device_password)
+- Rate-limited via DeviceScanThrottle (60/min per device)
+- Org-scoped queries use get_user_organization_or_none() — no silent auto-assign
+
+Performance:
+- ScanRecordViewSet.get_queryset uses select_related for guard/device/route/checkpoint
+- Query count is guarded by tests/test_query_counts.py
+"""
 from django.utils import timezone
 from django.db.models import Q
 from datetime import datetime
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import viewsets, status, filters
@@ -19,6 +31,9 @@ from api.models import (
 from api.serializers import ScanRecordSerializer
 from api.services.scan import process_scan
 from api.services.gps import correct_gps_trail, _haversine
+from api.org_permissions import get_user_organization, get_user_organization_or_none
+from api.password import hash_device_password, verify_device_password
+from api.throttles import DeviceScanThrottle, DeviceHeartbeatThrottle
 
 
 def _deactivate_assignments(queryset):
@@ -49,25 +64,29 @@ class ScanRecordViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    def get_throttles(self):
+        if self.action == 'create':
+            return [DeviceScanThrottle()]
+        return []
+
     def get_queryset(self):
         user = self.request.user
-        queryset = ScanRecord.objects.none()
+        queryset = ScanRecord.objects.select_related(
+            'guard_supervisor', 'device', 'route', 'checkpoint'
+        )
+
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            queryset = ScanRecord.objects.all()
-        elif hasattr(user, 'dispatcher_profile'):
-            dispatcher = user.dispatcher_profile
-            if not dispatcher.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher.organization = default_org
-                    dispatcher.save(update_fields=['organization'])
-            org = dispatcher.organization
+            pass
+        else:
+            org = get_user_organization_or_none(user)
             if org:
-                queryset = ScanRecord.objects.filter(
+                queryset = queryset.filter(
                     Q(guard_supervisor__organization=org) |
                     Q(device__organization=org) |
                     Q(route__organization=org)
                 ).distinct()
+            else:
+                return ScanRecord.objects.none()
 
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
@@ -146,6 +165,7 @@ class ScanRecordViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([DeviceScanThrottle])
 def gps_batch_sync(request):
     device_id = request.data.get('device_id')
     password = request.data.get('password')
@@ -159,8 +179,13 @@ def gps_batch_sync(request):
     device = Device.objects.filter(device_id=device_id).first()
     if not device:
         return Response({'detail': 'Device not found'}, status=404)
-    if device.password != password:
+
+    is_valid, needs_rehash = verify_device_password(password, device.password)
+    if not is_valid:
         return Response({'detail': 'Auth failed'}, status=401)
+
+    if needs_rehash:
+        Device.objects.filter(id=device.id).update(password=hash_device_password(password))
 
     active_assignment = ShiftAssignment.objects.filter(device=device, is_active=True, is_completed=False).first()
 
@@ -237,6 +262,7 @@ def gps_batch_sync(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([DeviceScanThrottle])
 def scan_batch_sync(request):
     device_id = request.data.get('device_id')
     password = request.data.get('password')
@@ -248,8 +274,15 @@ def scan_batch_sync(request):
         return Response({'detail': 'scans array required'}, status=400)
 
     device = Device.objects.filter(device_id=device_id).first()
-    if not device or device.password != password:
+    if not device:
+        return Response({'detail': 'Device not found'}, status=404)
+
+    is_valid, needs_rehash = verify_device_password(password, device.password)
+    if not is_valid:
         return Response({'detail': 'Auth failed'}, status=401)
+
+    if needs_rehash:
+        Device.objects.filter(id=device.id).update(password=hash_device_password(password))
 
     results = []
     for idx, s in enumerate(scans):
@@ -349,6 +382,7 @@ def device_trails(request, device_id):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([DeviceScanThrottle])
 def device_recent_scans(request):
     device_id = request.GET.get('device_id')
     password = request.GET.get('password')
@@ -358,8 +392,13 @@ def device_recent_scans(request):
     device = Device.objects.filter(device_id=device_id).first()
     if not device:
         return Response({'detail': 'Device not found'}, status=404)
-    if device.password != password:
+
+    is_valid, needs_rehash = verify_device_password(password, device.password)
+    if not is_valid:
         return Response({'detail': 'Auth failed'}, status=401)
+
+    if needs_rehash:
+        Device.objects.filter(id=device.id).update(password=hash_device_password(password))
 
     scans = ScanRecord.objects.filter(device=device).order_by('-timestamp')[:10]
     data = []
