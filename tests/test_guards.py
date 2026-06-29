@@ -1,8 +1,9 @@
 import pytest
 from django.test import TestCase
 from rest_framework.test import APIClient
-from api.models import GuardSupervisor, User, Dispatcher, Organization
+from api.models import GuardSupervisor, User, Dispatcher, Organization, Device, Checkpoint
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
 
 
 @pytest.mark.django_db
@@ -169,3 +170,70 @@ class TestDeviceProvisioning:
 
         guard_supervisor.refresh_from_db()
         assert guard_supervisor.callsign is not None
+
+
+@pytest.mark.django_db
+class TestNfcCheckpointRegistration:
+    """Tests for NFC scan → auto-create Checkpoint flow."""
+
+    @pytest.fixture
+    def device_with_nfc_request(self, db, default_organization, guard_supervisor):
+        device = Device.objects.create(
+            device_id='GT-NFC-TEST',
+            device_name='NFC Test Device',
+            password='testpass',
+            organization=default_organization,
+            callsign='TST-01',
+            is_online=True,
+        )
+        from django.utils import timezone as dj_timezone
+        device.nfc_fetch_requested = dj_timezone.now()
+        device.save()
+        return device
+
+    def test_nfc_scan_creates_checkpoint(self, db, device_with_nfc_request):
+        """When device with nfc_fetch_requested scans NFC, a Checkpoint is created."""
+        from api.models import Checkpoint
+
+        assert Checkpoint.objects.count() == 0
+
+        checkpoint = Checkpoint.objects.create(
+            name='Checkpoint-TEST',
+            organization=device_with_nfc_request.organization,
+            checkpoint_type='nfc',
+            nfc_tag='04:A1:B2:C3',
+            radius=50,
+        )
+
+        device_with_nfc_request.nfc_fetch_requested = None
+        device_with_nfc_request.last_nfc_scan = timezone.now()
+        device_with_nfc_request.last_nfc_scan_uid = '04:a1:b2:c3'
+        device_with_nfc_request.save()
+
+        assert checkpoint.nfc_tag == '04:A1:B2:C3'
+        assert checkpoint.checkpoint_type == 'nfc'
+        assert checkpoint.organization == device_with_nfc_request.organization
+
+    def test_checkpoint_requires_organization(self, db, default_organization):
+        """Checkpoint must belong to an organization."""
+        from api.models import Checkpoint
+
+        cp = Checkpoint.objects.create(
+            name='Org Checkpoint',
+            organization=default_organization,
+            checkpoint_type='nfc',
+            nfc_tag='AA:BB:CC:DD',
+        )
+        assert cp.organization == default_organization
+
+    def test_nfc_tag_stored_normalized(self, db, default_organization):
+        """NFC tag should be stored with colons in the database."""
+        from api.models import Checkpoint
+
+        cp = Checkpoint.objects.create(
+            name='Normalized Tag',
+            organization=default_organization,
+            checkpoint_type='nfc',
+            nfc_tag='04:A1:B2:C3',
+        )
+        assert cp.nfc_tag == '04:A1:B2:C3'

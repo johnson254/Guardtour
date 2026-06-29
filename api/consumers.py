@@ -128,8 +128,87 @@ class GuardConsumer(AsyncWebsocketConsumer):
 
         if scan_type == 'peer' and nfc_value:
             await self._create_peer_scan_record(nfc_value, raw_nfc, lat, lng, sequence_id, sensor_context)
+        elif scan_type == 'tag' and nfc_value:
+            await self._try_register_nfc_checkpoint(nfc_value, raw_nfc, lat, lng)
 
-        await self.send(json.dumps({'type': 'SCAN_RECEIVED', 'nfc_value': nfc_value}))
+        if hasattr(self, '_last_registered_checkpoint') and self._last_registered_checkpoint:
+            checkpoint_data = self._last_registered_checkpoint
+            self._last_registered_checkpoint = None
+            if self.org_group:
+                await self.channel_layer.group_send(self.org_group, {
+                    'type': 'checkpoint_registered',
+                    'checkpoint': checkpoint_data,
+                    'device_id': self.device_id,
+                })
+
+        response_data = {'type': 'SCAN_RECEIVED', 'nfc_value': nfc_value}
+        if hasattr(self, '_last_registered_checkpoint') and self._last_registered_checkpoint:
+            response_data['checkpoint_registered'] = self._last_registered_checkpoint
+            self._last_registered_checkpoint = None
+
+        await self.send(json.dumps(response_data))
+
+    @database_sync_to_async
+    def _try_register_nfc_checkpoint(self, nfc_value, raw_nfc, scan_lat, scan_lng):
+        """If device has nfc_fetch_requested, auto-create a Checkpoint from this scan.
+
+        Flow:
+        1. Dispatcher clicks "Fetch NFC" → sets nfc_fetch_requested on device
+        2. Device scans NFC tag → sends SCAN_EVENT
+        3. This handler creates a Checkpoint with the scanned NFC tag
+        4. Clears nfc_fetch_requested
+        5. Returns the created checkpoint data for frontend update
+        """
+        from api.models import Device, Checkpoint, Organization
+        from django.utils import timezone as dj_timezone
+
+        try:
+            device = Device.objects.get(device_id=self.device_id)
+        except Device.DoesNotExist:
+            return
+
+        if not device.nfc_fetch_requested:
+            return
+
+        org = device.organization
+        if not org:
+            return
+
+        uid = None
+        if raw_nfc and isinstance(raw_nfc, dict):
+            uid = raw_nfc.get('uid', '').replace(':', '').lower()
+
+        nfc_tag = uid or nfc_value
+        if not nfc_tag:
+            return
+
+        checkpoint_name = f"Checkpoint-{nfc_tag[-6:].upper()}"
+
+        checkpoint = Checkpoint.objects.create(
+            name=checkpoint_name,
+            organization=org,
+            checkpoint_type='nfc',
+            nfc_tag=nfc_tag,
+            lat=scan_lat,
+            lng=scan_lng,
+            radius=50,
+            time_tolerance=15,
+            scheduled_date=dj_timezone.now().date(),
+        )
+
+        device.nfc_fetch_requested = None
+        device.last_nfc_scan = dj_timezone.now()
+        device.last_nfc_scan_uid = nfc_tag
+        device.save(update_fields=['nfc_fetch_requested', 'last_nfc_scan', 'last_nfc_scan_uid'])
+
+        self._last_registered_checkpoint = {
+            'id': checkpoint.id,
+            'name': checkpoint.name,
+            'nfc_tag': nfc_tag,
+            'checkpoint_type': 'nfc',
+            'lat': scan_lat,
+            'lng': scan_lng,
+        }
 
     @database_sync_to_async
     def _create_peer_scan_record(self, nfc_value, raw_nfc, lat, lng, sequence_id, sensor_context):
@@ -176,6 +255,9 @@ class GuardConsumer(AsyncWebsocketConsumer):
         await self.send(json.dumps(event))
 
     async def scan_event(self, event):
+        await self.send(json.dumps(event))
+
+    async def checkpoint_registered(self, event):
         await self.send(json.dumps(event))
 
     async def connection_status(self, event):
