@@ -23,9 +23,12 @@ const $$ = s  => document.querySelectorAll(s);
 const api = async (url, opts = {}) => {
     // Check for the global helper at call-time to avoid load-order issues
     if (typeof window.apiFetch === 'function') return window.apiFetch(url, opts);
-    
+
     // Fallback: Ensure we still send the token if apiFetch isn't ready
-    const token = JSON.parse(localStorage.getItem('gt_user') || '{}').token;
+    let token = null;
+    try {
+        token = JSON.parse(localStorage.getItem('gt_user') || '{}').token;
+    } catch (e) { /* corrupted storage */ }
     const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}), ...(opts.headers || {}) };
     return fetch(url, { credentials: 'same-origin', ...opts, headers });
 };
@@ -71,7 +74,9 @@ function mgRenderGuardStats(){
     const supers=allGuards.filter(g=>g.role==='supervisor').length;
     const day=allGuards.filter(g=>g.shift==='Day').length;
     const night=allGuards.filter(g=>g.shift==='Night').length;
-    $('personnelStats').innerHTML=`
+    var el = $('personnelStats');
+    if (!el) return;
+    el.innerHTML=`
         <div class="mg-stat"><div class="mg-stat-val">${total}</div><div class="mg-stat-lbl">Total</div></div>
         <div class="mg-stat"><div class="mg-stat-val red">${guards}</div><div class="mg-stat-lbl">Guards</div></div>
         <div class="mg-stat"><div class="mg-stat-val amber">${supers}</div><div class="mg-stat-lbl">Supervisors</div></div>
@@ -224,7 +229,9 @@ window.mgRefreshBlueprintShift = async function(){
         
         $('tcStaff').textContent = activeCount;
         
-        $('callsignStats').innerHTML = `
+        var _csStats = $('callsignStats');
+        if (!_csStats) { mgRenderGuards(); mgRenderShiftPairs(); return; }
+        _csStats.innerHTML = `
             <div class="mg-stat"><div class="mg-stat-val green">${activeCount}</div><div class="mg-stat-lbl">On Mission</div></div>
             <div class="mg-stat"><div class="mg-stat-val amber">${queuedCount}</div><div class="mg-stat-lbl">Queued</div></div>
             <div class="mg-stat"><div class="mg-stat-val blue">${onDutyGuards}</div><div class="mg-stat-lbl">Active Personnel</div></div>
@@ -425,6 +432,7 @@ window.mgSubmitPairForm = async function(){
 
 window.mgRenderBlueprintActiveDeployments = function(shifts){
     const el=$('callsignList');
+    if (!el) return;
     const relevant = shifts.filter(s => !s.is_completed);
     if(!relevant.length){
         el.innerHTML='<div class="mg-tl-empty"><i class="fas fa-satellite-dish"></i>No active or upcoming deployments</div>';
@@ -3832,8 +3840,10 @@ window.cbSaveInlineCheckpoints = async function() {
 function setDefaultDates(){
     const today=new Date();
     const week=new Date(today); week.setDate(week.getDate()-7);
-    $('logDateTo').value=today.toISOString().split('T')[0];
-    $('logDateFrom').value=week.toISOString().split('T')[0];
+    const toEl = $('logDateTo');
+    const fromEl = $('logDateFrom');
+    if (toEl) toEl.value = today.toISOString().split('T')[0];
+    if (fromEl) fromEl.value = week.toISOString().split('T')[0];
 }
 
 /* ── Boot ────────────────────────────────────────── */
