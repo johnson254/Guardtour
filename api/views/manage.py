@@ -44,6 +44,8 @@ from api.serializers import (
 )
 from api.views.auth import generate_operator_id
 from api.views.scans import _deactivate_assignments
+from api.org_permissions import get_user_organization, get_user_organization_or_none
+from api.password import hash_device_password
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -70,9 +72,10 @@ class CallSignViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return CallSign.objects.all()
-        if hasattr(user, 'dispatcher_profile') and user.dispatcher_profile.organization:
-            return CallSign.objects.filter(organization=user.dispatcher_profile.organization)
+            return CallSign.objects.select_related('organization', 'device', 'current_guard').prefetch_related('current_guard__shift_assignments')
+        org = get_user_organization_or_none(user)
+        if org:
+            return CallSign.objects.filter(organization=org).select_related('organization', 'device', 'current_guard').prefetch_related('current_guard__shift_assignments')
         return CallSign.objects.none()
 
 
@@ -121,16 +124,11 @@ class GuardSupervisorViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return GuardSupervisor.objects.all()
+            return GuardSupervisor.objects.select_related('organization')
 
-        if hasattr(user, 'dispatcher_profile'):
-            if not user.dispatcher_profile.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    user.dispatcher_profile.organization = default_org
-                    user.dispatcher_profile.save(update_fields=['organization'])
-            if user.dispatcher_profile.organization:
-                return GuardSupervisor.objects.filter(organization=user.dispatcher_profile.organization)
+        org = get_user_organization_or_none(user)
+        if org:
+            return GuardSupervisor.objects.filter(organization=org).select_related('organization')
         return GuardSupervisor.objects.none()
 
     def perform_create(self, serializer):
@@ -139,7 +137,7 @@ class GuardSupervisorViewSet(viewsets.ModelViewSet):
         if user.is_superuser or hasattr(user, 'admin_profile'):
             serializer.save()
         elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
+            org = get_user_organization_or_none(user)
             if org:
                 serializer.save(organization=org)
             else:
@@ -155,18 +153,11 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return Device.objects.all()
+            return Device.objects.select_related('organization')
 
-        dispatcher_profile = getattr(user, 'dispatcher_profile', None)
-        if dispatcher_profile:
-            dispatcher = dispatcher_profile
-            if not dispatcher.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher.organization = default_org
-                    dispatcher.save(update_fields=['organization'])
-            if dispatcher.organization:
-                return Device.objects.filter(organization=dispatcher.organization)
+        org = get_user_organization_or_none(user)
+        if org:
+            return Device.objects.filter(organization=org).select_related('organization')
         return Device.objects.none()
 
     @action(detail=True, methods=['post'])
@@ -301,16 +292,17 @@ class DeviceViewSet(viewsets.ModelViewSet):
             if org_id:
                 org = Organization.objects.filter(id=org_id).first()
         elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
+            org = get_user_organization_or_none(user)
 
         if not org:
-            org = Organization.objects.first()
+            raise PermissionDenied("Organization context required to create devices.")
 
         if org:
             generated_callsign = generate_operator_id(org)
-            pwd = self.request.data.get('password') or str(secrets.randbelow(90000000) + 10000000)
+            raw_pwd = self.request.data.get('password') or str(secrets.randbelow(90000000) + 10000000)
+            hashed_pwd = hash_device_password(raw_pwd)
 
-            serializer.save(organization=org, callsign=generated_callsign, password=pwd)
+            serializer.save(organization=org, callsign=generated_callsign, password=hashed_pwd)
             DeviceObj = serializer.instance
             CallSign.objects.create(device=DeviceObj, organization=org, callsign=generated_callsign)
         else:
@@ -324,22 +316,13 @@ class PatrolRouteViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return PatrolRoute.objects.all()
+            return PatrolRoute.objects.select_related('organization', 'created_by').prefetch_related('checkpoints', 'assigned_guards', 'assigned_devices')
 
-        dispatcher_profile = getattr(user, 'dispatcher_profile', None)
-        if dispatcher_profile:
-            dispatcher_org = dispatcher_profile.organization
-            if not dispatcher_org:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher_profile.organization = default_org
-                    dispatcher_profile.save(update_fields=['organization'])
-                    dispatcher_org = default_org
-
-            if dispatcher_org:
-                return PatrolRoute.objects.filter(
-                    Q(organization=dispatcher_org) | Q(organization__isnull=True)
-                )
+        org = get_user_organization_or_none(user)
+        if org:
+            return PatrolRoute.objects.filter(
+                Q(organization=org) | Q(organization__isnull=True)
+            ).select_related('organization', 'created_by').prefetch_related('checkpoints', 'assigned_guards', 'assigned_devices')
 
         return PatrolRoute.objects.none()
 
@@ -351,13 +334,11 @@ class PatrolRouteViewSet(viewsets.ModelViewSet):
             org_id = self.request.data.get('organization')
             if org_id:
                 org = Organization.objects.filter(id=org_id).first()
-        elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
+        else:
+            org = get_user_organization_or_none(user)
 
         if not org:
-            org = Organization.objects.first()
-            if not org:
-                raise PermissionDenied("Organization context missing. Cannot create blueprints without an organization.")
+            raise PermissionDenied("Organization context missing. Cannot create blueprints without an organization.")
 
         serializer.save(organization=org, created_by=user)
 
@@ -417,15 +398,12 @@ class CheckpointViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return Checkpoint.objects.all()
-        if hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
-            if not org:
-                org = Organization.objects.first()
-            if org:
-                return Checkpoint.objects.filter(
-                    Q(route__organization=org) | Q(organization=org)
-                ).distinct()
+            return Checkpoint.objects.select_related('organization', 'route')
+        org = get_user_organization_or_none(user)
+        if org:
+            return Checkpoint.objects.filter(
+                Q(route__organization=org) | Q(organization=org)
+            ).distinct().select_related('organization', 'route')
         return Checkpoint.objects.none()
 
     def perform_create(self, serializer):
@@ -435,11 +413,11 @@ class CheckpointViewSet(viewsets.ModelViewSet):
             org_id = self.request.data.get('organization')
             if org_id:
                 org = Organization.objects.filter(id=org_id).first()
-        elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
+        else:
+            org = get_user_organization_or_none(user)
 
         if not org:
-            org = Organization.objects.first()
+            raise PermissionDenied("Organization context required to create checkpoints.")
 
         serializer.save(organization=org)
 
@@ -453,10 +431,12 @@ class CheckpointViewSet(viewsets.ModelViewSet):
             org_id = request.data[0].get('organization') if request.data else None
             if org_id:
                 org = Organization.objects.filter(id=org_id).first()
-        elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
+        else:
+            org = get_user_organization_or_none(user)
+
         if not org:
-            org = Organization.objects.first()
+            raise PermissionDenied("Organization context required for bulk checkpoint creation.")
+
         serializer.save(organization=org)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -468,26 +448,17 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return ShiftAssignment.objects.all()
+            return ShiftAssignment.objects.select_related(
+                'dispatcher', 'guard_supervisor', 'device', 'route'
+            )
 
-        dispatcher_profile = getattr(user, 'dispatcher_profile', None)
-        if dispatcher_profile:
-            dispatcher = dispatcher_profile
-
-            if not dispatcher.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher.organization = default_org
-                    dispatcher.save(update_fields=['organization'])
-
-            if dispatcher.organization:
-                org = dispatcher.organization
-
-                return ShiftAssignment.objects.filter(
-                    Q(route__organization=org) |
-                    Q(guard_supervisor__organization=org) |
-                    Q(dispatcher=user)
-                ).distinct()
+        org = get_user_organization_or_none(user)
+        if org:
+            return ShiftAssignment.objects.filter(
+                Q(route__organization=org) |
+                Q(guard_supervisor__organization=org) |
+                Q(dispatcher=user)
+            ).distinct().select_related('dispatcher', 'guard_supervisor', 'device', 'route')
 
         return ShiftAssignment.objects.none()
 
@@ -531,17 +502,10 @@ class MapObjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return MapObject.objects.all()
-        dispatcher_profile = getattr(user, 'dispatcher_profile', None)
-        if dispatcher_profile:
-            dispatcher = dispatcher_profile
-            if not dispatcher.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher.organization = default_org
-                    dispatcher.save(update_fields=['organization'])
-            if dispatcher.organization:
-                return MapObject.objects.filter(organization=dispatcher.organization)
+            return MapObject.objects.select_related('organization').prefetch_related('assigned_personnel')
+        org = get_user_organization_or_none(user)
+        if org:
+            return MapObject.objects.filter(organization=org).select_related('organization').prefetch_related('assigned_personnel')
         return MapObject.objects.none()
 
     @action(detail=False, methods=['post'])
@@ -556,8 +520,8 @@ class MapObjectViewSet(viewsets.ModelViewSet):
             org_id = request.data.get('organization')
             if org_id:
                 org = Organization.objects.filter(id=org_id).first()
-        elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
+        else:
+            org = get_user_organization_or_none(user)
 
         if not org:
             return Response({'detail': 'No organization found for user'}, status=400)
@@ -604,11 +568,8 @@ class MapObjectViewSet(viewsets.ModelViewSet):
             org_id = self.request.data.get('organization')
             if org_id:
                 org = Organization.objects.filter(id=org_id).first()
-        elif hasattr(user, 'dispatcher_profile'):
-            org = user.dispatcher_profile.organization
-
-        if not org:
-            org = Organization.objects.first()
+        else:
+            org = get_user_organization_or_none(user)
 
         if not org:
             raise PermissionDenied("Organization context missing.")
@@ -622,16 +583,10 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return IncidentReport.objects.all()
-        if hasattr(user, 'dispatcher_profile'):
-            dispatcher = user.dispatcher_profile
-            if not dispatcher.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher.organization = default_org
-                    dispatcher.save(update_fields=['organization'])
-            if dispatcher.organization:
-                return IncidentReport.objects.filter(organization=dispatcher.organization)
+            return IncidentReport.objects.select_related('organization', 'guard_supervisor')
+        org = get_user_organization_or_none(user)
+        if org:
+            return IncidentReport.objects.filter(organization=org).select_related('organization', 'guard_supervisor')
         return IncidentReport.objects.none()
 
 
@@ -642,14 +597,8 @@ class OperatorAlertViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or hasattr(user, 'admin_profile'):
-            return OperatorAlert.objects.all()
-        if hasattr(user, 'dispatcher_profile'):
-            dispatcher = user.dispatcher_profile
-            if not dispatcher.organization:
-                default_org = Organization.objects.first()
-                if default_org:
-                    dispatcher.organization = default_org
-                    dispatcher.save(update_fields=['organization'])
-            if dispatcher.organization:
-                return OperatorAlert.objects.filter(organization=dispatcher.organization)
+            return OperatorAlert.objects.select_related('organization', 'operator')
+        org = get_user_organization_or_none(user)
+        if org:
+            return OperatorAlert.objects.filter(organization=org).select_related('organization', 'operator')
         return OperatorAlert.objects.none()

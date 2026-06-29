@@ -48,14 +48,19 @@ class TestDeviceRegistration:
         assert resp2.json()['password'] == 'testpassword123'
         assert resp2.json()['device_id'] == 'TST-01'
 
-    def test_register_unknown_operator_id(self, api_client, default_organization):
-        """Unknown operator_id returns 404"""
+    def test_register_unknown_operator_id_auto_creates(self, api_client, default_organization):
+        """Unknown operator_id auto-creates device for self-service onboarding."""
         response = api_client.post('/api/register-device/', {
             'operator_id': 'UNK-99'
         }, format='json')
 
-        assert response.status_code == 404
-        assert 'not found' in response.json()['detail'].lower()
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'registered'
+        assert data['device_id'] == 'UNK-99'
+        assert 'password' in data
+
+        assert Device.objects.filter(device_id='UNK-99').exists()
 
     def test_register_missing_operator_id(self, api_client):
         """Missing operator_id returns 400"""

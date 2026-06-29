@@ -4,11 +4,11 @@ DRF ViewSets and function-based JSON API views are split across modules:
 - auth: register, login, operator_id
 - devices: register_device, provision_device
 - heartbeat: heartbeat endpoint + helpers
-- scans: ScanRecordViewSet, batch sync, trails
+- scans: ScanRecordViewSet, batch sync, trails, _deactivate_assignments
 - dispatch: shift assignment, deployment, mission status
 - manage: admin ViewSets (Org, Admin, Dispatcher, Guard, Device, Route, Checkpoint, etc.)
 - reports: stats, profiles, seed data
-- core: cross-cutting helpers (_haversine_meters, _point_in_polygon, _deactivate_assignments)
+- core: cross-cutting helpers (_point_in_polygon)
 """
 from api.views.manage import (
     OrganizationViewSet, AdminViewSet, DispatcherViewSet,
@@ -25,7 +25,7 @@ from api.views.devices import register_device, provision_device
 from api.views.heartbeat import heartbeat
 from api.views.scans import (
     ScanRecordViewSet, gps_batch_sync, scan_batch_sync,
-    device_trails, device_recent_scans,
+    device_trails, device_recent_scans, _deactivate_assignments,
 )
 from api.views.dispatch import (
     end_shift, assign_guard_to_blueprint_shift, blueprint_shift_availability,
@@ -36,7 +36,7 @@ from api.views.reports import (
     admin_stats, organization_stats, profile_list, profile_detail,
     seed_attendance,
 )
-from api.views.core import _deactivate_assignments
+from api.views.core import _point_in_polygon
 
 # Re-export partials for backward compatibility
 from api.views.partials.guards import guards_partial, guard_form_partial

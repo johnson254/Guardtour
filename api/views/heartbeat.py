@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta, datetime
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -16,6 +16,8 @@ from api.models import (
     ShiftAssignment,
 )
 from api.services.gps import _haversine
+from api.password import verify_device_password, hash_device_password
+from api.throttles import DeviceHeartbeatThrottle
 
 
 def _heartbeat_update_device(device, request):
@@ -358,6 +360,7 @@ def _build_map_update(device, session, assignment, lat, lng, now):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([DeviceHeartbeatThrottle])
 def heartbeat(request):
     device_id = request.data.get('device_id')
     password = request.data.get('password')
@@ -368,11 +371,16 @@ def heartbeat(request):
         return Response({'status': 'error', 'message': 'password required'}, status=400)
 
     try:
-        device = Device.objects.select_for_update().get(device_id=device_id)
+        device = Device.objects.get(device_id=device_id)
     except Device.DoesNotExist:
         return Response({'status': 'device_not_found'}, status=404)
-    if device.password != password:
+
+    is_valid, needs_rehash = verify_device_password(password, device.password)
+    if not is_valid:
         return Response({'status': 'auth_failed'}, status=401)
+
+    if needs_rehash:
+        Device.objects.filter(id=device.id).update(password=hash_device_password(password))
 
     lat, lng, gps_accuracy = _heartbeat_update_device(device, request)
 
@@ -439,16 +447,3 @@ def heartbeat(request):
         directives['map_update'] = map_update
 
     return Response(directives)
-
-
-def _point_in_polygon(lat, lng, polygon):
-    n = len(polygon)
-    inside = False
-    j = n - 1
-    for i in range(n):
-        yi, xi = polygon[i][0], polygon[i][1]
-        yj, xj = polygon[j][0], polygon[j][1]
-        if ((yi > lat) != (yj > lat)) and (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi):
-            inside = not inside
-        j = i
-    return inside

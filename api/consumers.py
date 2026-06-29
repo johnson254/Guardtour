@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 from .models import Device, ShiftAssignment, GuardSupervisor, OperatorAlert
+from api.password import verify_device_password, hash_device_password
 
 
 class GuardConsumer(AsyncWebsocketConsumer):
@@ -148,8 +149,13 @@ class GuardConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _authenticate_device(self, device_id, password):
         device = Device.objects.filter(device_id=device_id).first()
-        if not device or device.password != password:
+        if not device:
             return None
+        is_valid, needs_rehash = verify_device_password(password, device.password)
+        if not is_valid:
+            return None
+        if needs_rehash:
+            Device.objects.filter(id=device.id).update(password=hash_device_password(password))
         return device
 
     @database_sync_to_async
