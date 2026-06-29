@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guard Command | SecOps</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+    {% block extra_head %}{% endblock %}
+    <!-- Local/system font fallback (removed external Google Fonts link to prevent load errors) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% load static %}
+    {% load vite %}
+    <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
+    <script type="module" src="{% vite_asset 'src/main.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+    <script type="module" src="{% static 'src/browser/shared-globals.js' %}"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        :root{
+          --primary: #d32f2f;
+          --primary-light: #ff6659;
+          --primary-bg: rgba(211, 47, 47, 0.12);
+          --primary-gradient: linear-gradient(135deg, #d32f2f, #9a0007);
+          --border: rgba(255,255,255,0.07);
+          --border2: rgba(255,255,255,0.12);
+          --bg: #0a0a0f;
+          --panel: #14141c;
+          --panel-glass: rgba(20,20,32,0.85);
+          --card: #1e1e28;
+          --card-glass: rgba(30,30,42,0.8);
+          --text: #f0f0f0;
+          --text-muted: rgba(255,255,255,0.38);
+          --transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+          --shadow: 0 12px 36px rgba(0,0,0,0.5);
+          --accent-green: #4caf50;
+          --accent-amber: #ffc107;
+          --accent-blue: #0d6efd;
+          --accent-teal: #2dd4bf;
+          --accent-indigo: #6C8EEF;
+          --accent-violet: #A855F7;
+          /* Routes/components design tokens — alias to primary */
+          --r-crim:   #d32f2f;
+          --r-crim2:  #ef5350;
+          --r-teal:   #2dd4bf;
+          --r-indigo: #6C8EEF;
+          --r-amber:  #F5A623;
+          --r-violet: #A855F7;
+          --r-mute:   rgba(255,255,255,0.3);
+          --r-glow-crim: 0 0 12px rgba(211,47,47,0.25);
+        }
+        body{font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        .app-inner{padding:28px 28px;max-width:1400px;margin:0 auto;}
+        @media (min-width: 1280px) { .app-inner { padding: 18px 32px; } }
+        
+        .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);gap:16px;flex-wrap:wrap;}
+        @media (min-width: 1280px) { .top-bar { margin-bottom: 14px; padding-bottom: 10px; } }
+        @media (max-width: 768px) { .top-bar { margin-bottom: 12px; } }
+        .logo-area h1{font-size:1.5rem;font-weight:800;background:var(--primary-gradient);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        @media (min-width: 1280px) { .logo-area h1 { font-size: 1.3rem; } }
+        .logo-area span{font-size:0.7rem;background:var(--primary-bg);padding:4px 12px;border-radius:40px;margin-left:12px;font-weight:600;color:var(--primary-light);vertical-align:middle;}
+        
+        .top-actions{display:flex;align-items:center;gap:10px;}
+        .user-pill{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:60px;padding:4px 12px 4px 4px;}
+        @media (min-width: 1280px) { .user-pill { padding: 3px 10px 3px 3px; gap: 4px; } }
+        .user-av{width:28px;height:28px;border-radius:50%;background:var(--primary-gradient);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;color:#fff;}
+        
+         .nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+        @media (min-width: 1280px) { .nav { margin-bottom: 14px; } }
+        @media (max-width: 768px) { .nav { margin-bottom: 12px; overflow-x: auto; max-width: 100%; } }
+         .nav a{
+             padding:8px 18px;border-radius:25px;
+             font-size:.8rem;font-weight:600;
+             color:var(--text-muted);
+             text-decoration:none;
+             transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
+             display:inline-flex;align-items:center;gap:6px;
+             white-space:nowrap;
+             background:#2a2a35;
+         }
+         .nav a:hover{color:rgba(255,255,255,0.85);background:#3a3a45;transform:translateY(-1px)}
+         .nav a.active{
+             background:linear-gradient(135deg, #d32f2f 0%, #9a0007 100%);
+             color:#fff;
+             box-shadow:0 2px 12px rgba(211,47,47,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+         }
+        
+         .glass-card, .card{
+             background: linear-gradient(165deg, rgba(22,22,34,0.82) 0%, rgba(16,16,26,0.92) 60%, rgba(18,18,30,0.86) 100%);
+             border-radius:16px;
+             border:1px solid rgba(255,255,255,0.05);
+             backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+             box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 12px 36px rgba(0,0,0,0.5);
+             overflow:hidden;
+             margin-bottom:16px;
+         }
+         .glass-surface{
+             background: linear-gradient(165deg, rgba(22,22,34,0.82), rgba(16,16,26,0.92));
+             backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+             border:1px solid rgba(255,255,255,0.05);
+         }
+         .glass-strong{
+             background: linear-gradient(160deg, rgba(20,20,32,0.92) 0%, rgba(12,12,20,0.97) 100%);
+             backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+             border:1px solid rgba(255,255,255,0.06);
+             box-shadow:inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.4);
+         }
+         .glass-panel{
+             background: linear-gradient(155deg, rgba(18,18,30,0.55) 0%, rgba(10,10,20,0.75) 60%, rgba(14,14,24,0.65) 100%);
+             backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+             border:1px solid rgba(255,255,255,0.04);
+             box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.2);
+         }
+         .glass-input{
+             width:100%;padding:7px 11px;border-radius:8px;
+             border:1px solid rgba(255,255,255,0.07);background:rgba(13,13,20,0.95);
+             color:#f0f0f0;font-size:0.78rem;line-height:1.3;
+             transition:border-color .15s,box-shadow .15s,background .15s;
+         }
+         .glass-input::placeholder{color:rgba(255,255,255,0.22)}
+         .glass-input:hover{border-color:rgba(255,255,255,0.16)}
+         .glass-input:focus{outline:none;border-color:#d32f2f;box-shadow:0 0 0 2px rgba(211,47,47,0.14);background:rgba(13,13,20,0.98)}
+         .glass-input-sm{padding:6px 10px;font-size:0.74rem}
+         .glass-label{font-size:0.58rem;font-weight:900;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.42);display:block;margin-bottom:4px}
+        .card-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.01);}
+        .card-title{font-weight:700;font-size:0.85rem;color:var(--text);text-transform:uppercase;letter-spacing:1px;}
+        .card-body{padding:20px 24px;}
+        @media (min-width: 1280px) { .card-body { padding: 16px 20px; } }
+
+        /* Global Admin Panel Styles */
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
+        .admin-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .admin-entry-card { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .admin-entry-info h4 { color: white; margin-bottom: 4px; }
+        .admin-entry-info p { color: var(--text-muted); font-size: 0.75rem; }
+        .admin-entry-actions { display: flex; gap: 8px; }
+        .admin-entry-actions .action-btn { padding: 6px 12px; font-size: 0.7rem; }
+        .admin-stat-card { background: var(--panel); border-radius: 24px; padding: 24px; border: 1px solid var(--border); text-align: center; }
+        .admin-stat-card h4 { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase; }
+        .admin-stat-card p { font-size: 2rem; font-weight: 800; color: white; line-height: 1; }
+        .admin-stat-card p.green { color: var(--accent-green); }
+
+        /* Global Notification Toasts */
+        .toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--card); border: 1px solid var(--border); padding: 14px 24px; border-radius: 16px; color: white; display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: var(--shadow); border-left: 4px solid var(--primary); font-size: 0.85rem; font-weight: 500; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--accent-green); }
+        .toast.error { border-left-color: var(--primary); }
+        
+        /* Global Loader */
+        #global-loader { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: rgba(211, 47, 47, 0.1); z-index: 10000; display: none; }
+        #global-loader div { width: 30%; height: 100%; background: var(--primary); animation: loadingMove 1.5s infinite ease-in-out; }
+        @keyframes loadingMove { from { left: -30%; width: 30%; } to { left: 100%; width: 10%; } }
+
+        /* Live Pulse Indicator */
+        .sync-status { display: flex; align-items: center; gap: 6px; font-size: 0.6rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        @media (min-width: 1280px) { .sync-status { font-size: 0.55rem; gap: 4px; } }
+        .pulse { width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; position: relative; }
+        @media (min-width: 1280px) { .pulse { width: 5px; height: 5px; } }
+        .pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--accent-green); animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite; }
+         @keyframes pulse-ring { 0% { transform: scale(0.33); } 80%, 100% { opacity: 0; } }
+
+         /* ── Page entrance animation ── */
+         @keyframes spaPageIn{
+             0%{opacity:0;transform:translateY(12px) scale(0.995)}
+             100%{opacity:1;transform:translateY(0) scale(1)}
+         }
+         .spa-page{
+             animation:spaPageIn 0.35s cubic-bezier(0.4,0,0.2,1) both;
+         }
+
+         /* ── SPA Content Transitions ── */
+         .spa-content{transition:opacity 0.2s ease, transform 0.2s ease;}
+         .spa-content.htmx-adding{opacity:0;transform:translateY(8px);}
+         .spa-content.htmx-added{opacity:1;transform:translateY(0);}
+         .spa-transition-overlay{
+             position:fixed;inset:0;z-index:99999;
+             background:rgba(10,10,15,0.6);
+             backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+             display:flex;align-items:center;justify-content:center;
+             opacity:0;transition:opacity 0.15s;
+             pointer-events:none;
+         }
+         .spa-transition-overlay.active{opacity:1;pointer-events:auto;}
+         .spa-spinner{
+             width:32px;height:32px;border-radius:50%;
+             border:2px solid rgba(255,255,255,0.1);
+             border-top-color:var(--primary);
+             animation:spa-spin 0.6s linear infinite;
+         }
+         @keyframes spa-spin{to{transform:rotate(360deg)}
+
+        /* Custom UI Toggles (Replacing Checkboxes) */
+        .switch { position: relative; display: inline-block; width: 42px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #2a2a35; transition: .4s; border-radius: 34px; border: 1px solid var(--border); }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 4px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); border-color: var(--primary-light); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Status LEDs */
+        .status-led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #3a3a3a; transition: all 0.3s; }
+        .status-led.active { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .status-led.inactive { background: var(--primary); opacity: 0.4; }
+
+        /* Standardized Elements */
+        input, select, textarea{width:100%;padding:14px 20px;margin-bottom:12px;background:#1a1a24;border:1.5px solid var(--border);border-radius:28px;color:white;font-family:inherit;font-size:0.9rem;transition:var(--transition);}
+        input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(211,47,47,0.2);}
+        
+        button, .action-btn{background:var(--primary-gradient);border:none;padding:12px 24px;border-radius:40px;color:white;cursor:pointer;font-weight:600;font-family:inherit;transition:var(--transition);font-size:0.85rem;}
+        button:hover, .action-btn:hover{transform:translateY(-2px);filter:brightness(1.05);}
+        .btn-secondary{background:#2a2a35;color:white;}
+        
+        table{width:100%;border-collapse:separate;border-spacing:0 8px;}
+        th{padding:12px 20px;text-align:left;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--primary-light);font-weight:700;}
+        td{padding:16px 20px;background:#1a1a24;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+        td:first-child{border-left:1px solid var(--border);border-top-left-radius:15px;border-bottom-left-radius:15px;}
+        td:last-child{border-right:1px solid var(--border);border-top-right-radius:15px;border-bottom-right-radius:15px;}
+        
+        .label-mini{display:block;font-size:0.65rem;font-weight:700;color:var(--primary-light);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.8px;}
+        
+        @media(max-width:900px){ .architect-split{grid-template-columns:1fr;} .nav{overflow-x:auto;max-width:100%;} }
+    </style>
+</head>
+<body hx-history-restore="true">
+    <div id="global-loader"><div></div></div>
+    <div class="toast-container" id="toast-container"></div>
+
+    <div class="app-inner">
+        <div class="top-bar">
+            <div class="logo-area">
+                <h1>Guard Tour<span id="org-display">SecOps v2.0</span></h1>
+            </div>
+            <div class="top-actions">
+                <div class="sync-status">
+                    <div class="pulse"></div>
+                    <span>System Live</span>
+                </div>
+                <div style="margin-right: 15px; position: relative; cursor: pointer;">
+                    <i class="fas fa-bell" style="color: var(--text-muted); font-size: 1.1rem;"></i>
+                    <span style="position: absolute; top: -5px; right: -5px; background: var(--primary); color: white; font-size: 0.55rem; padding: 2px 5px; border-radius: 50%; font-weight: 800;">3</span>
+                </div>
+                <div class="user-pill" style="border-color: rgba(211, 47, 47, 0.2); background: rgba(255,255,255,0.02);">
+                    <div class="user-av" id="user-av" style="box-shadow: 0 0 10px rgba(211, 47, 47, 0.3);">U</div>
+                    <div style="display:flex; flex-direction:column; margin-left:5px;">
+                        <span id="user-name" style="font-weight: 700; font-size: 0.75rem; letter-spacing: 0.5px; line-height:1;">User</span>
+                        <span id="user-role" style="font-size:0.55rem; color:var(--primary-light); text-transform:uppercase; font-weight:800; margin-top:2px;">Role</span>
+                    </div>
+                </div>
+                <button onclick="logout()" style="background:none; border:none; color:var(--primary); cursor:pointer; font-weight:600; font-size:0.8rem;">
+                     <i class="fas fa-power-off"></i>
+                 </button>
+            </div>
+        </div>
+
+         <div class="nav" id="navMenu">
+             {# Static fallback removed; nav is built by JS below #}
+         </div>
+
+         {# SPA Content Container - htmx loads full pages here #}
+         <div id="spa-content" class="spa-content">
+             {% block content %}{% endblock %}
+         </div>
+
+         {# Page transition overlay #}
+         <div id="spa-transition" class="spa-transition-overlay" style="display:none;">
+             <div class="spa-spinner"></div>
+         </div>
+    </div>
+
+<script>
+         // ── HTMX Global Config ──
+         htmx.config.defaultSwapStyle = 'innerHTML';
+         htmx.config.defaultSettleDelay = 50;
+         htmx.config.scrollIntoViewOnBoost = true;
+         htmx.config.globalViewTransitions = true;
+         htmx.config.includeIndicatorStyles = true;
+
+         // Safe defaults for users who do not have gt_user populated
+         window.__localUser = { role: 'Guest', organization_id: null, username: '' };
+         try {
+             const parsed = JSON.parse(localStorage.getItem('gt_user') || 'null');
+             if (parsed && !parsed.role && parsed.username) parsed.role = 'Guest';
+             if (parsed) window.__localUser = parsed;
+         } catch (_e) {}
+
+         document.getElementById('user-name').innerText = window.__localUser.username || 'User';
+         document.getElementById('user-role').innerText = window.__localUser.role || 'Guest';
+         document.getElementById('user-av').innerText = (window.__localUser.username || 'U')[0].toUpperCase();
+         document.getElementById('org-display').innerText = window.__localUser.organization_name || 'SecOps v2.0';
+
+         const navLinks = [
+             {url:'/dashboard/', name:'Dashboard', icon:'fa-gauge-high', roles:['admin','supervisor','guard','dispatcher']},
+             {url:'/map-view/', name:'Open Maps', icon:'fa-map-location-dot', roles:['admin','supervisor','dispatcher']},
+             {url:'/routes/', name:'Routes Dispatch', icon:'fa-route', roles:['admin','dispatcher']},
+             {url:'/dispatch/', name:'Mission Control', icon:'fa-satellite-dish', roles:['admin','dispatcher']},
+             {url:'/incidents/', name:'Analytics', icon:'fa-chart-line', roles:['admin','supervisor','guard','dispatcher']},
+             {url:'/manage/', name:'Manage', icon:'fa-gears', roles:['admin','supervisor','dispatcher']},
+             {url:'/analytics/', name:'Reports', icon:'fa-box-archive', roles:['admin','supervisor','guard','dispatcher']},
+             {url:'/control/', name:'SecOps Control', icon:'fa-sliders', roles:['admin']}
+         ];
+
+         const navContainer = document.getElementById('navMenu');
+         navLinks.forEach(link => {
+             const isAllowed = link.roles.includes(userData.role) && (!link.systemAdminOnly || isSystemAdmin);
+             if (isAllowed) {
+                 const a = document.createElement('a');
+                 a.href = link.url;
+                 a.className = `${window.location.pathname === link.url ? 'active' : ''}`;
+                 a.innerHTML = `<i class="fas ${link.icon}"></i> ${link.name}`;
+                 // Add htmx SPA navigation
+                 a.setAttribute('hx-get', link.url);
+                 a.setAttribute('hx-target', '#spa-content');
+                 a.setAttribute('hx-swap', 'innerHTML transition:true');
+                 a.setAttribute('hx-push-url', 'true');
+                 a.setAttribute('hx-indicator', '#spa-transition');
+                 a.addEventListener('click', function(e) {
+                     if (this.classList.contains('active')) {
+                         e.preventDefault();
+                         return false;
+                     }
+                 });
+                 navContainer.appendChild(a);
+             }
+         });
+
+         // SPA transition feedback
+         document.body.addEventListener('htmx:beforeRequest', function(evt) {
+             if (evt.detail.target.id === 'spa-content') {
+                 var overlay = document.getElementById('spa-transition');
+                 if (overlay) overlay.classList.add('active');
+             }
+         });
+         document.body.addEventListener('htmx:afterSwap', function(evt) {
+             if (evt.detail.target.id === 'spa-content') {
+                 var overlay = document.getElementById('spa-transition');
+                 if (overlay) overlay.classList.remove('active');
+                 // Re-init any page-specific scripts
+                 window.dispatchEvent(new CustomEvent('spa:pageLoaded', {detail: {url: evt.detail.requestConfig?.path}}));
+             }
+         });
+
+        // Global Modal for Forms
+        const globalModal = document.createElement('div');
+        globalModal.id = 'globalModal';
+        globalModal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;';
+        globalModal.innerHTML = `
+            <div class="glass-card" style="width: 500px; max-width: 90%; padding: 30px;">
+                <h3 id="globalModalTitle" class="card-title" style="margin-bottom: 20px;"></h3>
+                <div id="globalModalBody"></div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="action-btn" style="flex:1" onclick="globalSubmitEntry()">Commit Changes</button>
+                    <button class="action-btn btn-secondary" style="flex:1" onclick="globalCloseModal()">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(globalModal);
+
+        function logout() {
+            localStorage.removeItem('gt_user');
+            window.location.href = '/login/';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
+        // Helper for API calls
+        window.apiFetch = async function apiFetch(url, options = {}) {
+            const loader = document.getElementById('global-loader');
+            if (loader) loader.style.display = 'block';
+
+            const token = (window.__localUser && (window.__localUser.token || window.__localUser.access)) ? (window.__localUser.token || window.__localUser.access) : '';
+            const defaultHeaders = token
+                ? { 'Authorization': `Bearer ${token.trim()}`, 'Content-Type': 'application/json' }
+                : { 'Content-Type': 'application/json' };
+            options.headers = { ...defaultHeaders, ...(options.headers || {}) };
+
+            try {
+                const response = await fetch(url, options);
+                if (loader) loader.style.display = 'none';
+
+                if (response.status === 401) {
+                    window.localStorage.removeItem('gt_user');
+                    window.location.href = '/login/';
+                    return;
+                }
+                
+                if (!response.ok && options.method && options.method !== 'GET') {
+                    let errData = {};
+                    try {
+                        const clone = response.clone();
+                        errData = await clone.json();
+                    } catch (e) {
+                        // Handle non-JSON error responses (like 500 HTML pages)
+                        errData = { error: `Server error (${response.status})` };
+                    }
+                    showToast(errData.detail || errData.error || 'Action failed', 'error');
+                }
+                
+                return response;
+            } catch (err) {
+                loader.style.display = 'none';
+                showToast('Network error - check connection', 'error');
+                console.error("Fetch error:", err);
+                throw err;
+            }
+        }
+
+        let currentGlobalModalMode = '';
+        let currentGlobalModalId = null;
+        let globalSubmitCallback = null;
+
+        function globalOpenModal(mode, title, bodyHtml, submitCallback, id = null) {
+            currentGlobalModalMode = mode;
+            currentGlobalModalId = id;
+            globalSubmitCallback = submitCallback;
+
+            document.getElementById('globalModalTitle').innerText = title;
+            document.getElementById('globalModalBody').innerHTML = bodyHtml;
+            document.getElementById('globalModal').style.display = 'flex';
+        }
+
+        function globalCloseModal() {
+            document.getElementById('globalModal').style.display = 'none';
+            currentGlobalModalMode = '';
+            currentGlobalModalId = null;
+            globalSubmitCallback = null;
+        }
+
+        async function globalSubmitEntry() {
+            if (globalSubmitCallback) {
+                await globalSubmitCallback(currentGlobalModalId);
+            }
+        }
+    </script>
+    {% block page_js %}{% endblock %}
+</body>
+</html>

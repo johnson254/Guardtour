@@ -24,6 +24,8 @@ urlpatterns = [
     path('map-view/', api_views.map_view_page, name='intelligence_map'),
     path('control/', api_views.admin_panel_page, name='secops_control'),
     path('routes/', api_views.routes_page, name='routes'),
+    path('mission-builder/', api_views.mission_builder_page, name='mission_builder'),
+    path('peer-rules/', api_views.peer_rules_page, name='peer_rules'),
     path('logout/', api_views.logout_view, name='logout'),
     path('intelligence_map/', lambda r: HttpResponsePermanentRedirect('/map-view/')),
 ]

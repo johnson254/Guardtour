@@ -1,0 +1,353 @@
+{% comment %}
+Globe Loader — Full-screen loading animation with interactive 3D globe
+and satellite markers, themed for GuardTour SecOps "The Watch Floor".
+
+Design intent:
+  Industrial control-room loading screen. The dark globe on a pitch
+  background creates depth while satellite markers in Alarm Red signal
+  the system is "acquiring" live field data. The green pulse LED and
+  "SYSTEM BOOT" text reinforce the ops-console feel.
+
+Usage (Django template include):
+  {% include "components/loader.html" %}
+
+Usage (standalone preview):
+  Open this file directly in a browser — uses importmap to load cobe
+  from CDN for standalone preview. No build step needed.
+
+Dependencies (for production):
+  npm install cobe
+
+Integration:
+  1. Add `import "cobe"` to your Vite entry point or dynamic import
+  2. The loader auto-initializes when included in the DOM
+  3. Call Loader.dismiss() to fade out when the app is ready
+{% endcomment %}
+<style>
+.gl-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a0a0f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+.gl-loader-overlay.gl-dismissed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gl-loader-globe {
+  width: 280px;
+  height: 280px;
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.gl-loader-globe canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+.gl-loader-globe canvas.gl-loaded {
+  opacity: 1;
+}
+
+.gl-loader-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(211, 47, 47, 0.15);
+  animation: gl-pulse-ring 3s ease-in-out infinite;
+}
+.gl-loader-ring:nth-child(2) {
+  inset: -16px;
+  animation-delay: 0.8s;
+  border-color: rgba(108, 142, 239, 0.1);
+}
+.gl-loader-ring:nth-child(3) {
+  inset: -24px;
+  animation-delay: 1.6s;
+  border-color: rgba(211, 47, 47, 0.06);
+}
+
+@keyframes gl-pulse-ring {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.04); opacity: 0.15; }
+}
+
+.gl-loader-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.gl-loader-led-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-loader-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.3s;
+}
+.gl-loader-led.active {
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+.gl-loader-led.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #4caf50;
+  animation: gl-pulse-dot 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+@keyframes gl-pulse-dot {
+  0% { transform: scale(0.33); opacity: 1; }
+  80%, 100% { opacity: 0; }
+}
+
+.gl-loader-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.3);
+}
+
+.gl-loader-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #d32f2f, #ff6659);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gl-loader-sub {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.25);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.gl-loader-progress {
+  width: 160px;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.gl-loader-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #d32f2f, #ff6659);
+  border-radius: 4px;
+  animation: gl-progress 2.5s ease-in-out forwards;
+}
+
+@keyframes gl-progress {
+  0% { width: 0%; }
+  50% { width: 55%; }
+  85% { width: 88%; }
+  100% { width: 92%; }
+}
+
+.gl-loader-version {
+  font-size: 0.5rem;
+  color: rgba(255,255,255,0.12);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 24px;
+}
+</style>
+
+<div class="gl-loader-overlay" id="glLoaderOverlay">
+  <div class="gl-loader-globe" id="glLoaderGlobe">
+    <div class="gl-loader-ring"></div>
+    <div class="gl-loader-ring"></div>
+    <div class="gl-loader-ring"></div>
+    <canvas id="glLoaderCanvas"></canvas>
+  </div>
+
+  <div class="gl-loader-status">
+    <div class="gl-loader-led-row">
+      <div class="gl-loader-led active" id="glLoaderLed" style="position:relative;"></div>
+      <span class="gl-loader-label">System Acquisition</span>
+    </div>
+
+    <div class="gl-loader-title">Establishing Link</div>
+    <div class="gl-loader-sub" id="glLoaderMessage">Acquiring satellite network&hellip;</div>
+
+    <div class="gl-loader-progress">
+      <div class="gl-loader-progress-bar"></div>
+    </div>
+  </div>
+
+  <div class="gl-loader-version">GuardTour SecOps v2.0</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "cobe": "https://cdn.jsdelivr.net/npm/cobe@0.4.2/dist/index.mjs"
+  }
+}
+</script>
+
+<script type="module">
+(function() {
+  if (window.Loader) return;
+
+  var LOAD_MESSAGES = [
+    "Acquiring satellite network&hellip;",
+    "Synchronizing field data&hellip;",
+    "Calibrating guard positions&hellip;",
+    "Establishing secure channel&hellip;",
+    "Loading mission manifest&hellip;",
+    "Connecting to command relay&hellip;",
+  ];
+
+  var els = {};
+  var messageIndex = 0;
+  var messageInterval = null;
+  var globeInstance = null;
+  var animationId = null;
+  var phi = 0;
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function cacheEls() {
+    var overlay = document.getElementById('glLoaderOverlay');
+    if (!overlay) return false;
+    els.overlay = overlay;
+    els.canvas = document.getElementById('glLoaderCanvas');
+    els.message = document.getElementById('glLoaderMessage');
+    els.led = document.getElementById('glLoaderLed');
+    return true;
+  }
+
+  function rotateMessages() {
+    if (!els.message) return;
+    messageIndex = (messageIndex + 1) % LOAD_MESSAGES.length;
+    els.message.innerHTML = LOAD_MESSAGES[messageIndex];
+  }
+
+  function initGlobe() {
+    if (!els.canvas) return;
+    var canvas = els.canvas;
+    var width = canvas.offsetWidth;
+    if (width === 0) return;
+
+    import('cobe').then(function(mod) {
+      var createGlobe = mod.default || mod;
+      globeInstance = createGlobe(canvas, {
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        width: width,
+        height: width,
+        phi: 0,
+        theta: 0.25,
+        dark: 0.92,
+        diffuse: 1.2,
+        mapSamples: 16000,
+        mapBrightness: 7,
+        baseColor: [0.15, 0.15, 0.18],
+        markerColor: [0.827, 0.184, 0.184],
+        glowColor: [0.827, 0.184, 0.184],
+        markerElevation: 0.12,
+        markers: [
+          { location: [45.0, -120.0], size: 0.04 },
+          { location: [30.0, 45.0], size: 0.04 },
+          { location: [-15.0, 100.0], size: 0.04 },
+          { location: [60.0, -30.0], size: 0.04 },
+          { location: [-40.0, -60.0], size: 0.04 },
+          { location: [10.0, 150.0], size: 0.04 },
+          { location: [55.0, 80.0], size: 0.04 },
+          { location: [-25.0, 20.0], size: 0.04 },
+          { location: [70.0, 25.0], size: 0.04 },
+          { location: [-5.0, -75.0], size: 0.04 },
+          { location: [35.0, -95.0], size: 0.04 },
+          { location: [-50.0, 140.0], size: 0.04 },
+          { location: [20.0, -20.0], size: 0.04 },
+          { location: [50.0, 120.0], size: 0.04 },
+          { location: [-30.0, 70.0], size: 0.04 },
+          { location: [5.0, -150.0], size: 0.04 },
+        ],
+        arcs: [],
+        arcColor: [0.424, 0.557, 0.937],
+        arcWidth: 0.5,
+        arcHeight: 0.25,
+        opacity: 0.7,
+      });
+
+      function animate() {
+        phi += 0.003;
+        globeInstance.update({
+          phi: phi,
+          theta: 0.25,
+        });
+        animationId = requestAnimationFrame(animate);
+      }
+      animate();
+
+      canvas.style.opacity = '1';
+      canvas.classList.add('gl-loaded');
+    }).catch(function(err) {
+      console.error('Failed to load cobe:', err);
+      // Fallback: just show the ring animation without globe
+      els.message.innerHTML = 'Satellite link offline — operating in local mode';
+    });
+  }
+
+  function dismiss() {
+    if (messageInterval) {
+      clearInterval(messageInterval);
+      messageInterval = null;
+    }
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+    if (globeInstance) {
+      globeInstance.destroy();
+      globeInstance = null;
+    }
+    els.overlay.classList.add('gl-dismissed');
+    setTimeout(function() {
+      els.overlay.style.display = 'none';
+    }, 600);
+  }
+
+  function setup() {
+    if (!cacheEls()) return;
+
+    initGlobe();
+
+    messageInterval = setInterval(rotateMessages, 2200);
+  }
+
+  setup();
+
+  window.Loader = {
+    dismiss: dismiss,
+  };
+})();
+</script>

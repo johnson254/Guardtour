@@ -6,5 +6,5 @@ def base_template_context(request):
     """
     is_htmx = bool(request.headers.get('HX-Request')) if request else False
     return {
-        'base_template': 'bare_base.html' if is_htmx else 'base_app.html',
+        'base_template': 'bare_base.html' if is_htmx else 'base_template.html',
     }

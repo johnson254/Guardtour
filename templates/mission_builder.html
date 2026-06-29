@@ -1,0 +1,690 @@
+{% extends base_template %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}" />
+{% endblock %}
+{% block content %}
+<style>
+/* Bright, visible glass tokens */
+:root {
+  --mb-crim:   #ff3b3b;
+  --mb-crim2:  #ff6b6b;
+  --mb-teal:   #00e5a0;
+  --mb-amber:  #ffb347;
+  --mb-indigo: #7c9fff;
+  --mb-violet: #c084fc;
+  --mb-surf:   rgba(255, 255, 255, 0.08);
+  --mb-surf2:  rgba(255, 255, 255, 0.05);
+  --mb-surf3:  rgba(0, 0, 0, 0.2);
+  --mb-line:   rgba(255, 255, 255, 0.18);
+  --mb-line2:  rgba(255, 255, 255, 0.28);
+  --mb-mute:   rgba(255, 255, 255, 0.75);
+  --mb-text:   #ffffff;
+  --mb-rad:    20px;
+  --mb-rad-sm: 14px;
+}
+
+/* Full-page isolation */
+#page-mission-builder {
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.mb-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 16px;
+  min-height: calc(100vh - 200px);
+}
+
+@media (max-width: 1400px) {
+  .mb-shell { grid-template-columns: 260px 1fr 280px; }
+}
+@media (max-width: 1200px) {
+  .mb-shell { grid-template-columns: 1fr; }
+}
+
+/* Bright glass panels */
+.mb-panel {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--mb-rad);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mb-panel-head {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--mb-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(255, 59, 59, 0.15) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+}
+
+.mb-panel-title {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mb-text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.mb-panel-title i { 
+  color: var(--mb-crim2); 
+  filter: drop-shadow(0 0 8px rgba(255, 59, 59, 0.6));
+}
+
+.mb-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.mb-foot {
+  padding: 14px 18px;
+  border-top: 1px solid var(--mb-line);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+}
+
+/* Bright buttons */
+.mb-btn {
+  border: none;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.mb-btn:hover { 
+  transform: translateY(-2px); 
+  filter: brightness(1.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+.mb-btn:active { 
+  transform: translateY(0); 
+  filter: brightness(0.95);
+}
+
+.mb-btn-primary {
+  background: linear-gradient(135deg, var(--mb-crim), #cc0000);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(255, 59, 59, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.mb-btn-ghost {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid var(--mb-line);
+  backdrop-filter: blur(10px);
+}
+.mb-btn-ghost:hover { 
+  color: #fff; 
+  border-color: var(--mb-line2);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Bright search */
+.mb-search-box { position: relative; }
+.mb-search-box i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+.mb-search-box input {
+  width: 100%;
+  padding: 11px 14px 11px 36px;
+  border-radius: 30px;
+  border: 1px solid var(--mb-line);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.85rem;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.mb-search-box input:focus { 
+  outline: none; 
+  border-color: var(--mb-crim2); 
+  box-shadow: 0 0 0 4px rgba(255, 59, 59, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.mb-search-box input::placeholder { 
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+/* Bright route cards */
+.mb-route-card {
+  padding: 14px 16px;
+  border-radius: var(--mb-rad-sm);
+  border: 1px solid var(--mb-line);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: all .2s;
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.mb-route-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background .2s;
+  box-shadow: 0 0 8px rgba(255, 59, 59, 0.6);
+}
+.mb-route-card:hover { 
+  border-color: var(--mb-line2); 
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+.mb-route-card:hover::before { 
+  background: var(--mb-crim2); 
+}
+.mb-route-card.active {
+  border-color: rgba(255, 59, 59, 0.6);
+  background: rgba(255, 59, 59, 0.15);
+  box-shadow: 0 0 20px rgba(255, 59, 59, 0.2);
+}
+.mb-route-card.active::before { 
+  background: var(--mb-crim2); 
+}
+
+.mb-route-name { 
+  font-size: 0.82rem; 
+  font-weight: 900; 
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.mb-route-meta { 
+  font-size: 0.65rem; 
+  color: var(--mb-mute); 
+  margin-top: 5px; 
+  text-transform: uppercase; 
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+
+/* Bright sections */
+.mb-section {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--mb-line);
+  border-radius: var(--mb-rad);
+  padding: 16px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.mb-section-head {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  margin-bottom: 12px;
+}
+.mb-section-title {
+  font-size: 0.78rem; 
+  font-weight: 900; 
+  color: #fff;
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+  text-transform: uppercase; 
+  letter-spacing: 0.6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Bright chips */
+.mb-chip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  cursor: pointer;
+  border: 1px solid var(--mb-line);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all .15s;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+.mb-chip:hover { 
+  border-color: var(--mb-line2); 
+  color: #fff; 
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+.mb-chip.active { 
+  background: rgba(255, 59, 59, 0.3); 
+  border-color: rgba(255, 59, 59, 0.6); 
+  color: #fff;
+  box-shadow: 0 0 12px rgba(255, 59, 59, 0.3);
+}
+
+.mb-summary-row { 
+  display: flex; 
+  gap: 10px; 
+  flex-wrap: wrap; 
+  margin-top: 10px; 
+}
+.mb-summary-pill {
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--mb-line);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.mb-summary-pill strong { 
+  color: var(--mb-crim2); 
+  margin-left: 5px;
+  text-shadow: 0 0 8px rgba(255, 59, 59, 0.4);
+}
+
+.mb-empty {
+  text-align: center;
+  padding: 36px 16px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Bright loader */
+#mbLoader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(5, 5, 10, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .4s;
+  backdrop-filter: blur(8px);
+}
+#mbLoader.show { 
+  background: rgba(5, 5, 10, 0.95); 
+}
+.mb-loader-ring {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--mb-crim2);
+  box-shadow: 0 0 20px rgba(255, 59, 59, 0.5);
+  animation: mb-spin 1s linear infinite;
+}
+@keyframes mb-spin { 
+  to { transform: rotate(360deg); } 
+}
+
+/* Calendar time picker polish */
+.mb-body .calendar-time-picker {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid var(--mb-line) !important;
+  border-radius: var(--mb-rad) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+</style>
+
+<div id="page-mission-builder">
+  <div class="mb-shell">
+    <!-- LEFT: Blueprint library -->
+    <div class="mb-panel">
+      <div class="mb-panel-head">
+        <div class="mb-panel-title">
+          <i class="fas fa-map"></i> Mission Library
+        </div>
+        <button class="mb-btn mb-btn-primary" onclick="mbNewMission()">
+          <i class="fas fa-plus"></i> New
+        </button>
+      </div>
+      <div style="padding: 10px 10px 8px;">
+        <div class="mb-search-box">
+          <i class="fas fa-search"></i>
+          <input 
+            type="text" 
+            placeholder="Search blueprints…" 
+            oninput="mbFilterRoutes(this.value)"
+          />
+        </div>
+      </div>
+      <div class="mb-body" id="mbRouteList">
+        <div class="mb-empty">
+          <i class="fas fa-map"></i>
+          <br/>
+          Loading blueprints…
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: Mission window -->
+    <div class="mb-panel">
+      <div class="mb-panel-head">
+        <div class="mb-panel-title">
+          <i class="fas fa-calendar-check"></i> Mission Window
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="mb-btn mb-btn-ghost" onclick="mbApplyWindow()">
+            <i class="fas fa-check"></i> Apply
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-body">
+        <!-- Calendar/time picker injected here -->
+        <div style="border-radius: var(--mb-rad); overflow: hidden; background: rgba(255,255,255,0.05); border: 1px solid var(--mb-line);">
+          <div id="mbCalendarHost" style="padding: 12px;"></div>
+        </div>
+      </div>
+
+      <div class="mb-section" style="margin: 0 16px 16px;">
+        <div class="mb-section-head">
+          <div class="mb-section-title">
+            <i class="fas fa-clock" style="color: var(--mb-amber);"></i>
+            Checkpoint Time
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="mb-chip" data-ct="now" onclick="mbSetCheckpointTime('now', this)">
+            Now
+          </button>
+          <button class="mb-chip" data-ct="+15" onclick="mbSetCheckpointTime('+15', this)">
+            +15m
+          </button>
+          <button class="mb-chip" data-ct="+30" onclick="mbSetCheckpointTime('+30', this)">
+            +30m
+          </button>
+          <button class="mb-chip" data-ct="+60" onclick="mbSetCheckpointTime('+60', this)">
+            +1h
+          </button>
+          <button class="mb-chip" data-ct="eos" onclick="mbSetCheckpointTime('eos', this)">
+            End Shift
+          </button>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 12px; align-items: center;">
+          <input 
+            class="mb-chip" 
+            type="time" 
+            id="mbCheckpointTime" 
+            value="" 
+            style="padding: 8px 14px; width: 140px; text-align: center;"
+          />
+          <span style="font-size: 0.7rem; color: var(--mb-mute); font-weight: 600;">
+            or custom time
+          </span>
+        </div>
+      </div>
+
+      <div class="mb-summary-row" style="padding: 0 16px 16px;">
+        <div class="mb-summary-pill">
+          Date: <strong id="mbSummaryDate">—</strong>
+        </div>
+        <div class="mb-summary-pill">
+          Time: <strong id="mbSummaryTime">—</strong>
+        </div>
+        <div class="mb-summary-pill">
+          CP Time: <strong id="mbSummaryCp">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Mission brief -->
+    <div class="mb-panel">
+      <div class="mb-panel-head">
+        <div class="mb-panel-title">
+          <i class="fas fa-clipboard-list"></i> Mission Brief
+        </div>
+        <span style="font-size: 0.7rem; color: var(--mb-mute); font-weight: 700;" id="mbBadge"></span>
+      </div>
+      <div class="mb-body" id="mbBrief">
+        <div class="mb-empty">
+          <i class="fas fa-satellite-dish"></i>
+          <br/>
+          Select a blueprint and time window
+        </div>
+      </div>
+      <div class="mb-foot" id="mbFoot" style="display: none;">
+        <button class="mb-btn mb-btn-ghost" onclick="mbReset()">
+          Reset
+        </button>
+        <button class="mb-btn mb-btn-primary" onclick="mbDeploy()">
+          <i class="fas fa-rocket"></i> Deploy
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="mbLoader">
+  <div class="mb-loader-ring"></div>
+</div>
+
+<script>
+var __mb = {
+  routes: [],
+  selectedRouteId: null,
+  windowDate: null,
+  windowTime: null,
+  checkpointTimeMode: null,
+  checkpointTime: null,
+};
+
+function mbLoader(show) {
+  var el = document.getElementById('mbLoader');
+  if (!el) return;
+  el.classList.toggle('show', !!show);
+}
+
+function mbFilterRoutes(q) {
+  var term = (q || '').toLowerCase();
+  var items = document.querySelectorAll('.mb-route-card');
+  items.forEach(function(card) {
+    var name = (card.dataset.name || '').toLowerCase();
+    card.style.display = name.indexOf(term) !== -1 ? '' : 'none';
+  });
+}
+
+function mbRenderRouteList() {
+  var box = document.getElementById('mbRouteList');
+  if (!box) return;
+  if (!__mb.routes.length) {
+    box.innerHTML = '<div class="mb-empty">No blueprints available</div>';
+    return;
+  }
+  var html = '';
+  __mb.routes.forEach(function(r) {
+    html += '<div class="mb-route-card' + (__mb.selectedRouteId === r.id ? ' active' : '') + '" data-id="' + r.id + '" data-name="' + (r.name || '').replace(/"/g, '&quot;') + '" onclick="mbSelectRoute(' + r.id + ')">' +
+      '<div class="mb-route-name">' + (r.name || 'Unnamed') + '</div>' +
+      '<div class="mb-route-meta">' + (r.logic_type || 'Flex') + ' route · ' + (r.checkpoint_count || 0) + ' checkpoints' + (r.is_daily ? ' · ↻ Daily' : '') + '</div>' +
+    '</div>';
+  });
+  box.innerHTML = html;
+}
+
+function mbSelectRoute(id) {
+  __mb.selectedRouteId = id;
+  __mb.windowDate = null;
+  __mb.windowTime = null;
+  __mb.checkpointTimeMode = null;
+  __mb.checkpointTime = null;
+
+  mbRenderRouteList();
+  mbUpdateBrief();
+
+  if (window.CalendarTimePicker) {
+    window.CalendarTimePicker.setDate(new Date());
+    window.CalendarTimePicker.setTime('');
+  }
+  document.getElementById('mbCheckpointTime').value = '';
+  document.querySelectorAll('[data-ct]').forEach(function(el) { 
+    el.classList.remove('active'); 
+  });
+}
+
+function mbSetCheckpointTime(mode, btn) {
+  __mb.checkpointTimeMode = mode;
+  var t = '';
+  var d = new Date();
+  if (mode === 'now') t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  else if (mode === '+15') { d.setMinutes(d.getMinutes() + 15); t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  else if (mode === '+30') { d.setMinutes(d.getMinutes() + 30); t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  else if (mode === '+60') { d.setMinutes(d.getMinutes() + 60); t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  else if (mode === 'eos') t = '18:00';
+  __mb.checkpointTime = t;
+  document.getElementById('mbCheckpointTime').value = t;
+  document.querySelectorAll('[data-ct]').forEach(function(el) { 
+    el.classList.remove('active'); 
+  });
+  if (btn) btn.classList.add('active');
+  mbUpdateSummary();
+}
+
+function mbApplyWindow() {
+  var dt = window.CalendarTimePicker ? window.CalendarTimePicker.getDateTime() : null;
+  if (!dt) { alert('Choose a date and time first'); return; }
+  __mb.windowDate = dt.date;
+  __mb.windowTime = dt.time;
+  mbUpdateSummary();
+  mbUpdateBrief();
+}
+
+function mbUpdateSummary() {
+  var dEl = document.getElementById('mbSummaryDate');
+  var tEl = document.getElementById('mbSummaryTime');
+  var cEl = document.getElementById('mbSummaryCp');
+  if (dEl) dEl.textContent = __mb.windowDate || '—';
+  if (tEl) tEl.textContent = __mb.windowTime || '—';
+  if (cEl) cEl.textContent = __mb.checkpointTime ? (__mb.checkpointTime + (__mb.checkpointTimeMode ? ' (' + __mb.checkpointTimeMode + ')' : '')) : '—';
+}
+
+function mbUpdateBrief() {
+  var brief = document.getElementById('mbBrief');
+  var badge = document.getElementById('mbBadge');
+  var foot = document.getElementById('mbFoot');
+  if (!brief) return;
+  var route = (__mb.routes || []).find(function(r) { return r.id === __mb.selectedRouteId; });
+  if (!route) {
+    brief.innerHTML = '<div class="mb-empty"><i class="fas fa-satellite-dish"></i><br/>Select a blueprint and time window</div>';
+    if (badge) badge.textContent = '';
+    if (foot) foot.style.display = 'none';
+    return;
+  }
+  if (badge) badge.textContent = route.logic_type || 'Route';
+  brief.innerHTML =
+    '<div class="mb-section">' +
+      '<div style="font-size: 0.9rem; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">' + (route.name || 'Unnamed') + '</div>' +
+      '<div style="font-size: 0.68rem; color: var(--mb-mute); margin-top: 6px; font-weight: 600;">' + (route.checkpoint_count || 0) + ' checkpoints' + (route.is_daily ? ' · Daily recurrence' : '') + '</div>' +
+      '<div class="mb-summary-row" style="margin-top: 12px;">' +
+        '<div class="mb-summary-pill">Window: <strong>' + (__mb.windowDate || '—') + ' ' + (__mb.windowTime || '—') + '</strong></div>' +
+        '<div class="mb-summary-pill">CP Time: <strong>' + (__mb.checkpointTime || '—') + '</strong></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="mb-section">' +
+      '<div style="font-size: 0.72rem; font-weight: 900; color: var(--mb-mute); text-transform: uppercase; letter-spacing: 0.5px;">Operational Notes</div>' +
+      '<div style="font-size: 0.78rem; color: rgba(255,255,255,0.85); margin-top: 8px; line-height: 1.5;">Assign this window in dispatch once validated. All parameters are ready for deployment.</div>' +
+    '</div>';
+  if (foot) foot.style.display = 'flex';
+}
+
+function mbNewMission() {
+  __mb.selectedRouteId = null;
+  __mb.windowDate = null;
+  __mb.windowTime = null;
+  __mb.checkpointTimeMode = null;
+  __mb.checkpointTime = null;
+  mbRenderRouteList();
+  mbUpdateSummary();
+  mbUpdateBrief();
+}
+
+function mbReset() {
+  mbNewMission();
+}
+
+function mbDeploy() {
+  if (!__mb.selectedRouteId) { alert('Select a blueprint first'); return; }
+  if (!__mb.windowDate || !__mb.windowTime) { alert('Set a mission window'); return; }
+  mbLoader(true);
+  setTimeout(function() {
+    mbLoader(false);
+    window.CalendarTimePicker && CalendarTimePicker.init && CalendarTimePicker.init();
+    alert('Mission staged for route ' + __mb.selectedRouteId + ' at ' + __mb.windowDate + ' ' + __mb.windowTime);
+  }, 700);
+}
+
+function mbLoadRoutes() {
+  mbLoader(true);
+  fetch('/api/blueprints-partial/')
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      var wrapper = new DOMParser().parseFromString(html, 'text/html');
+      var cards = wrapper.querySelectorAll('.dc-bp-card, .rs-r-card');
+      var out = [];
+      cards.forEach(function(card) {
+        var id = null;
+        var nameEl = card.querySelector('.dc-bp-card-name, .rs-r-name');
+        var countEl = card.querySelector('.dc-bp-card-count');
+        var metaEl = card.querySelector('.dc-bp-card-meta');
+        var badge = metaEl ? (metaEl.textContent || '').trim() : '';
+        var onclick = card.getAttribute('onclick') || '';
+        var m = onclick.match(/bpSelectRoute\('(\d+)'\)|dcSelectBlueprint\('(\d+)'\)|mgQuickDeploy\('(\d+)'\)/);
+        if (m) id = m[1] || m[2] || m[3];
+        if (id && nameEl) out.push({ 
+          id: parseInt(id, 10), 
+          name: nameEl.textContent.trim(), 
+          checkpoint_count: parseInt((countEl ? countEl.textContent : '0'), 10) || 0, 
+          logic_type: badge || 'Flexible', 
+          is_daily: !!metaEl && (metaEl.textContent || '').indexOf('Daily') !== -1 
+        });
+      });
+      __mb.routes = out;
+      mbRenderRouteList();
+      mbLoader(false);
+    })
+    .catch(function() {
+      __mb.routes = [];
+      mbRenderRouteList();
+      mbLoader(false);
+    });
+}
+
+(function() {
+  mbLoadRoutes();
+  if (window.CalendarTimePicker && CalendarTimePicker.init) {
+    CalendarTimePicker.init();
+  }
+})();
+</script>
+{% endblock %}

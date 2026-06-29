@@ -1,6 +1,7 @@
 {% extends base_template %}
 {% block content %}
 {% load static %}
+<link rel="stylesheet" href="{% static 'css/page-dispatch.css' %}" />
 <link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
 
 <!-- ── Shell ──────────────────────────────────────────────── -->
@@ -162,15 +163,6 @@
             <div style="font-size:0.6rem;color:rgba(255,255,255,0.3);">Loading state…</div>
         </div>
     </div>
-    <style>
-    /* Override deploy drawer to be inline inside the right panel — container controls visibility */
-    #dcRightPanel .dc-overlay { position:relative !important; top:auto !important; right:auto !important; bottom:auto !important; width:100% !important; max-width:100% !important; box-shadow:none !important; border-left:none !important; transform:none !important; opacity:1 !important; display:flex !important; pointer-events:auto !important; }
-    #dcRightPanel .dc-overlay.dc-hidden { display:flex !important; opacity:1 !important; transform:none !important; pointer-events:auto !important; }
-    #dcRightPanel .dc-overlay-inner { padding:10px; }
-    #dcRightPanel .dc-overlay #dcDeployPastDue,
-    #dcRightPanel .dc-overlay #dcOvRedeployFields { display:none; }
-    </style>
-
 <div class="dc-toasts" id="dcToasts"></div>
 
 <!-- Confirmation overlay: TTS per-checkpoint resend -->

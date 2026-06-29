@@ -1,0 +1,525 @@
+{% extends base_template %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
+{% endblock %}
+{% block content %}
+<style>
+/* Shared tokens from routes.html */
+:root {
+  --r-crim:   #d32f2f;
+  --r-teal:   #00C49A;
+  --r-amber:  #F5A623;
+  --r-indigo: #6C8EEF;
+  --r-violet: #A855F7;
+  --r-surf:   #0f0f18;
+  --r-surf2:  #141420;
+  --r-surf3:  #0D0D14;
+  --r-line:   rgba(255,255,255,0.07);
+  --r-line2:  rgba(255,255,255,0.12);
+  --r-mute:   rgba(255,255,255,0.38);
+  --r-text:   rgba(255,255,255,0.88);
+  --r-rad:    16px;
+  --r-rad-sm: 12px;
+}
+
+/* Peer rules shell */
+.pr-shell {
+  display: grid;
+  grid-template-columns: 250px 1fr 290px;
+  gap: 10px;
+  height: calc(100vh - 164px);
+  min-height: 520px;
+}
+@media (max-width: 1200px) { .pr-shell { grid-template-columns: 1fr; height: auto; } }
+
+.pr-panel {
+  background: rgba(18, 18, 30, 0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--r-rad);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pr-panel-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(168,85,247,0.14) 0%, rgba(18, 18, 30, 0.7) 55%, rgba(0,0,0,0) 100%);
+}
+.pr-panel-title {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--r-text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.pr-panel-title i { color: var(--r-violet); }
+
+.pr-body { flex: 1; overflow-y: auto; padding: 14px; }
+.pr-foot {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  background: rgba(12, 12, 18, 0.45);
+}
+
+.pr-btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .18s cubic-bezier(.4,0,.2,1);
+}
+.pr-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.pr-btn:active { transform: translateY(0); filter: brightness(0.96); }
+.pr-btn-primary {
+  background: linear-gradient(135deg, var(--r-violet), #6d28d9);
+  color: #fff;
+  box-shadow: 0 0 18px rgba(168,85,247,0.38), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.pr-btn-ghost {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.65);
+  border: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(10px);
+}
+
+/* Peer list */
+.pr-peer-list { display: flex; flex-direction: column; gap: 8px; }
+.pr-peer-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-rad-sm);
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.18);
+  cursor: pointer;
+  transition: all .16s;
+  position: relative;
+  overflow: hidden;
+}
+.pr-peer-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), transparent 60%);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.pr-peer-card:hover { border-color: rgba(168,85,247,0.45); }
+.pr-peer-card:hover::before { opacity: 1; }
+.pr-peer-card.active {
+  border-color: rgba(168,85,247,0.55);
+  background: rgba(168,85,247,0.12);
+}
+.pr-peer-card.active::before { opacity: 1; }
+
+.pr-avatar {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: rgba(168,85,247,0.22);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; color: var(--r-violet); font-size: 0.78rem;
+  border: 1px solid rgba(168,85,247,0.35);
+}
+.pr-peer-name { font-size: 0.78rem; font-weight: 800; color: var(--r-text); }
+.pr-peer-role { font-size: 0.62rem; color: var(--r-mute); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* Rule chips */
+.pr-rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pr-rule-card {
+  padding: 16px 14px;
+  border-radius: var(--r-rad);
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(18, 18, 30, 0.45);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all .18s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+}
+.pr-rule-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(168,85,247,0.6), transparent);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.pr-rule-card:hover {
+  border-color: rgba(255,255,255,0.14);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.pr-rule-card:hover::before { opacity: 1; }
+.pr-rule-card.active {
+  border-color: rgba(168,85,247,0.6);
+  background: rgba(168,85,247,0.18);
+}
+.pr-rule-card.active::before { opacity: 1; }
+
+.pr-rule-icon { font-size: 1.1rem; color: var(--r-violet); margin-bottom: 6px; }
+.pr-rule-title { font-size: 0.8rem; font-weight: 900; color: #fff; }
+.pr-rule-sub { font-size: 0.65rem; color: var(--r-mute); margin-top: 3px; line-height: 1.4; }
+
+/* Constraints */
+.pr-section {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--r-rad);
+  background: rgba(18, 18, 30, 0.45);
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(12px);
+}
+.pr-section-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.pr-section-title {
+  font-size: 0.7rem; font-weight: 900; color: #fff;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.pr-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pr-toggle-row:last-child { border-bottom: none; }
+.pr-toggle-row label:first-child {
+  font-size: 0.78rem; color: var(--r-text); font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+.pr-toggle {
+  position: relative;
+  width: 38px; height: 20px;
+  flex-shrink: 0;
+}
+.pr-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.pr-toggle-sl {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px; cursor: pointer;
+  transition: background .2s, border-color .2s;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.pr-toggle-sl::before {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  left: 2px; top: 1px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.45);
+  transition: transform .2s, background .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.pr-toggle input:checked + .pr-toggle-sl {
+  background: rgba(168,85,247,0.45);
+  border-color: rgba(168,85,247,0.7);
+}
+.pr-toggle input:checked + .pr-toggle-sl::before {
+  transform: translateX(17px);
+  background: var(--r-violet);
+}
+
+/* Review pane */
+.pr-review-empty {
+  text-align: center;
+  padding: 32px 12px;
+  color: var(--r-mute);
+  font-size: 0.78rem;
+}
+.pr-summary {
+  background: rgba(20, 20, 32, 0.55);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--r-rad);
+  padding: 14px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(10px);
+}
+.pr-summary:last-child { margin-bottom: 0; }
+.pr-summary-title {
+  font-size: 0.7rem; font-weight: 900; color: #fff;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.pr-summary-title i { font-size: 0.8rem; }
+.pr-summary-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pr-summary-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.8);
+  font-size: 0.62rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+/* Loader */
+#prLoader {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(5,5,10,0.0);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .4s;
+}
+#prLoader.show { background: rgba(5,5,10,0.85); }
+.pr-loader-ring {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.06);
+  border-top-color: var(--r-violet);
+  animation: pr-spin 1s linear infinite;
+}
+@keyframes pr-spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="pr-shell" style="position:relative; z-index:1;">
+  <!-- LEFT: Peer selector -->
+  <div class="pr-panel">
+    <div class="pr-panel-head">
+      <div class="pr-panel-title"><i class="fas fa-user-group"></i> Peers</div>
+      <button class="pr-btn pr-btn-primary" onclick="prAddPeer()"><i class="fas fa-user-plus"></i> Add</button>
+    </div>
+    <div class="pr-body">
+      <div class="pr-peer-list" id="prPeerList">
+        <div class="pr-review-empty"><i class="fas fa-user-lock"></i><br/>No peers selected</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Rule selection -->
+  <div class="pr-panel">
+    <div class="pr-panel-head">
+      <div class="pr-panel-title"><i class="fas fa-gavel"></i> Peer Rules</div>
+      <div style="display:flex;gap:6px;">
+        <button class="pr-btn pr-btn-ghost" onclick="prResetRules()"><i class="fas fa-rotate-left"></i> Reset</button>
+        <button class="pr-btn pr-btn-primary" onclick="prApplyRules()"><i class="fas fa-check"></i> Apply</button>
+      </div>
+    </div>
+    <div class="pr-body">
+      <div class="pr-rule-grid" id="prRuleGrid">
+        <div class="pr-rule-card" data-rule="relief" onclick="prToggleRule(this, 'relief')">
+          <div class="pr-rule-icon"><i class="fas fa-handshake-angle"></i></div>
+          <div class="pr-rule-title">Relief</div>
+          <div class="pr-rule-sub">Peer-assisted shift relief at checkpoint</div>
+        </div>
+        <div class="pr-rule-card" data-rule="override" onclick="prToggleRule(this, 'override')">
+          <div class="pr-rule-icon"><i class="fas fa-shield-halved"></i></div>
+          <div class="pr-rule-title">Override</div>
+          <div class="pr-rule-sub">Authorized peer override for restricted zones</div>
+        </div>
+        <div class="pr-rule-card" data-rule="sync" onclick="prToggleRule(this, 'sync')">
+          <div class="pr-rule-icon"><i class="fas fa-arrows-rotate"></i></div>
+          <div class="pr-rule-title">Sync</div>
+          <div class="pr-rule-sub">Auto-sync scan windows within 60m</div>
+        </div>
+        <div class="pr-rule-card" data-rule="alert" onclick="prToggleRule(this, 'alert')">
+          <div class="pr-rule-icon"><i class="fas fa-bell"></i></div>
+          <div class="pr-rule-title">Alert</div>
+          <div class="pr-rule-sub">Peer proximity alert on checkpoint miss</div>
+        </div>
+      </div>
+
+      <div class="pr-section">
+        <div class="pr-section-head">
+          <div class="pr-section-title"><i class="fas fa-sliders" style="color:var(--r-indigo)"></i> Constraints</div>
+        </div>
+        <div class="pr-toggle-row">
+          <label>Require physical co-location</label>
+          <label class="pr-toggle">
+            <input type="checkbox" id="prTogNear">
+            <span class="pr-toggle-sl"></span>
+          </label>
+        </div>
+        <div class="pr-toggle-row">
+          <label>Require auth photo</label>
+          <label class="pr-toggle">
+            <input type="checkbox" id="prTogPhoto">
+            <span class="pr-toggle-sl"></span>
+          </label>
+        </div>
+        <div class="pr-toggle-row">
+          <label>Log override reasons</label>
+          <label class="pr-toggle">
+            <input type="checkbox" id="prTogLog">
+            <span class="pr-toggle-sl"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Review -->
+  <div class="pr-panel">
+    <div class="pr-panel-head">
+      <div class="pr-panel-title"><i class="fas fa-file-signature"></i> Review</div>
+      <span style="font-size:0.6rem;color:var(--r-mute);" id="prBadge"></span>
+    </div>
+    <div class="pr-body" id="prReview">
+      <div class="pr-review-empty"><i class="fas fa-scale-balanced"></i><br/>Select peers and rules to configure peer interactions.</div>
+    </div>
+    <div class="pr-foot" id="prFoot" style="display:none;">
+      <button class="pr-btn pr-btn-ghost" onclick="prClear()">Clear</button>
+      <button class="pr-btn pr-btn-primary" onclick="prSave()"><i class="fas fa-save"></i> Save Rules</button>
+    </div>
+  </div>
+</div>
+
+<div id="prLoader"><div class="pr-loader-ring"></div></div>
+
+<script>
+function prLoader(show) {
+  var el = document.getElementById('prLoader');
+  if (!el) return;
+  el.classList.toggle('show', !!show);
+}
+var __pr = {
+  peers: [],
+  selectedPeerIds: [],
+  rules: [],
+  toggles: {}
+};
+
+function prToggleRule(card, rule) {
+  var idx = __pr.rules.indexOf(rule);
+  if (idx === -1) __pr.rules.push(rule); else __pr.rules.splice(idx, 1);
+  document.querySelectorAll('.pr-rule-card').forEach(function(el) { el.classList.remove('active'); });
+  __pr.rules.forEach(function(r) {
+    var el = document.querySelector('.pr-rule-card[data-rule="' + r + '"]');
+    if (el) el.classList.add('active');
+  });
+  prUpdateReview();
+}
+
+function prSelectPeer(id, card) {
+  var pos = __pr.selectedPeerIds.indexOf(id);
+  if (pos === -1) __pr.selectedPeerIds.push(id); else __pr.selectedPeerIds.splice(pos, 1);
+  document.querySelectorAll('.pr-peer-card').forEach(function(el) {
+    el.classList.toggle('active', __pr.selectedPeerIds.indexOf(parseInt(el.dataset.id, 10)) !== -1);
+  });
+  prUpdateReview();
+}
+
+function prAddPeer() {
+  prLoader(true);
+  setTimeout(function() {
+    __pr.peers = __pr.peers || [];
+    var fake = { id: Date.now(), name: 'Peer Operator ' + (__pr.peers.length + 1), role: 'Dispatcher' };
+    __pr.peers.push(fake);
+    prRenderPeers();
+    prLoader(false);
+  }, 500);
+}
+
+function prRenderPeers() {
+  var box = document.getElementById('prPeerList');
+  if (!box) return;
+  if (!__pr.peers.length) {
+    box.innerHTML = '<div class="pr-review-empty"><i class="fas fa-user-lock"></i><br/>No peers selected</div>';
+    return;
+  }
+  var html = '';
+  __pr.peers.forEach(function(p) {
+    var initials = (p.name || 'P').split(' ').map(function(s){ return s[0]; }).join('').slice(0,2).toUpperCase();
+    html += '<div class="pr-peer-card' + (__pr.selectedPeerIds.indexOf(p.id) !== -1 ? ' active' : '') + '" data-id="' + p.id + '" onclick="prSelectPeer(' + p.id + ', this)">' +
+      '<div class="pr-avatar">' + initials + '</div>' +
+      '<div><div class="pr-peer-name">' + (p.name || 'Peer') + '</div><div class="pr-peer-role">' + (p.role || 'Operator') + '</div></div>' +
+    '</div>';
+  });
+  box.innerHTML = html;
+}
+
+function prUpdateReview() {
+  var review = document.getElementById('prReview');
+  var badge = document.getElementById('prBadge');
+  var foot = document.getElementById('prFoot');
+  if (!review) return;
+  var peers = (__pr.peers || []).filter(function(p) { return __pr.selectedPeerIds.indexOf(p.id) !== -1; });
+  if (!peers.length && !__pr.rules.length) {
+    review.innerHTML = '<div class="pr-review-empty"><i class="fas fa-scale-balanced"></i><br/>Select peers and rules to configure peer interactions.</div>';
+    if (badge) badge.textContent = '';
+    if (foot) foot.style.display = 'none';
+    return;
+  }
+  if (badge) badge.textContent = __pr.rules.length + ' rule' + (__pr.rules.length === 1 ? '' : 's');
+  var html = '<div class="pr-summary">' +
+    '<div class="pr-summary-title"><i class="fas fa-users" style="color:var(--r-violet)"></i> Peers</div>' +
+    '<div class="pr-summary-row">';
+  peers.forEach(function(p) {
+    html += '<div class="pr-summary-pill">' + (p.name || 'Peer') + '</div>';
+  });
+  if (!peers.length) html += '<div class="pr-summary-pill">—</div>';
+  html += '</div></div>';
+
+  if (__pr.rules.length) {
+    html += '<div class="pr-summary" style="margin-top:10px;">' +
+      '<div class="pr-summary-title"><i class="fas fa-gavel" style="color:var(--r-indigo)"></i> Active Rules</div>' +
+      '<div class="pr-summary-row">';
+    __pr.rules.forEach(function(r) {
+      html += '<div class="pr-summary-pill">' + r + '</div>';
+    });
+    html += '</div></div>';
+  }
+  review.innerHTML = html;
+  if (foot) foot.style.display = 'flex';
+}
+
+function prApplyRules() {
+  prLoader(true);
+  setTimeout(function() {
+    prLoader(false);
+    alert('Peer rules applied: ' + __pr.rules.join(', ') + ' for ' + __pr.selectedPeerIds.length + ' peer(s).');
+  }, 500);
+}
+
+function prResetRules() {
+  __pr.rules = [];
+  __pr.toggles = {};
+  document.querySelectorAll('.pr-rule-card').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelectorAll('.pr-toggle input').forEach(function(el) { el.checked = false; });
+  prUpdateReview();
+}
+
+function prClear() {
+  __pr.selectedPeerIds = [];
+  prRenderPeers();
+  prUpdateReview();
+}
+
+function prSave() {
+  prLoader(true);
+  setTimeout(function() {
+    prLoader(false);
+    alert('Peer rules saved.');
+  }, 500);
+}
+
+(function() {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ __pr.peers = []; prRenderPeers(); });
+  else { __pr.peers = []; prRenderPeers(); }
+  window.pr = __pr;
+})();
+</script>
+{% endblock %}
+{% endblock %}
+{% endblock %}

@@ -61,6 +61,8 @@ def _heartbeat_operator_identity(device):
 
 
 def _heartbeat_active_missions(device):
+    from api.models import ScanRecord
+    from django.db.models import Q
     assignments = ShiftAssignment.objects.filter(
         device=device, is_active=True, is_completed=False
     ).select_related('route')
@@ -68,22 +70,35 @@ def _heartbeat_active_missions(device):
     primary = None
     for a in assignments:
         if a.route:
-            if not missions:
+            if not primary:
                 primary = a.route
+            cps = list(a.route.checkpoints.all().order_by('order'))
+            total_cps = len(cps)
+            hit_ids = set(ScanRecord.objects.filter(
+                device=device, route=a.route, checkpoint__isnull=False,
+                timestamp__gte=a.assigned_at,
+            ).values_list('checkpoint_id', flat=True).distinct())
+            hit_count = len(hit_ids)
+            progress_pct = int((hit_count / total_cps) * 100) if total_cps > 0 else 0
             missions.append({
                 'assignment_id': a.id,
                 'route_id': a.route.id,
                 'route_name': a.route.name,
                 'shift_type': a.shift_type,
+                'is_completed': a.is_completed,
+                'progress_pct': progress_pct,
+                'hit_count': hit_count,
+                'total_checkpoints': total_cps,
             })
     directives = {'missions': missions}
     if primary:
-        p = missions[0]
-        directives['route_id'] = p['route_id']
-        directives['route_name'] = p['route_name']
-        directives['tts_voice'] = primary.tts_voice or 'en-US'
-        directives['tts_rate'] = primary.tts_rate
-        directives['tts_pitch'] = primary.tts_pitch
+        p = missions[0] if missions else None
+        if p:
+            directives['route_id'] = p['route_id']
+            directives['route_name'] = p['route_name']
+            directives['tts_voice'] = primary.tts_voice or 'en-US'
+            directives['tts_rate'] = primary.tts_rate
+            directives['tts_pitch'] = primary.tts_pitch
     return directives, assignments
 
 
@@ -397,6 +412,23 @@ def heartbeat(request):
 
     directives['session_state'] = session.state if session else 'authenticated'
     directives['mission_stage'] = active_assignment.mission_stage if active_assignment else 'assigned'
+
+    # Next checkpoint ETA + anomaly flags for app dashboard
+    if active_assignment and active_assignment.route:
+        from api.services.scan import get_mission_status
+        mission_status = get_mission_status(active_assignment)
+        if mission_status and not mission_status.get('completed', False):
+            next_cp = mission_status.get('next_checkpoint', {})
+            if next_cp:
+                directives['next_checkpoint'] = next_cp.get('name', '')
+                directives['time_remaining_seconds'] = next_cp.get('time_remaining_seconds', -1)
+                directives['is_window_missed'] = next_cp.get('is_window_missed', False)
+
+    # Surface recent anomaly flags from last scan
+    from api.models import ScanRecord
+    last_scan = ScanRecord.objects.filter(device=device).order_by('-timestamp').first()
+    if last_scan and last_scan.anomaly_flags:
+        directives['anomaly_flags'] = last_scan.anomaly_flags
     directives['telemetry'] = session.telemetry_dict if session else {
         'gps_interval_ms': 60000,
         'constellation_required': False,

@@ -113,7 +113,36 @@ def login(request):
     organization_id = None
     organization_name = None
 
-    request.session['access_token'] = str(RefreshToken.for_user(user).access_token)
+    refresh = RefreshToken.for_user(user)
+    request.session['access_token'] = str(refresh.access_token)
+
+    def _sanitize_next(raw):
+        if not raw:
+            return '/dashboard/'
+        raw = str(raw).strip()
+        # Strip leading ?next= or ?next/ encoded variations
+        while raw.startswith('?next=') or raw.startswith('?next/') or raw.startswith('%3Fnext=') or raw.startswith('%3Fnext%3D'):
+            if raw.startswith('?next='):
+                raw = raw[6:]
+            elif raw.startswith('?next/'):
+                raw = raw[6:]
+            elif raw.startswith('%3Fnext='):
+                raw = raw[8:]
+            elif raw.startswith('%3Fnext%3D'):
+                raw = raw[10:]
+        # Only allow relative paths starting with /
+        if not raw.startswith('/'):
+            return '/dashboard/'
+        # Reject any path that itself contains a next= parameter
+        if 'next=' in raw or 'next%3D' in raw.lower():
+            return '/dashboard/'
+        return raw
+
+    next_target = _sanitize_next(
+        request.data.get('next') or (
+            request.query_params.get('next') if hasattr(request, 'query_params') else None
+        )
+    )
 
     default_org = Organization.objects.first()
 
@@ -144,11 +173,9 @@ def login(request):
             organization_id = guard_profile.organization.id
             organization_name = guard_profile.organization.name
 
-    refresh = RefreshToken.for_user(user)
-    request.session['access_token'] = str(refresh.access_token)
     django_login(request, user)
 
-    return Response({
+    response = Response({
         'refresh': str(refresh),
         'access': str(refresh.access_token),
         'token': str(refresh.access_token),
@@ -157,7 +184,16 @@ def login(request):
         'organization_id': organization_id,
         'organization_name': organization_name,
         'identity': _build_operator_identity(user),
+        'next': '/dashboard/' if not next_target else next_target,
     })
+
+    response.set_cookie(
+        'gt_access_token',
+        str(refresh.access_token),
+        httponly=False,
+        samesite='Lax'
+    )
+    return response
 
 
 def _build_operator_identity(user):

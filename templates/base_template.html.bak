@@ -6,7 +6,6 @@
     <title>Guard Command | SecOps</title>
     {% block extra_head %}{% endblock %}
     {% load static %}{% load vite %}
-    <link rel="stylesheet" href="{% static 'css/design-tokens.css' %}">
     <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
     <link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
