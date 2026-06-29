@@ -817,6 +817,8 @@ function mgRenderDevices(){
                     ${[d.manufacturer, d.model].filter(Boolean).join(' ') ? `<span style="font-size:0.52rem;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.03);padding:1px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.04);">${[d.manufacturer, d.model].filter(Boolean).join(' ')}</span>` : ''}
                     ${d.is_online ? '<span style="font-size:0.52rem;color:rgba(93,202,165,0.3);">active</span>' : ''}
                     ${d.tts_acked === false && d.tts_pending ? '<span style="font-size:0.48rem;color:#EF9F27;background:rgba(239,159,39,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(239,159,39,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-volume-high" style="font-size:0.4rem;"></i>TTS pending</span>' : ''}
+                    ${d.nfc_fetch_requested ? '<span style="font-size:0.48rem;color:#EF9F27;background:rgba(239,159,39,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(239,159,39,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-wifi" style="font-size:0.4rem;"></i>NFC pending</span>' : ''}
+                    ${d.current_mission && d.current_mission.route_name ? `<span style="font-size:0.48rem;color:#5DCAA5;background:rgba(93,202,165,0.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(93,202,165,0.2);display:inline-flex;align-items:center;gap:3px;"><i class="fas fa-route" style="font-size:0.4rem;"></i>${d.current_mission.progress_pct}%</span>` : ''}
                 </div>
             </div>
             <div class="mg-card-actions" style="gap:3px;">
@@ -901,10 +903,26 @@ window.mgDeviceControls = function(deviceId, btn) {
     html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
 
     // NFC Controls
-    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-rss" style="color:#d32f2f;"></i> NFC Scan</div>';
+    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-rss" style="color:#d32f2f;"></i> NFC Scan &amp; Checkpoint Registration</div>';
+
+    // Show fetch requested status
+    if (d.nfc_fetch_requested) {
+        var fetchTime = new Date(d.nfc_fetch_requested).toLocaleTimeString();
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(239,159,39,0.08);border:1px solid rgba(239,159,39,0.2);margin-bottom:8px;">';
+        html +=   '<div class="pulse" style="background:#EF9F27;width:8px;height:8px;border-radius:50%;"></div>';
+        html +=   '<div style="flex:1;"><div style="font-size:0.62rem;font-weight:700;color:#EF9F27;">Awaiting NFC scan…</div>';
+        html +=     '<div style="font-size:0.5rem;color:rgba(255,255,255,0.4);">Requested at ' + fetchTime + ' — device will register checkpoint on scan</div></div>';
+        html +=   '<button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-xs" onclick="mgDcCancNfc(' + deviceId + ')" style="padding:3px 8px;font-size:0.55rem;">Cancel</button>';
+        html += '</div>';
+    }
+
     html += '<div style="display:flex;gap:6px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestNfc(' + deviceId + ')"><i class="fas fa-wifi"></i> Request NFC Scan</button></div>';
     var nfcStatus = d.last_nfc_scan_uid ? 'Last scan: ' + d.last_nfc_scan_uid + (d.last_nfc_scan ? ' &middot; ' + new Date(d.last_nfc_scan).toLocaleTimeString() : '') : 'No NFC scans recorded';
-    html += '<div class="mg-dc-status" id="dcNfcStatus_' + deviceId + '" style="margin-top:6px;">' + nfcStatus + '</div></div>';
+    html += '<div class="mg-dc-status" id="dcNfcStatus_' + deviceId + '" style="margin-top:6px;">' + nfcStatus + '</div>';
+    if (d.current_mission && d.current_mission.route_name) {
+        html += '<div class="mg-dc-status" style="margin-top:4px;color:rgba(93,202,165,0.7);"><i class="fas fa-route"></i> On mission: ' + d.current_mission.route_name + ' (' + d.current_mission.progress_pct + '%)</div>';
+    }
+    html += '</div>';
     html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
 
     // TTS Controls
@@ -1103,6 +1121,24 @@ window.mgDcPollGps = function(deviceId) {
     _dcPollTimers.push(pollTimer);
 };
 
+window.mgDcCancNfc = async function(deviceId) {
+    if(!deviceId) deviceId = _dcDeviceId;
+    try {
+        const res = await api(`/api/devices/${deviceId}/update_nfc/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ nfc_fetch_requested: null }),
+        });
+        if (res.ok) {
+            const dev = allDevices.find(x => x.id === deviceId);
+            if (dev) dev.nfc_fetch_requested = null;
+            mgDeviceControls(deviceId);
+            toast('NFC fetch cancelled');
+        }
+    } catch(e) {
+        toast('Failed to cancel NFC fetch', true);
+    }
+};
+
 window.mgDcSetAccuracy = async function(deviceId) {
     if(!deviceId) deviceId = _dcDeviceId;
     const acc = parseInt($('dcGpsAcc_' + deviceId)?.value || 5);
@@ -1143,9 +1179,19 @@ window.mgDcPollNfc = function(deviceId) {
                     clearInterval(pollTimer);
                     var idx = _dcPollTimers.indexOf(pollTimer);
                     if(idx>=0) _dcPollTimers.splice(idx,1);
-                    $('dcNfcStatus_' + deviceId).textContent = `NFC: ${data.last_nfc_scan_uid} · ${new Date(data.last_nfc_scan).toLocaleTimeString()}`;
+
+                    var statusMsg = `NFC: ${data.last_nfc_scan_uid} · ${new Date(data.last_nfc_scan).toLocaleTimeString()}`;
+                    if (!data.nfc_fetch_requested) {
+                        statusMsg += ' ✓ Checkpoint registered';
+                    }
+                    $('dcNfcStatus_' + deviceId).textContent = statusMsg;
+
                     const dev = allDevices.find(x=>x.id===deviceId);
                     if(dev) Object.assign(dev, data);
+
+                    if (!data.nfc_fetch_requested) {
+                        mgDeviceControls(deviceId);
+                    }
                     return;
                 }
             }

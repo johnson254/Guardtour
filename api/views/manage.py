@@ -196,6 +196,22 @@ class DeviceViewSet(viewsets.ModelViewSet):
         return Response({'status': 'requested', 'message': f'NFC fetch requested for {device.device_id or device.device_name}'})
 
     @action(detail=True, methods=['post'])
+    def cancel_nfc(self, request, pk=None):
+        device = self.get_object()
+        device.nfc_fetch_requested = None
+        device.save(update_fields=['nfc_fetch_requested'])
+        return Response({'status': 'cancelled', message: 'NFC fetch cancelled'})
+
+    @action(detail=True, methods=['patch'])
+    def update_nfc(self, request, pk=None):
+        device = self.get_object()
+        if 'nfc_fetch_requested' in request.data and request.data['nfc_fetch_requested'] is None:
+            device.nfc_fetch_requested = None
+            device.save(update_fields=['nfc_fetch_requested'])
+            return Response({'status': 'cancelled'})
+        return Response({'detail': 'Invalid request'}, status=400)
+
+    @action(detail=True, methods=['post'])
     def fetch_gps(self, request, pk=None):
         device = self.get_object()
         from django.utils import timezone
