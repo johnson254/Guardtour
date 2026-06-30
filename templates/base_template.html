@@ -82,14 +82,14 @@
                 const isAdmin = role === 'admin' && !isSystemAdmin;
                 const showAll = !hasRole;
                 const links = [
+                    { url: '/routes/', name: 'Routes', icon: 'fa-route', allow: [isAdmin, isDispatcher].some(Boolean) },
+                    { url: '/mission-builder/', name: 'Mission Builder', icon: 'fa-calendar-check', allow: [isAdmin, isDispatcher].some(Boolean) },
+                    { url: '/dispatch/', name: 'Live Dispatch', icon: 'fa-satellite-dish', allow: [isAdmin, isDispatcher].some(Boolean) },
+                    { url: '/manage/', name: 'Fleet', icon: 'fa-microchip', allow: [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
                     { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
-                    { url: '/map-view/', name: 'Open Maps', icon: 'fa-map-location-dot', allow: showAll || [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
-                    { url: '/routes/', name: 'Routes Dispatch', icon: 'fa-route', allow: [isAdmin, isDispatcher].some(Boolean) },
-                    { url: '/mission-builder/', name: 'Mission Builder', icon: 'fa-clipboard-list', allow: [isAdmin, isDispatcher].some(Boolean) },
-                    { url: '/dispatch/', name: 'Mission Control', icon: 'fa-satellite-dish', allow: [isAdmin, isDispatcher].some(Boolean) },
-                    { url: '/incidents/', name: 'Analytics', icon: 'fa-chart-line', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
-                    { url: '/manage/', name: 'Manage', icon: 'fa-gears', allow: [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
-                    { url: '/analytics/', name: 'Reports', icon: 'fa-box-archive', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
+                    { url: '/map-view/', name: 'Map', icon: 'fa-map-location-dot', allow: showAll || [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
+                    { url: '/analytics/', name: 'Reports', icon: 'fa-chart-line', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
+                    { url: '/incidents/', name: 'Incidents', icon: 'fa-triangle-exclamation', allow: showAll || [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
                     { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: isSystemAdmin },
                 ];
                 links.forEach(l => {
