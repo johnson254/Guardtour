@@ -1,0 +1,132 @@
+{% comment %} Deploy Preview Panel — shown in right sidebar after save {% endcomment %}
+<div id="rsDeployPanelInner">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px;">
+        <div style="font-size:0.82rem; font-weight:900; letter-spacing:0.5px; color:#fff;">
+            <i class="fas fa-shield-check"></i> MISSION INITIALIZATION
+        </div>
+        <button type="button" class="rs-btn rs-btn-xs" onclick="rsDeployCancel()" style="color:var(--r-mute);border-color:transparent;"><i class="fas fa-times"></i> Back</button>
+    </div>
+    <div style="padding:0 12px 6px; font-size:0.6rem; color:var(--r-mute);">Final pre-flight &mdash; review and confirm deployment.</div>
+
+    <div style="flex:1; overflow-y:auto; padding:0 12px 10px; display:flex; flex-direction:column; gap:6px;">
+
+        <!-- Past Due Warning -->
+        <div id="rsDeployPastDue" style="display:none; background:rgba(211,47,47,0.08); border:1px solid rgba(211,47,47,0.45); border-radius:8px; padding:10px; font-size:0.65rem;">
+            <strong style="color:#d32f2f;"><i class="fas fa-triangle-exclamation"></i> Past due detected</strong>
+            <div id="rsDeployPastDueDetail" style="font-size:0.72rem; color:rgba(255,255,255,0.82); margin-top:4px;"></div>
+        </div>
+
+        <!-- Blueprint Name -->
+        <div>
+            <label class="rs-conf-label">Blueprint</label>
+            <div style="font-size:0.85rem; font-weight:700; color:#fff; padding:4px 0;" id="rsDeployBpName">{{ route.name }}</div>
+        </div>
+
+        <!-- Stats -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px 6px;">
+            <div>
+                <label class="rs-conf-label">Strategy</label>
+                <div><span class="rs-badge" id="rsDeployStrat" style="padding:2px 8px;font-size:0.55rem;">{{ route.logic_type|default:"Flexible" }}</span></div>
+            </div>
+            <div>
+                <label class="rs-conf-label">Date</label>
+                <input id="rsDeployDate" type="date" class="rs-fi rs-fi-sm" style="width:100%;" value="{{ route.scheduled_date|default:'' }}">
+            </div>
+            <div>
+                <label class="rs-conf-label">Launch Time</label>
+                <input id="rsDeployTime" type="time" class="rs-fi rs-fi-sm" style="width:100%;" value="{{ route.scheduled_start_time|default:'' }}">
+            </div>
+            <div>
+                <label class="rs-conf-label">Duty Cycle</label>
+                <div style="display:flex; gap:4px;">
+                    <input type="radio" name="rsShift" value="Day" id="rsShiftDay" checked>
+                    <label for="rsShiftDay" class="rs-shift-label day"><i class="fas fa-sun"></i> Day</label>
+                    <input type="radio" name="rsShift" value="Night" id="rsShiftNight">
+                    <label for="rsShiftNight" class="rs-shift-label night"><i class="fas fa-moon"></i> Night</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guards / Devices -->
+        <div style="position:relative;">
+            <label class="rs-conf-label">Assigned Personnel / Devices</label>
+            <div style="display:flex; flex-wrap:wrap; gap:3px;">
+                <div id="rsDeployGuardTags" style="display:flex; flex-wrap:wrap; gap:3px;">
+                    {% for g in route.assigned_guards.all %}
+                    <span style="padding:1px 6px;font-size:0.5rem;border-radius:4px;font-weight:700;color:var(--r-crim);border:1px solid var(--r-crim)40;background:var(--r-crim)08;">{{ g.callsign }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts & TTS -->
+        <div style="border:1px solid rgba(245,166,35,0.15); border-radius:8px; padding:8px; background:rgba(245,166,35,0.03);">
+            <div style="font-size:0.58rem; font-weight:900; color:#EF9F27; display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+                <i class="fas fa-bullhorn"></i> Alerts &amp; TTS
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:3px; font-size:0.55rem; cursor:pointer; color:rgba(255,255,255,0.65);">
+                    <input type="checkbox" id="rsTriggerAlert" checked style="accent-color:#EF9F27;width:11px;height:11px;"> Start Alert
+                </label>
+                <label style="display:flex; align-items:center; gap:3px; font-size:0.55rem; cursor:pointer; color:rgba(255,255,255,0.65);">
+                    <input type="checkbox" id="rsTriggerAnnounce" style="accent-color:#EF9F27;width:11px;height:11px;"> TTS
+                </label>
+                <label style="display:flex; align-items:center; gap:3px; font-size:0.55rem; cursor:pointer; color:rgba(255,255,255,0.65);">
+                    <input type="checkbox" id="rsTriggerAuto" checked style="accent-color:#EF9F27;width:11px;height:11px;"> Auto-complete
+                </label>
+                <label style="display:flex; align-items:center; gap:3px; font-size:0.55rem; cursor:pointer; color:rgba(255,255,255,0.65);">
+                    <input type="checkbox" id="rsTriggerMiss" style="accent-color:#EF9F27;width:11px;height:11px;"> Miss Alert
+                </label>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; margin-top:5px;">
+                <span style="font-size:0.5rem; color:rgba(255,255,255,0.35); white-space:nowrap;">Lead&nbsp;time</span>
+                <input type="number" id="rsLeadTime" value="{{ route.start_alert_lead_time|default:15 }}" min="1" max="120" style="width:40px; padding:2px 4px; border-radius:4px; border:1px solid rgba(255,255,255,0.06); background:#0D0D14; color:#fff; font-size:0.55rem;">
+                <span style="font-size:0.5rem; color:rgba(255,255,255,0.3);">min</span>
+            </div>
+            <div style="margin-top:5px;">
+                <label style="font-size:0.5rem; color:rgba(255,255,255,0.35);">TTS Message</label>
+                <textarea id="rsReadoutText" rows="2" style="width:100%; padding:4px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.06); background:#0D0D14; color:#fff; font-size:0.55rem; resize:vertical; margin-top:2px; font-family:inherit;" placeholder="Broadcast message for POC radio TTS…">{{ route.readout_text|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <!-- Verify -->
+        <div style="display:flex; align-items:center; gap:8px; padding:8px 6px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); cursor:pointer;" onclick="var c=document.getElementById('rsVerify');if(c)c.checked=!c.checked;rsDeployUpdateBtn()">
+            <input type="checkbox" id="rsVerify" onchange="rsDeployUpdateBtn()" style="accent-color:#d32f2f; width:14px; height:14px; flex-shrink:0;" onclick="event.stopPropagation()">
+            <div style="font-size:0.6rem; font-weight:600; line-height:1.3;">
+                <span style="vertical-align:middle;">I verify that all mission parameters are correct.</span>
+                <div style="font-size:0.5rem; color:rgba(255,255,255,0.38); font-weight:400; margin-top:1px;">Deployment will initiate live tracking and broadcast alerts.</div>
+            </div>
+        </div>
+
+        <!-- Checkpoints -->
+        <div style="border:1px solid rgba(108,142,239,0.15); border-radius:10px; background:#0D0D14; display:flex; flex-direction:column; max-height:220px;">
+            <div style="padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:0.58rem; font-weight:900; color:#6C8EEF; text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-list-check"></i> Checkpoints <span id="rsDeployCpCount" style="color:rgba(255,255,255,0.3);font-weight:400;">({{ checkpoints|length }})</span>
+            </div>
+            <div id="rsDeployCpList" style="flex:1; overflow-y:auto; padding:6px; display:flex; flex-direction:column; gap:3px;">
+                {% for cp in checkpoints %}
+                <div style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);font-size:0.52rem;">
+                    <span style="color:var(--r-mute);width:12px;font-weight:900;font-family:monospace;">{{ forloop.counter }}</span>
+                    <i class="fas {% if cp.checkpoint_type == 'gps' %}fa-map-pin{% elif cp.checkpoint_type == 'peer' %}fa-user-shield{% else %}fa-wifi{% endif %}" style="font-size:0.5rem;opacity:0.45;color:{% if cp.checkpoint_type == 'gps' %}var(--r-indigo){% elif cp.checkpoint_type == 'peer' %}var(--r-violet){% else %}var(--r-crim){% endif %};width:10px;"></i>
+                    <span style="flex:1;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ cp.name|default:"Point forloop.counter" }}</span>
+                    {% if cp.planned_time %}
+                    <span style="color:var(--r-crim2);font-weight:700;font-family:monospace;"><i class="far fa-clock" style="font-size:0.4rem;"></i> {{ cp.planned_time }}</span>
+                    {% else %}
+                    <span style="color:rgba(255,255,255,0.15);font-family:monospace;">—:—</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div style="padding:16px; text-align:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">No checkpoints defined</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Deploy Button -->
+    <div style="padding:10px 12px; border-top:1px solid rgba(255,255,255,0.06);">
+        <button type="button" class="rs-btn-tactile" id="rsDeployBtn"
+            style="width:100%; justify-content:center; background:rgba(0,196,154,0.15); border:1px solid rgba(0,196,154,0.35); color:var(--r-teal); padding:14px; font-size:0.75rem; letter-spacing:1px; opacity:.4; cursor:not-allowed;" disabled onclick="rsDeployExecute()">
+            <i class="fas fa-rocket"></i> <span id="rsDeployBtnText">COMMENCE MISSION DEPLOYMENT</span>
+        </button>
+    </div>
+</div>

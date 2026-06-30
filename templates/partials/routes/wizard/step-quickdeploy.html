@@ -1,0 +1,84 @@
+{% comment %} Wizard Step: Quick Deploy Full-Screen Review {% endcomment %}
+<div class="rs-wiz rs-wiz-wide" id="wizStepQuickDeploy">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div class="rs-wiz-header">
+            <div class="rs-wiz-title" style="color:var(--r-teal);font-size:1.2rem;"><i class="fas fa-bolt" style="color:#FFD54F"></i> QUICK DEPLOY — FINAL REVIEW</div>
+            <div class="rs-wiz-sub">All checkpoints shown with their planned times. Review and confirm.</div>
+        </div>
+        <button type="button" class="rs-wiz-close" onclick="rsDeployCancel();hideOverlay()" title="Close"><i class="fas fa-xmark"></i></button>
+    </div>
+
+    <div style="display:flex;gap:14px;flex:1;min-height:0;margin-top:8px;">
+        <!-- Left: Mission params -->
+        <div style="flex:0 0 240px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;">
+            <div style="padding:8px 10px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);">
+                <label class="rs-conf-label">Blueprint</label>
+                <div style="font-size:0.9rem;font-weight:900;color:#fff;padding:2px 0;" id="qdBpName"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);">
+                    <label class="rs-conf-label">Strategy</label>
+                    <div><span class="rs-badge" id="qdBpStrat" style="padding:2px 8px;font-size:0.55rem;"></span></div>
+                </div>
+                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);">
+                    <label class="rs-conf-label">Duty</label>
+                    <div id="qdShift" style="font-size:0.65rem;font-weight:700;color:#fff;">Day</div>
+                </div>
+                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);">
+                    <label class="rs-conf-label">Date</label>
+                    <input id="qdDate" type="date" class="rs-fi" style="width:100%;font-size:0.6rem;padding:2px 5px;">
+                </div>
+                <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);">
+                    <label class="rs-conf-label">Launch</label>
+                    <input id="qdTime" type="time" class="rs-fi" style="width:100%;font-size:0.6rem;padding:2px 5px;">
+                </div>
+            </div>
+            <div style="padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.04);">
+                <label class="rs-conf-label">Personnel</label>
+                <div id="qdGuardTags" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;"></div>
+            </div>
+            <div style="padding:6px 8px;border-radius:6px;background:rgba(245,166,35,0.03);border:1px solid rgba(245,166,35,0.12);">
+                <div style="font-size:0.5rem;font-weight:900;color:#EF9F27;display:flex;align-items:center;gap:3px;margin-bottom:3px;">
+                    <i class="fas fa-bullhorn"></i> Alerts &amp; TTS
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <label style="font-size:0.5rem;display:flex;align-items:center;gap:2px;cursor:pointer;color:rgba(255,255,255,0.65);">
+                        <input type="checkbox" id="qdSendAlert" checked style="accent-color:#EF9F27;width:10px;height:10px;"> Alert
+                    </label>
+                    <label style="font-size:0.5rem;display:flex;align-items:center;gap:2px;cursor:pointer;color:rgba(255,255,255,0.65);">
+                        <input type="checkbox" id="qdSendAnnounce" style="accent-color:#EF9F27;width:10px;height:10px;"> TTS
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
+                    <span style="font-size:0.45rem;color:rgba(255,255,255,0.35);">Lead</span>
+                    <input type="number" id="qdLeadTime" value="15" min="1" max="120" style="width:34px;padding:1px 3px;border-radius:3px;border:1px solid rgba(255,255,255,0.06);background:#0D0D14;color:#fff;font-size:0.5rem;">
+                    <span style="font-size:0.45rem;color:rgba(255,255,255,0.3);">min</span>
+                </div>
+            </div>
+        </div>
+        <!-- Right: Checkpoints with times -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 10px;border-radius:6px 6px 0 0;background:rgba(108,142,239,0.06);border:1px solid rgba(108,142,239,0.12);border-bottom:none;">
+                <span style="font-size:0.55rem;font-weight:900;color:#6C8EEF;text-transform:uppercase;letter-spacing:0.5px;">
+                    <i class="fas fa-list-check"></i> Checkpoints <span id="qdCpCount" style="color:rgba(255,255,255,0.3);font-weight:400;"></span>
+                </span>
+            </div>
+            <div id="qdCpList" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;border-radius:0 0 6px 6px;background:rgba(0,0,0,0.1);border:1px solid rgba(108,142,239,0.08);"></div>
+        </div>
+    </div>
+
+    <!-- Verify + Deploy -->
+    <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;" onclick="var c=document.getElementById('qdVerify');if(c)c.checked=!c.checked;qdUpdateBtn()">
+            <input type="checkbox" id="qdVerify" onchange="qdUpdateBtn()" style="accent-color:#d32f2f;width:14px;height:14px;flex-shrink:0;" onclick="event.stopPropagation()">
+            <div style="font-size:0.55rem;font-weight:600;line-height:1.3;">
+                I verify that all mission parameters are correct.
+                <div style="font-size:0.48rem;color:rgba(255,255,255,0.38);font-weight:400;">Deployment will initiate live tracking and broadcast alerts.</div>
+            </div>
+        </div>
+        <button type="button" class="rs-btn rs-btn-success" id="qdDeployBtn"
+            style="padding:10px 22px;font-size:0.72rem;opacity:.4;cursor:not-allowed;letter-spacing:0.8px;white-space:nowrap;" disabled onclick="qdExecute()">
+            <i class="fas fa-rocket"></i> COMMENCE DEPLOYMENT
+        </button>
+    </div>
+</div>

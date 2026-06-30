@@ -1,0 +1,90 @@
+{% comment %} Wizard Step: Peer Audit {% endcomment %}
+<div class="rs-wiz" id="wizStepAudit">
+    <button type="button" class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
+    <div class="rs-wiz-header">
+        <div class="rs-wiz-title"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer Audit</div>
+        <div class="rs-wiz-sub">One auditor sweeps a sequence of guards. Each guard becomes a timed checkpoint.</div>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(168,85,247,0.04), rgba(20,20,32,0.96) 50%);">
+        <div class="rs-form-section-title" style="margin-bottom:12px;">
+            <span><i class="fas fa-user-shield" style="color:var(--r-violet);margin-right:6px;"></i> Audit Parameters</span>
+            <small><i class="fas fa-circle" style="color:var(--r-violet);font-size:0.45rem;"></i> inspection config</small>
+        </div>
+
+        <div class="rs-g2">
+            <div>
+                <label class="rs-lbl">Blueprint Name *</label>
+                <input id="auditName" class="rs-fi rs-fi-sm" placeholder="e.g. Night Audit Round 1">
+            </div>
+            <div>
+                <label class="rs-lbl">Audit Duty Context</label>
+                <div class="rs-shift-pill" style="width: 100%;">
+                    <input type="radio" name="auditShift" value="Day" id="auditShiftDay" class="rs-shift-radio">
+                    <label for="auditShiftDay" class="rs-shift-btn rs-shift-btn-day" style="flex:1; justify-content: center;"><i class="fas fa-sun"></i> Day</label>
+                    <input type="radio" name="auditShift" value="" id="auditShiftAny" checked class="rs-shift-radio">
+                    <label for="auditShiftAny" class="rs-shift-btn rs-shift-btn-any" style="flex:1; justify-content: center;"><i class="fas fa-infinity"></i></label>
+                    <input type="radio" name="auditShift" value="Night" id="auditShiftNight" class="rs-shift-radio">
+                    <label for="auditShiftNight" class="rs-shift-btn rs-shift-btn-night" style="flex:1; justify-content: center;"><i class="fas fa-moon"></i> Night</label>
+                </div>
+            </div>
+            <div>
+                <label class="rs-lbl">Execution Date *</label>
+                <input id="auditDate" type="date" class="rs-fi rs-fi-sm">
+            </div>
+            <div>
+                <label class="rs-lbl">Start Time</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input id="auditStartTime" type="time" class="rs-fi rs-fi-sm" style="flex:1;">
+                    <div class="rs-toggle-wrap">
+                        <label class="db-toggle"><input type="checkbox" id="auditAlert" checked><span class="db-toggle-sl"></span></label>
+                        <span class="rs-toggle-label">Alert</span>
+                    </div>
+                </div>
+            </div>
+            <div style="grid-column:span 2; margin-top: 4px;">
+                <label class="rs-lbl">Conducting Auditor</label>
+                <div style="position:relative;">
+                    <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
+                        <div id="auditAuditorTags" style="display:contents"></div>
+                        <input id="auditAuditorInput" class="rs-tag-input" placeholder="Auditor callsign…">
+                    </div>
+                    <div id="auditAuditorSuggest" class="rs-suggest-list rs-hidden"></div>
+                </div>
+            </div>
+            <div>
+                <label class="rs-lbl" for="auditInterval">Interval between guards (min)</label>
+                <input id="auditInterval" type="number" min="1" value="15" class="rs-fi rs-fi-sm">
+            </div>
+            <div>
+                <label class="rs-lbl" for="auditStay">Stay at each guard (min)</label>
+                <input id="auditStay" type="number" min="0" value="5" class="rs-fi rs-fi-sm">
+            </div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:4px; margin-top: 4px;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.74rem;cursor:pointer;color:var(--r-mute);">
+                    <input type="checkbox" id="auditEnforceSeq" checked style="accent-color:var(--r-violet)">
+                    <span>Enforce sequence order</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(168,85,247,0.04), rgba(20,20,32,0.96) 50%);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+            <span class="rs-lbl" style="margin-bottom:0;color:var(--r-violet);">
+                <i class="fas fa-grip-vertical" style="margin-right:4px;opacity:.5"></i>Target Guards
+            </span>
+            <button type="button" class="rs-btn rs-btn-xs rs-btn-violet" onclick="auditAddTarget()"><i class="fas fa-plus"></i> Add</button>
+        </div>
+        <div id="auditTargets" style="display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;padding-right:3px;"></div>
+        <div style="font-size:0.64rem;color:rgba(255,255,255,0.28);margin-top:6px;">
+            <i class="fas fa-info-circle" style="color:var(--r-violet);opacity:.5"></i>
+            Each target guard becomes one checkpoint — auditor scans their NFC tag at their post.
+        </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+        <button type="button" class="rs-btn rs-btn-block" style="flex:1;" onclick="auditApply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
+        <button type="button" class="rs-btn rs-btn-violet rs-btn-block" style="flex:1;" onclick="auditSaveDeploy()"><i class="fas fa-rocket"></i> Save & Deploy</button>
+    </div>
+</div>

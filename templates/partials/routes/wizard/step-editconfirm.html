@@ -1,0 +1,26 @@
+{% comment %} Wizard Step: Edit Confirmation (delta review) {% endcomment %}
+<div class="rs-wiz rs-wiz-wide" id="wizStepEditConfirm">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div class="rs-wiz-header">
+            <div class="rs-wiz-title" style="color:var(--r-amber);font-size:1.1rem;"><i class="fas fa-pen-to-square" style="color:var(--r-amber)"></i> EDIT CONFIRMATION</div>
+            <div class="rs-wiz-sub">Review the changes before saving this blueprint.</div>
+        </div>
+        <button type="button" class="rs-wiz-close" onclick="hideOverlay()" title="Close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(251,191,36,0.04), rgba(20,20,32,0.96) 50%);margin-top:8px;">
+        <div id="editDiffContent" style="font-size:0.65rem;color:var(--r-mute);">Calculating changes…</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;" onclick="var c=document.getElementById('editVerify');if(c)c.checked=!c.checked;editUpdateBtn()">
+            <input type="checkbox" id="editVerify" onchange="editUpdateBtn()" style="accent-color:#d32f2f;width:14px;height:14px;flex-shrink:0;" onclick="event.stopPropagation()">
+            <div style="font-size:0.55rem;font-weight:600;line-height:1.3;">
+                I confirm these changes are correct.
+                <div style="font-size:0.48rem;color:rgba(255,255,255,0.38);font-weight:400;">Save will update the blueprint and optionally re-deploy.</div>
+            </div>
+        </div>
+        <button type="button" class="rs-btn rs-btn-primary" id="editSaveBtn"
+            style="padding:10px 22px;font-size:0.72rem;opacity:.4;cursor:not-allowed;letter-spacing:0.8px;white-space:nowrap;" disabled onclick="editExecute()">
+            <i class="fas fa-floppy-disk"></i> SAVE CHANGES
+        </button>
+    </div>
+</div>

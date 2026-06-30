@@ -443,7 +443,77 @@ window.bpRefreshCps = function () {
     data.forEach(d => bpAddCp(d));
 };
 
-window.bpAddCp = function (data = {}) {
+window.bpAddCp = async function (data = {}) {
+    const list     = $('bpCpList');
+    const idx      = list.children.length;
+    const cpType   = data.checkpoint_type || data.type || 'nfc';
+    const isGps    = cpType === 'gps' || (!data.nfc_tag && (data.lat || data.lng));
+    const isPeer   = cpType === 'peer';
+    const isCustom = cpType === 'custom';
+    const finalType = isCustom ? 'custom' : (isPeer ? 'peer' : isGps ? 'gps' : 'nfc');
+
+    // Fetch server-rendered checkpoint row
+    try {
+        const res = await fetch('/api/routes-checkpoint-form-partial/?type=' + finalType + '&order=' + idx);
+        if (!res.ok) throw new Error('Failed to load checkpoint row');
+        const html = await res.text();
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        const row = div.firstElementChild;
+
+        // Set type and drag behavior
+        row.dataset.cpType = finalType;
+        row.addEventListener('dragstart', () => row.classList.add('dragging'));
+        row.addEventListener('dragend',   () => { row.classList.remove('dragging'); bpRenumber(); });
+
+        // Populate data
+        if (data.name) row.querySelector('.bp-cp-name').value = data.name;
+        if (data.nfc_tag) row.querySelector('.bp-cp-tag').value = data.nfc_tag;
+        if (data.lat) row.querySelector('.bp-cp-lat').value = data.lat;
+        if (data.lng) row.querySelector('.bp-cp-lng').value = data.lng;
+        if (data.auditor_id) row.querySelector('.bp-cp-auditor').value = data.auditor_id;
+        if (data.target_id) row.querySelector('.bp-cp-target').value = data.target_id;
+        if (data.planned_time) row.querySelector('.bp-cp-time').value = data.planned_time;
+        if (data.next_announcement_text) row.querySelector('.bp-cp-next-announce').value = data.next_announcement_text;
+        if (data.fetch_location_on_scan) row.querySelector('.bp-cp-fetch-location').checked = true;
+
+        // Set sliders
+        const rad = data.radius || 50;
+        const dwell = data.dwell_time || 0;
+        const tol = data.time_tolerance ?? 15;
+        const radSlider = row.querySelector('.bp-cp-rad');
+        const dwellSlider = row.querySelector('.bp-cp-dwell');
+        const tolSlider = row.querySelector('.bp-cp-tol');
+        if (radSlider) radSlider.value = rad;
+        if (dwellSlider) dwellSlider.value = dwell;
+        if (tolSlider) tolSlider.value = tol;
+
+        // Sync slider displays
+        row.querySelectorAll('.rs-enf-slider').forEach(s => regSliderSync(s));
+
+        // Wire dragover on list
+        list.ondragover = e => {
+            e.preventDefault();
+            const drag = list.querySelector('.dragging');
+            if (!drag) return;
+            const sibs = [...list.querySelectorAll('.rs-cp-row:not(.dragging)')];
+            const after = sibs.find(s => e.clientY < s.getBoundingClientRect().top + s.offsetHeight / 2);
+            list.insertBefore(drag, after || null);
+        };
+
+        $('bpCpEmpty')?.classList.add('rs-hidden');
+        list.appendChild(row);
+        bpRenumber();
+        bpDirty = true;
+        bpUpdatePreview();
+    } catch (e) {
+        console.error('bpAddCp failed:', e);
+        toast('Failed to add checkpoint', true);
+    }
+};
+
+/* Legacy sync version for non-async callers (fallback) */
+window.bpAddCpSync = function (data = {}) {
     const list     = $('bpCpList');
     const idx      = list.children.length;
     const cpType   = data.checkpoint_type || data.type || 'nfc';
@@ -1548,67 +1618,24 @@ window.bpConfirmExecute = async function () {
 /* ═══════════════════════════════════════════════════
    SIDEBAR DEPLOY PANEL
 ═══════════════════════════════════════════════════ */
-window.rsDeployOpen = function() {
+window.rsDeployOpen = async function() {
+    // Must have a saved route to show deploy preview
+    if (!selId) {
+        toast('Save the blueprint first', true);
+        return;
+    }
     $('rsDeployPanel').style.display = 'flex';
     var mp = $('rsManifestPanel'); if (mp) mp.style.display = 'none';
-    // Populate from editor state
-    var cps = getCpData();
-    var name = ($('bpRouteName').value || '').trim() || 'UNNAMED_MISSION';
-    var strat = logic;
-    var date = $('bpDate').value || '';
-    var time = $('bpStartTime').value || '';
-    var sendAlert = !!$('bpSendAlert').checked;
-    var sendAnnounce = !!$('bpAnnounceToggle').checked;
-    var leadTime = parseInt($('bpLeadTime').value, 10) || 15;
-    var readout = $('bpMissionBrief').value || '';
-
-    $('rsDeployBpName').textContent = name;
-    $('rsDeployStrat').textContent = strat.toUpperCase();
-    var clrMap = {FLEXIBLE:'var(--r-teal)',SEQUENTIAL:'var(--r-amber)',SCHEDULED:'var(--r-crim)',AUDIT:'var(--r-crim)',CUSTOM:'var(--r-indigo)'};
-    $('rsDeployStrat').style.color = clrMap[strat.toUpperCase()] || 'var(--r-teal)';
-    $('rsDeployStrat').style.background = (clrMap[strat.toUpperCase()] || 'var(--r-teal)').replace(')','').replace('rgb','rgba').replace(/[^,]+$/, '0.12)');
-    if ($('rsDeployDate')) $('rsDeployDate').value = date;
-    if ($('rsDeployTime')) $('rsDeployTime').value = time;
-    $('rsTriggerAlert').checked = sendAlert;
-    $('rsTriggerAnnounce').checked = sendAnnounce;
-    $('rsLeadTime').value = leadTime;
-    $('rsReadoutText').value = readout;
-    $('rsVerify').checked = false;
-    $('rsDeployBtn').disabled = true;
-    $('rsDeployBtn').style.opacity = '.4';
-    $('rsDeployPastDue').style.display = 'none';
-    $('rsDeployBtnText').textContent = 'COMMENCE MISSION DEPLOYMENT';
-
-    // Sync shift
-    if ($('bpShiftDay') && $('bpShiftDay').checked) { $('rsShiftDay').checked = true; }
-    else if ($('bpShiftNight') && $('bpShiftNight').checked) { $('rsShiftNight').checked = true; }
-    else { $('rsShiftDay').checked = true; }
-
-    // Copy guard tags
-    var tags = Array.from($('bpGuardTags')?.querySelectorAll('.rs-person-tag') || []);
-    $('rsDeployGuardTags').innerHTML = tags.map(function(t) {
-        var col = t.dataset.type === 'device' ? 'var(--r-teal)' : 'var(--r-crim)';
-        return '<span style="padding:1px 6px;font-size:0.5rem;border-radius:4px;font-weight:700;color:'+col+';border:1px solid '+col+'40;background:'+col+'08;">'+t.dataset.label+'</span>';
-    }).join('');
-
-    // Render checkpoints with time inline
-    $('rsDeployCpCount').textContent = cps.length ? '('+cps.length+')' : '(0)';
-    $('rsDeployCpList').innerHTML = cps.length
-        ? cps.map(function(cp, i) {
-            var icon = cp.type==='gps'?'fa-map-pin':cp.type==='peer'?'fa-user-shield':'fa-wifi';
-            var col = cp.type==='gps'?'var(--r-indigo)':cp.type==='peer'?'var(--r-violet)':'var(--r-crim)';
-            var name = cp.type === 'peer' ? (cp.auditor_id||'??')+' \u2192 '+(cp.target_id||'??') : (cp.name || 'Point '+(i+1));
-            var timeHtml = cp.planned_time ? '<span style="color:var(--r-crim2);font-weight:700;font-family:monospace;font-size:0.48rem;"><i class="far fa-clock" style="font-size:0.38rem;"></i> '+cp.planned_time+'</span>' : '';
-            var tag = cp.nfc_tag ? cp.nfc_tag.slice(0,10) : (cp.lat && !isNaN(parseFloat(cp.lat)) ? parseFloat(cp.lat).toFixed(4)+', '+(cp.lng ? parseFloat(cp.lng).toFixed(4) : '\u2014') : '');
-            return '<div style="display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.06);margin-bottom:1px;font-size:0.48rem;">' +
-                '<span style="color:var(--r-mute);width:10px;font-weight:900;font-size:0.42rem;">'+(i+1)+'</span>' +
-                '<i class="fas '+icon+'" style="font-size:0.45rem;opacity:0.45;color:'+col+';width:8px;"></i>' +
-                '<span style="flex:1;color:#fff;">'+name+'</span>' +
-                (timeHtml ? timeHtml : '') +
-                (tag ? '<span style="color:var(--r-mute);font-family:monospace;font-size:0.42rem;">'+tag+'</span>' : '') +
-                '</div>';
-        }).join('')
-        : '<div style="padding:12px;text-align:center;color:rgba(255,255,255,0.15);font-size:0.65rem;">No checkpoints</div>';
+    // Fetch server-rendered deploy preview
+    try {
+        if (window.htmx) {
+            htmx.ajax('GET', '/api/routes-deploy-preview-partial/' + selId + '/', {
+                target: '#rsDeployPanel', swap: 'innerHTML'
+            });
+        }
+    } catch (e) {
+        console.error('Deploy preview load failed:', e);
+    }
 };
 
 window.rsDeployCancel = function() {

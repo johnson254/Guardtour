@@ -1,0 +1,74 @@
+{% comment %} Wizard Step 2: Standard Strategy Config {% endcomment %}
+<div class="rs-wiz" id="wizStep2">
+    <button type="button" class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
+    <div class="rs-wiz-header">
+        <div class="rs-wiz-title" id="wizStep2Title">Configure Blueprint</div>
+        <div class="rs-wiz-sub" id="wizStep2Sub"></div>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(211,47,47,0.05), rgba(20,20,32,0.96) 50%);">
+        <div class="rs-form-section-title" style="margin-bottom:12px;">
+            <span><i class="fas fa-sliders" style="color:var(--r-crim);margin-right:6px;"></i> <span id="wizStep2SectionTitle">Configuration</span></span>
+            <small><i class="fas fa-circle" style="color:var(--r-indigo);font-size:0.45rem;"></i> mission parameters</small>
+        </div>
+
+        <div class="rs-g2">
+            <div style="grid-column: span 2; margin-bottom: 4px;">
+                <label class="rs-lbl">Blueprint Name *</label>
+                <input id="wiz2Name" class="rs-fi rs-fi-sm" placeholder="e.g. North Wing Patrol">
+            </div>
+            <div>
+                <label class="rs-lbl">Start Date</label>
+                <input id="wiz2Date" type="date" class="rs-fi rs-fi-sm">
+            </div>
+            <div>
+                <label class="rs-lbl">Duty Cycle</label>
+                <div class="rs-shift-pill">
+                    <input type="radio" name="wiz2Shift" value="Day" id="wiz2ShiftDay" class="rs-shift-radio">
+                    <label for="wiz2ShiftDay" class="rs-shift-btn rs-shift-btn-day"><i class="fas fa-sun"></i> Day</label>
+                    <input type="radio" name="wiz2Shift" value="" id="wiz2ShiftAny" checked class="rs-shift-radio">
+                    <label for="wiz2ShiftAny" class="rs-shift-btn rs-shift-btn-any"><i class="fas fa-infinity"></i></label>
+                    <input type="radio" name="wiz2Shift" value="Night" id="wiz2ShiftNight" class="rs-shift-radio">
+                    <label for="wiz2ShiftNight" class="rs-shift-btn rs-shift-btn-night"><i class="fas fa-moon"></i> Night</label>
+                </div>
+            </div>
+            <div>
+                <label class="rs-lbl">Start Time</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input id="wiz2StartTime" type="time" class="rs-fi rs-fi-sm" style="flex:1;">
+                    <div class="rs-toggle-wrap">
+                        <label class="db-toggle"><input type="checkbox" id="wiz2Alert" checked><span class="db-toggle-sl"></span></label>
+                        <span class="rs-toggle-label">Alert</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="rs-lbl">Dwell Time (min)</label>
+                <input id="wiz2Stay" type="number" min="0" value="0" class="rs-fi rs-fi-sm">
+            </div>
+            <div style="grid-column:span 2; margin-top: 4px;">
+                <label class="rs-lbl">Assigned Personnel (callsigns)</label>
+                <div style="position:relative;">
+                    <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
+                        <div id="wiz2GuardTags" style="display:contents"></div>
+                        <input id="wiz2GuardInput" class="rs-tag-input" placeholder="Type callsign + Enter…">
+                    </div>
+                    <div id="wiz2GuardSuggest" class="rs-suggest-list rs-hidden"></div>
+                </div>
+            </div>
+            <div>
+                <label class="rs-lbl" for="wiz2Repeat">Checkpoints to generate</label>
+                <input id="wiz2Repeat" type="number" min="1" value="3" class="rs-fi rs-fi-sm">
+            </div>
+            <div id="wiz2IntervalWrap" class="rs-hidden">
+                <label class="rs-lbl" for="wiz2Interval">Interval (min)</label>
+                <input id="wiz2Interval" type="number" min="1" value="15" class="rs-fi rs-fi-sm">
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="rs-btn rs-btn-block" style="flex:1;" onclick="wiz2Apply()"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
+        <button type="button" class="rs-btn rs-btn-success rs-btn-block" style="flex:1;" onclick="wiz2SaveDeploy()"><i class="fas fa-rocket"></i> Save & Deploy</button>
+    </div>
+</div>

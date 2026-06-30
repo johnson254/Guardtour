@@ -1,0 +1,96 @@
+{% comment %} Checkpoint Row — editor checkpoint card {% endcomment %}
+<div class="rs-cp-row" draggable="true" data-cp-type="{{ type }}" data-order="{{ order }}">
+    <div class="rs-cp-grip" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></div>
+    <div class="rs-cp-badge"><div class="rs-cp-num">{{ order|add:1 }}</div></div>
+    <div class="rs-cp-main">
+        <div class="rs-cp-top">
+            <span class="rs-cp-type-badge {{ type }}">
+                {% if type == 'nfc' %}<i class="fas fa-wifi"></i> NFC
+                {% elif type == 'gps' %}<i class="fas fa-map-pin"></i> GPS
+                {% elif type == 'peer' %}<i class="fas fa-user-shield"></i> PEER
+                {% elif type == 'geo' %}<i class="fas fa-draw-polygon"></i> GEO
+                {% else %}<i class="fas fa-pen"></i> CUSTOM{% endif %}
+            </span>
+            <div class="rs-cp-name-wrap">
+                <input class="rs-fi rs-fi-sm bp-cp-name" placeholder="Point name…">
+                {% if type == 'nfc' %}
+                <input class="rs-fi rs-fi-sm bp-cp-tag" placeholder="NFC tag UID…">
+                {% elif type == 'peer' %}
+                <select class="rs-fi rs-fi-sm bp-cp-auditor" style="width:auto;">
+                    <option value="">Select auditor…</option>
+                    {% for g in guards %}<option value="{{ g.id }}">{{ g.callsign }}</option>{% endfor %}
+                </select>
+                <select class="rs-fi rs-fi-sm bp-cp-target" style="width:auto;">
+                    <option value="">Select target…</option>
+                    {% for g in guards %}<option value="{{ g.id }}">{{ g.callsign }}</option>{% endfor %}
+                </select>
+                {% elif type == 'gps' or type == 'geo' %}
+                <div class="rs-cp-coords">
+                    <input class="rs-fi rs-fi-sm bp-cp-lat" placeholder="Lat" style="width:70px;">
+                    <input class="rs-fi rs-fi-sm bp-cp-lng" placeholder="Lng" style="width:70px;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="rs-cp-summary">
+            <span class="rs-cp-summary-pill rad"><i class="fas fa-bullseye"></i> 50<small>m</small></span>
+            <span class="rs-cp-summary-pill dwell"><i class="fas fa-person-walking"></i> 0<small>min</small></span>
+            <span class="rs-cp-summary-pill tol"><i class="fas fa-hourglass-start"></i> 15<small>min</small></span>
+        </div>
+        <div class="rs-cp-sticky-settings" style="display:flex;gap:3px;margin:2px 0;">
+            <div class="rs-cp-setting" onclick="rsToggleProp(event,this)">
+                <i class="fas fa-alarm-clock"></i>
+                <input type="time" class="si bp-cp-time" onchange="bpValidateCpTime(this)">
+                <span class="sl">time</span>
+            </div>
+            <div class="rs-cp-setting rs-cp-tts-set" onclick="rsToggleProp(event,this)">
+                <i class="fas fa-bullhorn"></i>
+                <input type="text" class="si bp-cp-next-announce" placeholder="Next TTS…">
+                <span class="sl">tts</span>
+            </div>
+        </div>
+        <div class="rs-cp-config" style="overflow:hidden;max-height:0;transition:max-height .25s ease;">
+            <div class="rs-enf-row">
+                <div class="rs-enf-card">
+                    <div class="rs-enf-head">
+                        <div class="rs-enf-icon" style="background:rgba(211,47,47,0.12);color:#d32f2f;"><i class="fas fa-bullseye"></i></div>
+                        <div class="rs-enf-info"><div class="rs-enf-lbl">Radius</div><div class="rs-enf-desc">Perimeter</div></div>
+                        <div class="rs-enf-val cp-rad-val">50<small>m</small></div>
+                    </div>
+                    <div class="rs-enf-body">
+                        <input type="range" class="rs-enf-slider bp-cp-rad" min="0" max="500" value="50" step="5" oninput="regSliderSync(this)">
+                        <div class="rs-enf-presets"><div class="rs-enf-preset" data-v="0">Off</div><div class="rs-enf-preset" data-v="25">25</div><div class="rs-enf-preset active" data-v="50">50</div><div class="rs-enf-preset" data-v="100">100</div><div class="rs-enf-preset" data-v="250">250</div></div>
+                    </div>
+                </div>
+                <div class="rs-enf-card">
+                    <div class="rs-enf-head">
+                        <div class="rs-enf-icon" style="background:rgba(239,159,39,0.12);color:#EF9F27;"><i class="fas fa-person-walking"></i></div>
+                        <div class="rs-enf-info"><div class="rs-enf-lbl">Dwell</div><div class="rs-enf-desc">Minimum stay</div></div>
+                        <div class="rs-enf-val cp-dwell-val">0<small>min</small></div>
+                    </div>
+                    <div class="rs-enf-body">
+                        <input type="range" class="rs-enf-slider bp-cp-dwell" min="0" max="60" value="0" step="1" oninput="regSliderSync(this)">
+                        <div class="rs-enf-presets"><div class="rs-enf-preset active" data-v="0">Off</div><div class="rs-enf-preset" data-v="5">5</div><div class="rs-enf-preset" data-v="10">10</div><div class="rs-enf-preset" data-v="30">30</div><div class="rs-enf-preset" data-v="60">60</div></div>
+                    </div>
+                </div>
+                <div class="rs-enf-card">
+                    <div class="rs-enf-head">
+                        <div class="rs-enf-icon" style="background:rgba(108,142,239,0.12);color:#6C8EEF;"><i class="fas fa-hourglass-start"></i></div>
+                        <div class="rs-enf-info"><div class="rs-enf-lbl">Tolerance</div><div class="rs-enf-desc">Grace window</div></div>
+                        <div class="rs-enf-val cp-tol-val">15<small>min</small></div>
+                    </div>
+                    <div class="rs-enf-body">
+                        <input type="range" class="rs-enf-slider bp-cp-tol" min="0" max="60" value="15" step="1" oninput="regSliderSync(this)">
+                        <div class="rs-enf-presets"><div class="rs-enf-preset" data-v="0">Off</div><div class="rs-enf-preset" data-v="5">5</div><div class="rs-enf-preset active" data-v="15">15</div><div class="rs-enf-preset" data-v="30">30</div><div class="rs-enf-preset" data-v="60">60</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rs-hidden" style="font-size:0.45rem;color:var(--r-amber);display:flex;align-items:center;gap:3px;padding:1px 4px;"><i class="fas fa-triangle-exclamation"></i> <span></span></div>
+    </div>
+    <div class="rs-cp-actions" style="align-items:stretch;">
+        <button type="button" class="rs-cp-settings-toggle" title="Settings" onclick="bpToggleCpConfig(this)" style="border:none;background:none;color:var(--r-mute);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:0.6rem;transition:color .15s;" onmouseenter="this.style.color='var(--r-teal)'" onmouseleave="this.style.color='var(--r-mute)'"><i class="fas fa-sliders"></i></button>
+        <button type="button" class="rs-cp-del" title="Remove checkpoint" onclick="this.closest('.rs-cp-row').remove();bpRenumber();bpSetDirty();"><i class="fas fa-times"></i></button>
+        {% if type != 'peer' %}<button type="button" class="rs-cp-save" title="Save to library" onclick="bpLibrarySaveRow(this.closest('.rs-cp-row'))"><i class="fas fa-floppy-disk"></i></button>{% endif %}
+    </div>
+</div>
