@@ -293,6 +293,8 @@ window.bpSelectRoute = async function (id) {
         (r.checkpoints || []).forEach(cp => bpAddCp(cp));
         setDispatch(true);
         bpUpdatePreview();
+        // Load checkpoints into Mission Builder pool
+        mbLoadRouteCheckpoints(r);
         var reviewBtn = $('bpReviewBtn');
         if (reviewBtn) reviewBtn.classList.remove('rs-hidden');
     } catch (e) {}
@@ -2085,3 +2087,288 @@ document.addEventListener('htmx:afterSwap', function(evt) {
         if ($('auditAuditorInput')) populateTagSuggest('auditAuditorInput', 'auditAuditorTags');
     }
 });
+
+/* ═══════════════════════════════════════════════════
+   MISSION BUILDER — Timeline Scheduler
+   Integrated into routes page
+═══════════════════════════════════════════════════ */
+
+const MB = {
+  checkpoints: [],
+  placedCheckpoints: [],
+  strategy: 'Flexible',
+  date: '',
+  startTime: '08:00',
+  slotInterval: 30,
+  slotsPerDay: 32,
+  dragSource: null,
+  active: false,
+};
+
+function mbToggleView() {
+  MB.active = !MB.active;
+  const timelineView = $('mbTimelineView');
+  const editorBody = $('bpEditorBody');
+  const toggleBtn = $('mbToggleBtn');
+  const summaryPanel = $('mbSummaryPanel');
+  const manifestPanel = $('rsManifestPanel');
+
+  if (MB.active) {
+    timelineView.style.display = 'flex';
+    editorBody.style.display = 'none';
+    if (summaryPanel) summaryPanel.style.display = 'flex';
+    if (manifestPanel) manifestPanel.style.display = 'none';
+    if (toggleBtn) { toggleBtn.classList.add('active'); toggleBtn.style.borderColor = 'var(--r-teal)'; }
+    mbRenderTimeline();
+  } else {
+    timelineView.style.display = 'none';
+    editorBody.style.display = '';
+    if (summaryPanel) summaryPanel.style.display = 'none';
+    if (manifestPanel) manifestPanel.style.display = 'flex';
+    if (toggleBtn) { toggleBtn.classList.remove('active'); toggleBtn.style.borderColor = ''; }
+  }
+}
+
+function mbRenderPool() {
+  const pool = $('mbCheckpointPool');
+  if (!pool) return;
+  if (!MB.checkpoints.length) {
+    pool.innerHTML = '<div class="rs-empty" style="padding:20px;"><i class="fas fa-check"></i><br/>No checkpoints</div>';
+    return;
+  }
+  pool.innerHTML = MB.checkpoints.map((cp, i) => {
+    const type = cp.checkpoint_type || 'nfc';
+    const icon = type === 'gps' ? 'fa-map-pin' : type === 'peer' ? 'fa-user-shield' : type === 'custom' ? 'fa-pen' : 'fa-wifi';
+    const isPlaced = MB.placedCheckpoints.some(p => p.cp.name === cp.name);
+    return `<div class="mb-pool-item${isPlaced ? ' placed' : ''}" draggable="true" data-cp-idx="${i}" data-type="${type}">
+      <i class="fas ${icon}" style="margin-right:6px;font-size:0.65rem;"></i>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cp.name || 'Checkpoint ' + (i + 1)}</span>
+      <span style="font-size:0.5rem;color:var(--r-mute);text-transform:uppercase;">${type}</span>
+    </div>`;
+  }).join('');
+
+  pool.querySelectorAll('.mb-pool-item').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      if (el.classList.contains('placed')) { e.preventDefault(); return; }
+      MB.dragSource = { type: 'pool', cpIdx: parseInt(el.dataset.cpIdx) };
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      MB.dragSource = null;
+    });
+  });
+}
+
+function mbRenderTimeline() {
+  const labels = $('mbTimeLabels');
+  const slots = $('mbTimeSlots');
+  if (!labels || !slots) return;
+
+  labels.innerHTML = '';
+  slots.innerHTML = '';
+
+  const [startH, startM] = MB.startTime.split(':').map(Number);
+
+  for (let i = 0; i < MB.slotsPerDay; i++) {
+    const mins = startH * 60 + startM + i * MB.slotInterval;
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    const timeStr = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+
+    const label = document.createElement('div');
+    label.className = 'mb-time-label';
+    label.textContent = timeStr;
+    labels.appendChild(label);
+
+    const slot = document.createElement('div');
+    slot.className = 'mb-time-slot';
+    slot.dataset.slotIdx = i;
+    slot.dataset.time = timeStr;
+    slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); });
+    slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+    slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); mbOnDrop(i, timeStr); });
+    slots.appendChild(slot);
+  }
+
+  MB.placedCheckpoints.forEach(p => mbRenderPlacedCp(p));
+  mbUpdateSummary();
+}
+
+function mbRenderPlacedCp(p) {
+  const slots = $('mbTimeSlots');
+  if (!slots) return;
+  const slot = slots.children[p.slotIdx];
+  if (!slot) return;
+
+  const type = p.cp.checkpoint_type || 'nfc';
+  const icon = type === 'gps' ? 'fa-map-pin' : type === 'peer' ? 'fa-user-shield' : type === 'custom' ? 'fa-pen' : 'fa-wifi';
+  const el = document.createElement('div');
+  el.className = `mb-placed-cp ${type}`;
+  el.style.top = '2px';
+  el.style.bottom = '2px';
+  el.draggable = true;
+  el.innerHTML = `<i class="fas ${icon}" style="font-size:0.5rem;"></i>
+    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.cp.name || 'CP'}</span>
+    <span class="cp-time">${p.time}</span>
+    <button class="cp-remove" onclick="mbRemovePlaced(${p.slotIdx})"><i class="fas fa-times"></i></button>`;
+  el.addEventListener('dragstart', (e) => { MB.dragSource = { type: 'placed', slotIdx: p.slotIdx }; e.dataTransfer.effectAllowed = 'move'; });
+  slot.appendChild(el);
+}
+
+function mbOnDrop(slotIdx, timeStr) {
+  if (!MB.dragSource) return;
+  if (MB.dragSource.type === 'pool') {
+    const cp = MB.checkpoints[MB.dragSource.cpIdx];
+    if (!cp) return;
+    MB.placedCheckpoints = MB.placedCheckpoints.filter(p => p.cp.name !== cp.name);
+    MB.placedCheckpoints.push({ cp, slotIdx, time: timeStr });
+  } else if (MB.dragSource.type === 'placed') {
+    const placed = MB.placedCheckpoints.find(p => p.slotIdx === MB.dragSource.slotIdx);
+    if (placed) {
+      MB.placedCheckpoints = MB.placedCheckpoints.filter(p => p.slotIdx !== MB.dragSource.slotIdx);
+      placed.slotIdx = slotIdx;
+      placed.time = timeStr;
+      MB.placedCheckpoints.push(placed);
+    }
+  }
+  MB.placedCheckpoints.sort((a, b) => a.slotIdx - b.slotIdx);
+  if (MB.strategy === 'Sequential') mbEnforceSequence();
+  mbRenderPool();
+  mbRenderTimeline();
+}
+
+function mbEnforceSequence() {
+  for (let i = 1; i < MB.placedCheckpoints.length; i++) {
+    if (MB.placedCheckpoints[i].slotIdx <= MB.placedCheckpoints[i - 1].slotIdx) {
+      MB.placedCheckpoints[i].slotIdx = MB.placedCheckpoints[i - 1].slotIdx + 1;
+      const [startH, startM] = MB.startTime.split(':').map(Number);
+      const mins = startH * 60 + startM + MB.placedCheckpoints[i].slotIdx * MB.slotInterval;
+      const h = Math.floor(mins / 60) % 24;
+      const m = mins % 60;
+      MB.placedCheckpoints[i].time = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+  }
+}
+
+function mbRemovePlaced(slotIdx) {
+  MB.placedCheckpoints = MB.placedCheckpoints.filter(p => p.slotIdx !== slotIdx);
+  mbRenderPool();
+  mbRenderTimeline();
+}
+
+function mbSetStrategy(strategy, btn) {
+  MB.strategy = strategy;
+  $$('.mb-strategy-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (strategy === 'Sequential') { mbEnforceSequence(); mbRenderTimeline(); }
+}
+
+function mbOnDateChange() {
+  MB.date = $('mbDate').value;
+  mbUpdateSummary();
+}
+
+function mbOnStartChange() {
+  MB.startTime = $('mbStartTime').value;
+  MB.placedCheckpoints.forEach(p => {
+    const [startH, startM] = MB.startTime.split(':').map(Number);
+    const mins = startH * 60 + startM + p.slotIdx * MB.slotInterval;
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    p.time = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  });
+  mbRenderTimeline();
+}
+
+function mbUpdateSummary() {
+  const [startH, startM] = MB.startTime.split(':').map(Number);
+  const endMins = startH * 60 + startM + MB.slotsPerDay * MB.slotInterval;
+  const endH = Math.floor(endMins / 60) % 24;
+  const endM = endMins % 60;
+  // Update brief panel if it exists
+  const sumDate = $('mbSumDate');
+  const sumStart = $('mbSumStart');
+  const sumEnd = $('mbSumEnd');
+  const sumCp = $('mbSumCp');
+  if (sumDate) sumDate.textContent = MB.date || '—';
+  if (sumStart) sumStart.textContent = MB.startTime || '—';
+  if (sumEnd) sumEnd.textContent = String(endH).padStart(2, '0') + ':' + String(endM).padStart(2, '0');
+  if (sumCp) sumCp.textContent = MB.placedCheckpoints.length + '/' + MB.checkpoints.length;
+}
+
+/* ── Deploy from Mission Builder ── */
+async function mbDeployFromTimeline() {
+  if (!selId) { toast('No route selected', true); return; }
+  if (!MB.date) { toast('Set a date', true); return; }
+  if (!MB.placedCheckpoints.length) { toast('Place at least one checkpoint', true); return; }
+
+  try {
+    const checkpoints = MB.placedCheckpoints.map((p, i) => ({
+      id: p.cp.id,
+      name: p.cp.name,
+      checkpoint_type: p.cp.checkpoint_type,
+      nfc_tag: p.cp.nfc_tag,
+      lat: p.cp.lat,
+      lng: p.cp.lng,
+      planned_time: p.time,
+      time_tolerance: p.cp.time_tolerance || 15,
+      dwell_time: p.cp.dwell_time || 0,
+      radius: p.cp.radius || 50,
+      order: i,
+      auditor_id: p.cp.auditor_id,
+      target_id: p.cp.target_id,
+    }));
+
+    const saveRes = await api(`/api/routes/${selId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        scheduled_date: MB.date,
+        scheduled_start_time: MB.startTime,
+        logic_type: MB.strategy,
+        checkpoints: checkpoints,
+      }),
+    });
+
+    if (!saveRes.ok) { toast('Failed to save schedule', true); return; }
+
+    const deployRes = await api(`/api/routes/${selId}/deploy/`, {
+      method: 'POST',
+      body: JSON.stringify({ scheduled_date: MB.date, scheduled_start_time: MB.startTime }),
+    });
+
+    if (deployRes.ok) {
+      toast('Mission deployed — ' + MB.placedCheckpoints.length + ' checkpoints scheduled');
+      MB.placedCheckpoints = [];
+      mbRenderPool();
+      mbRenderTimeline();
+    } else {
+      let detail = '';
+      try { const d = await deployRes.json(); detail = d?.detail ? ' — ' + d.detail : ''; } catch (_) {}
+      toast('Deploy failed' + detail, true);
+    }
+  } catch (e) {
+    toast('Deploy request failed', true);
+  }
+}
+
+/* ── Load checkpoints when route selected ── */
+function mbLoadRouteCheckpoints(route) {
+  MB.checkpoints = route.checkpoints || [];
+  MB.placedCheckpoints = [];
+  MB.date = new Date().toISOString().split('T')[0];
+  $('mbDate').value = MB.date;
+  $('mbStartTime').value = MB.startTime;
+  mbRenderPool();
+  mbRenderTimeline();
+}
+
+// Exports
+window.mbToggleView = mbToggleView;
+window.mbSetStrategy = mbSetStrategy;
+window.mbOnDateChange = mbOnDateChange;
+window.mbOnStartChange = mbOnStartChange;
+window.mbDeployFromTimeline = mbDeployFromTimeline;
+window.mbRemovePlaced = mbRemovePlaced;
+window.mbLoadRouteCheckpoints = mbLoadRouteCheckpoints;

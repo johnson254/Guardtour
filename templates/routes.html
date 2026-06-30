@@ -1,7 +1,34 @@
 {% extends base_template %}
 {% block content %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/page-routes.css' %}" />
+<link rel="stylesheet" href="{% static 'css/page-routes.css" %}
+<style>
+/* ── Mission Builder Timeline (inline in routes) ── */
+.mb-strategy { display:flex; gap:4px; }
+.mb-strategy-btn { flex:1; padding:6px 8px; font-size:0.55rem; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; border:1px solid var(--r-line); border-radius:6px; background:transparent; color:var(--r-mute); cursor:pointer; transition:all .15s; }
+.mb-strategy-btn:hover { border-color:var(--r-line2); color:var(--r-text); }
+.mb-strategy-btn.active { background:rgba(211,47,47,0.1); border-color:var(--r-crim); color:#fff; }
+.mb-time-grid { display:grid; grid-template-columns:60px 1fr; gap:0; }
+.mb-time-labels { border-right:1px solid var(--r-line); }
+.mb-time-label { height:40px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; font-size:0.6rem; font-weight:700; color:var(--r-mute); border-bottom:1px solid rgba(255,255,255,0.03); }
+.mb-time-slots { position:relative; }
+.mb-time-slot { height:40px; border-bottom:1px solid rgba(255,255,255,0.03); position:relative; transition:background .15s; }
+.mb-time-slot:hover { background:rgba(255,255,255,0.02); }
+.mb-time-slot.drag-over { background:rgba(93,202,165,0.08); border-color:var(--r-teal); }
+.mb-placed-cp { position:absolute; left:4px; right:4px; border-radius:6px; padding:4px 8px; font-size:0.6rem; font-weight:700; cursor:move; display:flex; align-items:center; gap:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mb-placed-cp.nfc { background:rgba(211,47,47,0.15); border:1px solid rgba(211,47,47,0.4); }
+.mb-placed-cp.gps { background:rgba(108,142,239,0.15); border:1px solid rgba(108,142,239,0.4); }
+.mb-placed-cp.peer { background:rgba(192,132,252,0.15); border:1px solid rgba(192,132,252,0.4); }
+.mb-placed-cp.custom { background:rgba(0,229,160,0.15); border:1px solid rgba(0,229,160,0.4); }
+.mb-placed-cp .cp-time { font-size:0.5rem; color:var(--r-mute); font-weight:600; }
+.mb-placed-cp .cp-remove { margin-left:auto; background:none; border:none; color:var(--r-mute); cursor:pointer; font-size:0.55rem; padding:2px; }
+.mb-placed-cp .cp-remove:hover { color:var(--r-crim); }
+.mb-pool { display:flex; flex-direction:column; gap:6px; padding:8px; }
+.mb-pool-item { padding:8px 10px; border:1px solid var(--r-line); border-radius:var(--r-rad-sm); background:var(--r-surf3); cursor:grab; transition:all .15s; user-select:none; }
+.mb-pool-item:hover { border-color:var(--r-line2); background:rgba(255,255,255,0.04); }
+.mb-pool-item.dragging { opacity:0.4; cursor:grabbing; }
+.mb-pool-item.placed { opacity:0.3; pointer-events:none; border-style:dashed; }
+</style>
 <div class="rs-shell">
 
 <!-- ════ LEFT — Blueprint Library ════ -->
@@ -25,6 +52,14 @@
          hx-get="/api/routes-list-partial/"
          hx-trigger="load"
          hx-swap="innerHTML"></div>
+    <!-- Checkpoint Pool (for Mission Builder) -->
+    <div class="rs-panel-head" style="border-top:1px solid var(--r-line);">
+        <div class="rs-panel-title"><i class="fas fa-layer-group" style="color:var(--r-teal)"></i> Checkpoints</div>
+        <span style="font-size:0.6rem;color:var(--r-mute);" id="mbCpCount">0</span>
+    </div>
+    <div class="mb-pool" id="mbCheckpointPool" style="flex:1;overflow-y:auto;max-height:200px;">
+        <div class="rs-empty" style="padding:12px;font-size:0.65rem;"><i class="fas fa-map-pin"></i> Select route</div>
+    </div>
 </div>
 
 <!-- ════ CENTRE — Editor ════ -->
@@ -43,6 +78,7 @@
             <i class="fas fa-route"></i> Routes Dispatch
         </h3>
         <div style="display:flex;gap:6px;">
+            <button type="button" class="rs-btn rs-btn-sm" id="mbToggleBtn" onclick="mbToggleView()" title="Mission Builder"><i class="fas fa-calendar-check"></i> Mission Builder</button>
             <button type="button" class="rs-btn rs-btn-sm" onclick="bpCreateNew()" title="New Blueprint"><i class="fas fa-plus"></i> New</button>
             <button type="button" class="rs-btn rs-btn-success rs-btn-sm rs-hidden" id="bpDeployBtn" onclick="rsDeployOpen()">
                 <i class="fas fa-rocket"></i> Deploy
@@ -53,8 +89,30 @@
         </div>
     </div>
 
+    <!-- Mission Builder Timeline (hidden by default) -->
+    <div id="mbTimelineView" style="display:none;flex-direction:column;height:100%;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--r-line);">
+            <div style="display:flex;gap:6px;align-items:center;">
+                <input type="date" id="mbDate" class="rs-fi rs-fi-sm" style="width:130px;" onchange="mbOnDateChange()">
+                <input type="time" id="mbStartTime" class="rs-fi rs-fi-sm" value="08:00" style="width:90px;" onchange="mbOnStartChange()">
+            </div>
+            <div class="mb-strategy" id="mbStrategy">
+                <button class="mb-strategy-btn active" data-strategy="Flexible" onclick="mbSetStrategy('Flexible',this)">Flex</button>
+                <button class="mb-strategy-btn" data-strategy="Sequential" onclick="mbSetStrategy('Sequential',this)">Seq</button>
+                <button class="mb-strategy-btn" data-strategy="Scheduled" onclick="mbSetStrategy('Scheduled',this)">Sched</button>
+                <button class="mb-strategy-btn" data-strategy="Audit" onclick="mbSetStrategy('Audit',this)">Audit</button>
+            </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;position:relative;">
+            <div class="mb-time-grid" id="mbTimeGrid">
+                <div class="mb-time-labels" id="mbTimeLabels"></div>
+                <div class="mb-time-slots" id="mbTimeSlots"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Editor body -->
-    <div class="rs-ed-body">
+    <div class="rs-ed-body" id="bpEditorBody">
 
         <!-- Duty Cycle — prominent top section -->
         <div class="rs-block" style="background: linear-gradient(135deg, rgba(255,213,79,0.06), rgba(20,20,32,0.96) 40%, rgba(79,70,229,0.04)); border-color:rgba(255,213,79,0.08); margin-bottom:6px;">
@@ -325,6 +383,22 @@
         <div style="overflow-y:auto; max-height:160px; display:flex; flex-direction:column; gap:3px; padding:0 10px 6px;">
             <div id="summaryPersonnel"></div>
             <div id="summaryCps"></div>
+        </div>
+    </div>
+
+    <!-- ════ Mission Builder Summary (shown when MB active) ════ -->
+    <div id="mbSummaryPanel" style="flex:0 0 auto; width:100%; display:none; flex-direction:column; overflow:hidden; border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px;">
+            <span style="font-size:0.52rem; font-weight:900; color:var(--r-teal); text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-calendar-check" style="margin-right:4px;"></i> Mission Summary
+            </span>
+        </div>
+        <div style="padding:0 10px 6px; display:flex; flex-direction:column; gap:4px;">
+            <div class="rs-summary-pill" style="font-size:0.6rem;">Date: <strong id="mbSumDate">—</strong></div>
+            <div class="rs-summary-pill" style="font-size:0.6rem;">Start: <strong id="mbSumStart">—</strong></div>
+            <div class="rs-summary-pill" style="font-size:0.6rem;">End: <strong id="mbSumEnd">—</strong></div>
+            <div class="rs-summary-pill" style="font-size:0.6rem;">CPs: <strong id="mbSumCp">0/0</strong></div>
+            <button type="button" class="rs-btn rs-btn-success rs-btn-sm" style="margin-top:4px;justify-content:center;" onclick="mbDeployFromTimeline()"><i class="fas fa-rocket"></i> Deploy Mission</button>
         </div>
     </div>
 
