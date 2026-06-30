@@ -2,85 +2,130 @@
 {% block content %}
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/page-routes.css' %}" />
-<div class="rs-shell">
+<style>
+/* ── Mission Builder: Timeline Scheduler ── */
+.mb-shell { display:grid; grid-template-columns:240px 1fr 280px; gap:8px; height:calc(100vh - 164px); min-height:500px; }
+@media(max-width:1200px){ .mb-shell{grid-template-columns:1fr; height:auto} }
 
-<!-- ════ LEFT — Blueprint Library ════ -->
-<div id="rsLibPanel" class="rs-panel" style="display:flex; flex-direction:column; overflow:hidden;">
-    <div class="rs-panel-head" style="background: linear-gradient(135deg, rgba(211,47,47,0.06) 0%, transparent 70%);">
-        <h3 class="rs-panel-title"><i class="fas fa-folder-open" style="color:var(--r-crim)"></i> Mission Library</h3>
+/* Timeline */
+.mb-timeline { display:flex; flex-direction:column; height:100%; }
+.mb-timeline-head { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--r-line); }
+.mb-timeline-body { flex:1; overflow-y:auto; position:relative; }
+
+/* Time grid */
+.mb-time-grid { display:grid; grid-template-columns:60px 1fr; gap:0; }
+.mb-time-labels { border-right:1px solid var(--r-line); }
+.mb-time-label { height:40px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; font-size:0.6rem; font-weight:700; color:var(--r-mute); border-bottom:1px solid rgba(255,255,255,0.03); }
+.mb-time-slots { position:relative; }
+.mb-time-slot { height:40px; border-bottom:1px solid rgba(255,255,255,0.03); position:relative; transition:background .15s; }
+.mb-time-slot:hover { background:rgba(255,255,255,0.02); }
+.mb-time-slot.drag-over { background:rgba(93,202,165,0.08); border-color:var(--r-teal); }
+
+/* Checkpoint pool */
+.mb-pool { display:flex; flex-direction:column; gap:6px; padding:8px; }
+.mb-pool-item { padding:8px 10px; border:1px solid var(--r-line); border-radius:var(--r-rad-sm); background:var(--r-surf3); cursor:grab; transition:all .15s; user-select:none; }
+.mb-pool-item:hover { border-color:var(--r-line2); background:rgba(255,255,255,0.04); }
+.mb-pool-item.dragging { opacity:0.4; cursor:grabbing; }
+.mb-pool-item.placed { opacity:0.3; pointer-events:none; border-style:dashed; }
+
+/* Strategy selector */
+.mb-strategy { display:flex; gap:4px; padding:8px; }
+.mb-strategy-btn { flex:1; padding:6px 8px; font-size:0.55rem; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; border:1px solid var(--r-line); border-radius:6px; background:transparent; color:var(--r-mute); cursor:pointer; transition:all .15s; }
+.mb-strategy-btn:hover { border-color:var(--r-line2); color:var(--r-text); }
+.mb-strategy-btn.active { background:rgba(211,47,47,0.1); border-color:var(--r-crim); color:#fff; }
+
+/* Placed checkpoint on timeline */
+.mb-placed-cp { position:absolute; left:4px; right:4px; border-radius:6px; padding:4px 8px; font-size:0.6rem; font-weight:700; cursor:move; display:flex; align-items:center; gap:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mb-placed-cp.nfc { background:rgba(211,47,47,0.15); border:1px solid rgba(211,47,47,0.4); }
+.mb-placed-cp.gps { background:rgba(108,142,239,0.15); border:1px solid rgba(108,142,239,0.4); }
+.mb-placed-cp.peer { background:rgba(192,132,252,0.15); border:1px solid rgba(192,132,252,0.4); }
+.mb-placed-cp.custom { background:rgba(0,229,160,0.15); border:1px solid rgba(0,229,160,0.4); }
+.mb-placed-cp .cp-time { font-size:0.5rem; color:var(--r-mute); font-weight:600; }
+.mb-placed-cp .cp-remove { margin-left:auto; background:none; border:none; color:var(--r-mute); cursor:pointer; font-size:0.55rem; padding:2px; }
+.mb-placed-cp .cp-remove:hover { color:var(--r-crim); }
+
+/* Summary panel */
+.mb-summary { padding:12px; }
+.mb-summary-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+</style>
+
+<div class="mb-shell">
+
+<!-- ════ LEFT: Route Library + Checkpoint Pool ════ -->
+<div class="rs-panel">
+    <div class="rs-panel-head">
+        <div class="rs-panel-title"><i class="fas fa-folder-open"></i> Routes</div>
     </div>
     <div class="rs-search">
         <div class="rs-search-box">
             <i class="fas fa-search"></i>
-            <input id="mbRouteSearch" placeholder="Search blueprints..." oninput="mbFilterRoutes(this.value)">
+            <input id="mbRouteSearch" placeholder="Search routes..." oninput="mbFilterRoutes(this.value)">
         </div>
     </div>
-    <div class="rs-lib-list" id="mbRouteList">
-        <div class="rs-empty"><i class="fas fa-map"></i>Loading blueprints…</div>
+    <div class="rs-lib-list" id="mbRouteList" style="border-bottom:1px solid var(--r-line);max-height:200px;">
+        <div class="rs-empty"><i class="fas fa-map"></i>Loading…</div>
     </div>
-</div>
-
-<!-- ════ CENTRE — Mission Window ════ -->
-<div class="rs-panel rs-editor">
-    <div class="rs-panel-head">
-        <h3 class="rs-panel-title"><i class="fas fa-calendar-check" style="color:var(--r-amber)"></i> Mission Window</h3>
-        <div style="display:flex;gap:6px;">
-            <button type="button" class="rs-btn rs-btn-sm" onclick="mbApplyWindow()"><i class="fas fa-check"></i> Apply</button>
-        </div>
+    <div class="rs-panel-head" style="border-top:1px solid var(--r-line);">
+        <div class="rs-panel-title"><i class="fas fa-layer-group"></i> Checkpoints</div>
+        <span style="font-size:0.6rem;color:var(--r-mute);" id="mbCpCount">0</span>
     </div>
-
-    <div class="rs-ed-body">
-        <!-- Calendar/time picker -->
-        <div style="border-radius:12px; overflow:hidden; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
-            <div id="mbCalendarHost" style="padding:12px;">
-                {% include "components/calendar_component.html" %}
-            </div>
-        </div>
-
-        <!-- Checkpoint Time -->
-        <div class="rs-block" style="background:linear-gradient(135deg, rgba(255,213,79,0.04), rgba(20,20,32,0.96) 50%);">
-            <div class="rs-form-section-title">
-                <span><i class="fas fa-clock" style="color:var(--r-amber);margin-right:6px;"></i> Checkpoint Time</span>
-                <small><i class="fas fa-circle" style="color:var(--r-amber);font-size:0.45rem;"></i> relative to start</small>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                <button class="rs-chip" data-ct="now" onclick="mbSetCheckpointTime('now', this)">Now</button>
-                <button class="rs-chip" data-ct="+15" onclick="mbSetCheckpointTime('+15', this)">+15m</button>
-                <button class="rs-chip" data-ct="+30" onclick="mbSetCheckpointTime('+30', this)">+30m</button>
-                <button class="rs-chip" data-ct="+60" onclick="mbSetCheckpointTime('+60', this)">+1h</button>
-                <button class="rs-chip" data-ct="eos" onclick="mbSetCheckpointTime('eos', this)">End Shift</button>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <input class="rs-fi rs-fi-sm" type="time" id="mbCheckpointTime" value="" style="width:140px;text-align:center;">
-                <span style="font-size:0.65rem;color:var(--r-mute);font-weight:600;">or custom time</span>
-            </div>
-        </div>
-
-        <!-- Summary -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <div class="rs-summary-pill">Date: <strong id="mbSummaryDate">—</strong></div>
-            <div class="rs-summary-pill">Time: <strong id="mbSummaryTime">—</strong></div>
-            <div class="rs-summary-pill">CP Time: <strong id="mbSummaryCp">—</strong></div>
-        </div>
+    <div class="mb-pool" id="mbCheckpointPool" style="flex:1;overflow-y:auto;">
+        <div class="rs-empty" style="padding:20px;"><i class="fas fa-map-pin"></i><br/>Select a route</div>
     </div>
 </div>
 
-<!-- ════ RIGHT — Mission Brief ════ -->
+<!-- ════ CENTER: Timeline ════ -->
 <div class="rs-panel">
     <div class="rs-panel-head">
-        <h3 class="rs-panel-title"><i class="fas fa-clipboard-list" style="color:var(--r-indigo)"></i> Mission Brief</h3>
-        <span style="font-size:0.7rem;color:var(--r-mute);font-weight:700;" id="mbBadge"></span>
+        <div class="rs-panel-title"><i class="fas fa-clock"></i> Mission Timeline</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <input type="date" id="mbDate" class="rs-fi rs-fi-sm" style="width:130px;" onchange="mbOnDateChange()">
+            <input type="time" id="mbStartTime" class="rs-fi rs-fi-sm" value="08:00" style="width:90px;" onchange="mbOnStartChange()">
+        </div>
     </div>
-    <div class="rs-ed-body" id="mbBrief">
-        <div class="rs-empty"><i class="fas fa-satellite-dish"></i><br/>Select a blueprint and time window</div>
+
+    <!-- Strategy selector -->
+    <div class="mb-strategy" id="mbStrategy">
+        <button class="mb-strategy-btn active" data-strategy="Flexible" onclick="mbSetStrategy('Flexible',this)">Flex</button>
+        <button class="mb-strategy-btn" data-strategy="Sequential" onclick="mbSetStrategy('Sequential',this)">Seq</button>
+        <button class="mb-strategy-btn" data-strategy="Scheduled" onclick="mbSetStrategy('Scheduled',this)">Sched</button>
+        <button class="mb-strategy-btn" data-strategy="Audit" onclick="mbSetStrategy('Audit',this)">Audit</button>
     </div>
-    <div class="rs-panel-foot" id="mbFoot" style="display:none;">
+
+    <!-- Timeline grid -->
+    <div class="mb-timeline-body">
+        <div class="mb-time-grid" id="mbTimeGrid">
+            <div class="mb-time-labels" id="mbTimeLabels"></div>
+            <div class="mb-time-slots" id="mbTimeSlots"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ RIGHT: Mission Brief ════ -->
+<div class="rs-panel">
+    <div class="rs-panel-head">
+        <div class="rs-panel-title"><i class="fas fa-clipboard-list"></i> Mission Brief</div>
+        <span style="font-size:0.6rem;color:var(--r-mute);" id="mbRouteName">—</span>
+    </div>
+    <div class="rs-ed-body">
+        <div class="mb-summary">
+            <div class="rs-summary-pill">Date: <strong id="mbSumDate">—</strong></div>
+            <div class="rs-summary-pill">Start: <strong id="mbSumStart">—</strong></div>
+            <div class="rs-summary-pill">End: <strong id="mbSumEnd">—</strong></div>
+            <div class="rs-summary-pill">Strategy: <strong id="mbSumStrat">Flexible</strong></div>
+            <div class="rs-summary-pill">CPs: <strong id="mbSumCp">0/0</strong></div>
+        </div>
+        <div id="mbBriefContent">
+            <div class="rs-empty"><i class="fas fa-satellite-dish"></i><br/>Select a route to begin scheduling</div>
+        </div>
+    </div>
+    <div class="rs-panel-foot">
         <button type="button" class="rs-btn rs-btn-sm" onclick="mbReset()"><i class="fas fa-rotate-left"></i> Reset</button>
         <button type="button" class="rs-btn rs-btn-success rs-btn-sm" onclick="mbDeploy()"><i class="fas fa-rocket"></i> Deploy</button>
     </div>
 </div>
 
-</div><!-- /rs-shell -->
+</div><!-- /mb-shell -->
 
 <div class="rs-toasts" id="mbToasts"></div>
 
