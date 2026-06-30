@@ -49,12 +49,12 @@ def routes_page(request):
 def mission_builder_page(request):
     """Redirect to routes page (Mission Builder is now integrated into routes)."""
     from django.http import HttpResponseRedirect
-    resp = HttpResponseRedirect('/routes/')
-    # If htmx request, use HX-Redirect for SPA navigation
     if request.headers.get('HX-Request'):
-        resp = HttpResponseRedirect('/routes/')
+        from django.http import HttpResponse
+        resp = HttpResponse('')
         resp['HX-Redirect'] = '/routes/'
-    return resp
+        return resp
+    return HttpResponseRedirect('/routes/')
 
 
 @login_required
