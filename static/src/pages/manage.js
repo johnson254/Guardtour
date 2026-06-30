@@ -3011,6 +3011,8 @@ if (!document.getElementById('regStyle')) {
     rs.textContent = [
         '.cb-reg-row { display:flex; align-items:flex-start; gap:6px; padding:8px 10px; background:rgba(255,255,255,0.015); border-radius:8px; border:1px solid rgba(255,255,255,0.05); border-left:3px solid; margin-bottom:4px; transition:border-color .2s,background .2s,box-shadow .2s,transform .15s; position:relative; animation:regSlideIn .22s ease; cursor:pointer; }',
         '.cb-reg-row:hover { border-color:rgba(255,255,255,0.1); background:rgba(255,255,255,0.025); box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 2px 12px rgba(0,0,0,0.15); }',
+        '.cb-reg-row.expanded { border-color:rgba(0,196,154,0.3); background:rgba(0,196,154,0.04); box-shadow:0 0 0 1px rgba(0,196,154,0.15), 0 4px 16px rgba(0,0,0,0.2); }',
+        '.cb-reg-row.expanded:hover { background:rgba(0,196,154,0.06); }',
         '.cb-reg-row.dragging { opacity:.3; border-style:dashed; transform:scale(.95); }',
         '.cb-reg-row[data-is-saved="0"] { border-left-width:4px; background:rgba(0,196,154,0.025); }',
         '.cb-reg-row[data-is-saved="0"]:hover { background:rgba(0,196,154,0.05); }',
@@ -3181,7 +3183,7 @@ window.addRegistryRow = function(type, data) {
                 '<span class="cb-reg-dots">' + settingDots.join('') + '</span>',
                 '<span class="cb-reg-chev"><i class="fas fa-chevron-down"></i></span>',
             '</div>',
-            '<div class="cb-reg-config" style="max-height:' + (isSaved ? '0' : '0') + 'px;overflow:hidden;"' + (isSaved ? '' : ' data-auto-expand="1"') + '>',
+            '<div class="cb-reg-config" style="max-height:' + (isSaved ? '0' : '0') + 'px;overflow:hidden;transition:max-height .3s ease;"' + (isSaved ? '' : ' data-auto-expand="1"') + '>',
                 '<div class="cb-reg-config-inner">',
                     fieldArea,
                     '<div class="cb-reg-enf" style="display:flex;flex-direction:column;gap:4px;padding:0 0 2px;">',
@@ -3290,6 +3292,13 @@ window.addRegistryRow = function(type, data) {
     if (nameInput) {
         nameInput.addEventListener('blur', syncName);
         nameInput.addEventListener('input', syncName);
+        // Enter on name input adds a new checkpoint of the same type
+        nameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addRegistryRow(type, {});
+            }
+        });
     }
 
     // Inline name editing (header): single-click to edit
@@ -3323,6 +3332,15 @@ window.addRegistryRow = function(type, data) {
     list.appendChild(div);
     // Auto-expand config for new (staged) rows
     if (!isSaved) {
+        // Collapse any other open rows (accordion behavior)
+        $$('#cp-registry .cb-reg-row').forEach(function(r) {
+            if (r === div) return;
+            var c = r.querySelector('.cb-reg-config');
+            var ch = r.querySelector('.cb-reg-chev i');
+            if (c) c.style.maxHeight = '0px';
+            if (ch) ch.style.transform = '';
+            r.classList.remove('expanded');
+        });
         requestAnimationFrame(function() {
             var config = div.querySelector('.cb-reg-config');
             var inner = config ? config.querySelector('.cb-reg-config-inner') : null;
@@ -3331,6 +3349,7 @@ window.addRegistryRow = function(type, data) {
                 config.style.maxHeight = inner.scrollHeight + 20 + 'px';
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
             }
+            div.classList.add('expanded');
             // Init slider displays & presets
             div.querySelectorAll('.enf-slider').forEach(function(s) { regSliderSync(s); });
             // Focus the name input
@@ -3446,18 +3465,40 @@ document.addEventListener('click', function(e) {
 /* ── Toggle config panel on click (max-height animation) ── */
 window.mgToggleCpConfig = function(ev, headEl) {
     if (ev.target.tagName === 'INPUT' || ev.target.closest('.cb-r-btn') || ev.target.closest('.cb-reg-setting')) return;
-    var config = headEl?.closest('.cb-reg-row')?.querySelector('.cb-reg-config');
+    var row = headEl?.closest('.cb-reg-row');
+    var config = row?.querySelector('.cb-reg-config');
     var chevron = headEl?.closest('.cb-reg-hd')?.querySelector('.cb-reg-chev i');
-    if (!config) return;
+    if (!config || !row) return;
     var inner = config.querySelector('.cb-reg-config-inner');
     if (!inner) return;
     var isOpen = config.style.maxHeight !== '0px' && config.style.maxHeight !== '';
+
+    // Accordion: close all other open rows first
+    if (!isOpen) {
+        var allRows = $$('#cpRegistry .cb-reg-row');
+        allRows.forEach(function(r) {
+            if (r === row) return;
+            var c = r.querySelector('.cb-reg-config');
+            var ch = r.querySelector('.cb-reg-chev i');
+            if (c) c.style.maxHeight = '0px';
+            if (ch) ch.style.transform = '';
+            r.classList.remove('expanded');
+        });
+    }
+
     if (isOpen) {
         config.style.maxHeight = '0px';
         if (chevron) chevron.style.transform = '';
+        row.classList.remove('expanded');
     } else {
-        config.style.maxHeight = inner.scrollHeight + 20 + 'px';
+        // Cap expanded height at 60% of viewport, let inner scroll if taller
+        var maxH = Math.min(inner.scrollHeight + 20, window.innerHeight * 0.6);
+        config.style.maxHeight = maxH + 'px';
+        config.style.overflowY = inner.scrollHeight + 20 > maxH ? 'auto' : 'hidden';
         if (chevron) chevron.style.transform = 'rotate(180deg)';
+        row.classList.add('expanded');
+        // Smooth scroll the row into view
+        setTimeout(function() { row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150);
     }
 };
 
@@ -3556,6 +3597,16 @@ window.cbClearStaged = function() {
     inlineCps = [];
     savedCps = [];
     updateRegistryStats();
+};
+
+window.cbCollapseAll = function() {
+    $$('#cpRegistry .cb-reg-row').forEach(function(r) {
+        var c = r.querySelector('.cb-reg-config');
+        var ch = r.querySelector('.cb-reg-chev i');
+        if (c) c.style.maxHeight = '0px';
+        if (ch) ch.style.transform = '';
+        r.classList.remove('expanded');
+    });
 };
 
 /* ── Direct inline add (like routes.html qAddPoint) ── */
