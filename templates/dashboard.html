@@ -2,7 +2,7 @@
 {% block content %}
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/page-dashboard.css' %}" />
-<div class="layout-grid col-2-equal">
+<div class="dashboard-container">
 
     <!-- Stat Cards -->
     <div class="stats-grid">
@@ -34,8 +34,6 @@
             </div>
             <div class="stat-val" style="color: var(--primary)">{{ unresolved_incidents_count }}</div>
         </div>
-    </div>
-    </div>
     </div>
 
     <!-- On Duty Personnel -->
