@@ -1,9 +1,12 @@
 import '../styles/main.css';
 import { $ as dom$ } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
-import { api } from '../utils/api.js';
+import { api, apiFetch } from '../utils/api.js';
 
 const $ = dom$;
+
+/* ── Aliases for backward-compat inside this module ── */
+const apiWrapper = api;
 
 /* ── Alias for backward-compat inside this module ── */
 const byId = (id) => $(id);

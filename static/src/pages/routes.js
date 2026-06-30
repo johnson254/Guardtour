@@ -1886,8 +1886,7 @@ window.bpSaveRoute = async function (skipUI = false) {
     if (!name) { toast('Blueprint name required', true); return null; }
 
     let orgId = null;
-    if (typeof userData !== 'undefined' && userData.organization_id)
-        orgId = Array.isArray(userData.organization_id) ? userData.organization_id[0] : userData.organization_id;
+    try { const _u = JSON.parse(localStorage.getItem('gt_user') || '{}'); if (_u.organization_id) orgId = Array.isArray(_u.organization_id) ? _u.organization_id[0] : _u.organization_id; } catch(_) {}
 
     // Separate assigned guards and devices from the tags
     const allSelectedTags = Array.from($('bpGuardTags')?.querySelectorAll('.rs-person-tag') || []);
