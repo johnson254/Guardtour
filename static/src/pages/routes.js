@@ -50,23 +50,23 @@ function bpAutoGrow(el) { el.style.height = 'auto'; el.style.height = Math.max(6
 window.bpSetDirty = function() { bpDirty = true; };
 
 /* ═══════════════════════════════════════════════════
-   OVERLAY
+   OVERLAY — htmx-driven wizard navigation
 ═══════════════════════════════════════════════════ */
-const WIZ_STEPS = ['wizStep1','wizStep2','wizStepQuick','wizStepAudit','wizStepQuickDeploy','wizStepEditConfirm'];
 
 window.showOverlay = function(stepId = 'wizStep1') {
-    WIZ_STEPS.forEach(id => {
-        const el = $(id);
-        if (el) el.classList.add('rs-hidden');
-    });
-    const target = $(stepId);
-    if (target) target.classList.remove('rs-hidden');
-    
-    var cs = $('qdConfirmStrip'); if (cs && stepId !== 'wizStepQuick') cs.style.display = 'none';
-    
     $('bpOverlay').classList.remove('rs-hidden');
     $('rsSidebar').classList.add('rs-hidden');
     $('rsLibPanel')?.classList.add('rs-hidden');
+    var cs = $('qdConfirmStrip'); if (cs && stepId !== 'wizStepQuick') cs.style.display = 'none';
+    // Load step content via htmx
+    if (window.htmx) {
+        const stepMap = { wizStepQuick: 'quick', wizStepAudit: 'audit', wizStepQuickDeploy: 'quickdeploy', wizStepEditConfirm: 'editconfirm' };
+        const stepParam = stepMap[stepId] || stepId.replace('wizStep', '');
+        const strategy = wizStrategy || '';
+        htmx.ajax('GET', '/api/routes-wizard-partial/?step=' + stepParam + (strategy ? '&strategy=' + strategy : ''), {
+            target: '#bpOverlayContent', swap: 'innerHTML'
+        });
+    }
 };
 
 window.hideOverlay = function() { 
@@ -81,7 +81,7 @@ window.bpShowBuilder = function() {
 };
 
 /* ═══════════════════════════════════════════════════
-   WIZARD NAV — Streamlined to skip setup screens
+   WIZARD NAV — htmx-driven step loading
 ═══════════════════════════════════════════════════ */
 window.wizGo = function(step, strategyOrKey) {
     if (step === 'quick') {
@@ -100,7 +100,7 @@ window.wizGo = function(step, strategyOrKey) {
     hideOverlay();
 };
 
-window.wizBack        = step => showOverlay('wizStep' + step);
+window.wizBack = step => showOverlay('wizStep' + step);
 
 /* ═══════════════════════════════════════════════════
    LOAD DATA
@@ -1962,5 +1962,16 @@ document.addEventListener('htmx:afterSettle', function(evt) {
     var target = evt.detail && evt.detail.target;
     if (target && target.id === 'spa-content' && $('bpOverlay')) {
         bpBoot();
+    }
+});
+
+// After any htmx swap inside the overlay, re-wire tag suggestion inputs
+document.addEventListener('htmx:afterSwap', function(evt) {
+    var target = evt.detail && evt.detail.target;
+    if (target && target.id === 'bpOverlayContent') {
+        // Re-initialize tag inputs for the loaded wizard step
+        if ($('wiz2GuardInput')) populateTagSuggest('wiz2GuardInput', 'wiz2GuardTags');
+        if ($('qGuardInput')) populateTagSuggest('qGuardInput', 'qGuardTags');
+        if ($('auditAuditorInput')) populateTagSuggest('auditAuditorInput', 'auditAuditorTags');
     }
 });

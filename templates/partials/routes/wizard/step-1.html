@@ -1,0 +1,56 @@
+{% comment %} Wizard Step 1: Strategy Selection {% endcomment %}
+<div class="rs-wiz" id="wizStep1">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div class="rs-wiz-header">
+            <div class="rs-wiz-title"><i class="fas fa-compass-drafting" style="color:var(--r-crim)"></i> Mission Builder</div>
+            <div class="rs-wiz-sub">Choose how this patrol will be structured.</div>
+        </div>
+        <button type="button" class="rs-wiz-close" onclick="hideOverlay()" title="Close"><i class="fas fa-xmark"></i></button>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(211,47,47,0.05), rgba(20,20,32,0.96) 50%);">
+        <div class="rs-form-section-title" style="margin-bottom:14px;">
+            <span><i class="fas fa-bolt" style="color:#FFD54F;margin-right:6px;"></i> Quick Start</span>
+            <small><i class="fas fa-circle" style="color:var(--r-teal);font-size:0.45rem;"></i> fastest path</small>
+        </div>
+
+        <div class="rs-quick-hero" onclick="wizGo('quick')">
+            <div class="rs-quick-hero-icon"><i class="fas fa-bolt" style="color:#FFD54F"></i></div>
+            <div>
+                <div class="rs-quick-hero-label">Quick Deploy</div>
+                <div class="rs-quick-hero-sub">Fastest path — name, guard, tags, deploy.</div>
+            </div>
+            <i class="fas fa-arrow-right" style="margin-left:auto;color:var(--r-mute)"></i>
+        </div>
+
+        <div class="rs-or-divider">Or choose a structured strategy</div>
+
+        <div class="rs-strat-grid">
+            <button type="button" class="rs-strat-chip rs-chip-flex" onclick="wizGo(2,'Flexible')">
+                <i class="fas fa-random"></i>
+                <div class="rs-strat-chip-label">Flexible</div>
+                <div class="rs-strat-chip-sub">Any order, volume-based</div>
+            </button>
+            <button type="button" class="rs-strat-chip rs-chip-seq" onclick="wizGo(2,'Sequential')">
+                <i class="fas fa-arrow-down-1-9"></i>
+                <div class="rs-strat-chip-label">Sequential</div>
+                <div class="rs-strat-chip-sub">Fixed order enforced</div>
+            </button>
+            <button type="button" class="rs-strat-chip rs-chip-sched" onclick="wizGo(2,'Scheduled')">
+                <i class="fas fa-stopwatch"></i>
+                <div class="rs-strat-chip-label">Scheduled</div>
+                <div class="rs-strat-chip-sub">Time windows per point</div>
+            </button>
+            <button type="button" class="rs-strat-chip rs-chip-audit" onclick="wizGo('audit')">
+                <i class="fas fa-user-shield"></i>
+                <div class="rs-strat-chip-label">Peer Audit</div>
+                <div class="rs-strat-chip-sub">Auditor sweeps guards</div>
+            </button>
+            <button type="button" class="rs-strat-chip rs-chip-custom" onclick="wizGo(2,'Custom')">
+                <i class="fas fa-sliders"></i>
+                <div class="rs-strat-chip-label">Custom Design</div>
+                <div class="rs-strat-chip-sub">Full manual override</div>
+            </button>
+        </div>
+    </div>
+</div>
