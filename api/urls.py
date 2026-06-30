@@ -22,7 +22,7 @@ router.register('alerts', OperatorAlertViewSet, basename='operatoralert')
 _api_v1_patterns = [
     path('auth/', include([
         path('register/', views.register, name='register'),
-        path('login/', views.login, name='login'),
+    path('login/', views.login, name='login'),
     ])),
     path('devices/', include([
         path('register/', views.register_device, name='register-device'),

@@ -67,8 +67,9 @@ def register(request):
     response.set_cookie(
         'gt_access_token',
         str(refresh.access_token),
-        httponly=False,
-        samesite='Lax'
+        httponly=True,
+        samesite='Lax',
+        max_age=60*60*24*7
     )
     return response
 
@@ -190,8 +191,9 @@ def login(request):
     response.set_cookie(
         'gt_access_token',
         str(refresh.access_token),
-        httponly=False,
-        samesite='Lax'
+        httponly=True,
+        samesite='Lax',
+        max_age=60*60*24*7
     )
     return response
 

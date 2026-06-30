@@ -127,8 +127,8 @@
           try {
             var data = JSON.parse(evt.detail.xhr.responseText || '{}');
             var target = (data.next || '/dashboard/').split('?')[0];
+            // Store only non-sensitive info; token is in httpOnly cookie
             localStorage.setItem('gt_user', JSON.stringify({
-              token: data.access || data.token,
               username: data.user?.username || '',
               role: data.role,
               userId: data.user?.id,

@@ -25,16 +25,15 @@ export const debounce = (fn, ms) => {
 };
 
 export const getToken = () => {
-  try {
-    const raw = localStorage.getItem('gt_user');
-    if (!raw) return null;
-    return JSON.parse(raw).token || null;
-  } catch {
-    return null;
-  }
+  // Token is stored in httpOnly cookie by server — not accessible via JS
+  // Cookie is automatically sent with same-origin requests
+  return null;
 };
 
 export const logout = () => {
   localStorage.removeItem('gt_user');
-  window.location.href = '/';
+  // Clear auth cookie by requesting logout endpoint
+  fetch('/api/logout/', { method: 'POST', credentials: 'include' }).finally(() => {
+    window.location.href = '/';
+  });
 };

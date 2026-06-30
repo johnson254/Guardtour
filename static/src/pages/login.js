@@ -18,8 +18,9 @@ window.login = async function() {
       }
       const orgId = Array.isArray(data.organization_id) ? data.organization_id[0] : data.organization_id;
       try {
+        // Store only non-sensitive user info in localStorage
+        // The JWT token is stored in an httpOnly cookie by the server
         localStorage.setItem('gt_user', JSON.stringify({
-          token: data.access,
           username: username,
           role: data.role,
           userId: data.user?.id,
@@ -31,8 +32,8 @@ window.login = async function() {
         if (errEl) errEl.innerText = 'Failed to save session locally';
         return;
       }
-      document.cookie = `gt_access_token=${data.access}; path=/; SameSite=Lax`;
-      window.location.href = '/dashboard/';
+      // Token cookie is set by server (httpOnly), just redirect
+      window.location.href = data.next || '/dashboard/';
     } else {
       const errEl = document.getElementById('errorMsg');
       if (errEl) errEl.innerText = data.error || 'Login failed';

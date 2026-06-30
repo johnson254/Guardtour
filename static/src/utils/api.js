@@ -1,23 +1,22 @@
 /**
  * Unified API client for GuardTour.
  * Source of truth for `window.apiFetch` and htmx auth headers.
- * Replaces per-template/local `api(...)` wrappers and `window.apiFetch` in base_app.html.
+ *
+ * Auth: JWT token is stored in an httpOnly cookie set by the server.
+ * The cookie is automatically sent with same-origin requests.
+ * For fetch(), we use credentials: 'include' to ensure cookies are sent.
  */
 
-import { getToken, logout } from './dom.js';
+import { logout } from './dom.js';
 
 export async function api(url, options = {}) {
-  const token = getToken();
-  const headers = { ...options.headers };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (!options.body || typeof options.body === 'string') {
-    headers['Content-Type'] = 'application/json';
-  }
-
   const res = await fetch(url, {
-    credentials: 'same-origin',
+    credentials: 'include',  // Send httpOnly auth cookie
     ...options,
-    headers,
+    headers: {
+      ...(options.body && typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
   });
 
   if (res.status === 401) {
@@ -35,14 +34,6 @@ export async function api(url, options = {}) {
 export async function apiFetch(url, options = {}) {
   return api(url, options);
 }
-
-/* htmx global config — add auth header to every htmx request */
-document.addEventListener('htmx:configRequest', (e) => {
-  const token = getToken();
-  if (token) {
-    e.detail.headers['Authorization'] = `Bearer ${token}`;
-  }
-});
 
 /* htmx: redirect to login on 401 */
 document.addEventListener('htmx:beforeOnLoad', (e) => {
