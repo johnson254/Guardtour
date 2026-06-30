@@ -11,7 +11,23 @@
     <link rel="stylesheet" href="{% vite_asset 'src/main.js' 'css' %}">
     <link rel="stylesheet" href="{% static 'css/duty-cycle.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
-    <script>htmx.config.globalViewTransitions = true;</script>
+    <script>
+        htmx.config.globalViewTransitions = true;
+        // When swapping page content, extract only #spa-content from response
+        // to avoid re-executing head scripts (which causes "already declared" errors)
+        document.addEventListener('htmx:beforeSwap', function(evt) {
+            if (evt.detail.target && evt.detail.target.id === 'spa-content') {
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(evt.detail.xhr.response, 'text/html');
+                    const newContent = doc.getElementById('spa-content');
+                    if (newContent) {
+                        evt.detail.serverResponse = newContent.innerHTML;
+                    }
+                } catch(e) {}
+            }
+        });
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="glass-app">
