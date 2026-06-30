@@ -14,7 +14,7 @@
     <script>htmx.config.globalViewTransitions = true;</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="glass-app">
     <div id="toast-container"></div>
 
     <header class="top-nav">
@@ -73,23 +73,23 @@
             try {
                 const raw = JSON.parse(localStorage.getItem('gt_user') || 'null') || {};
                 const role = String(raw.role || '').trim().toLowerCase();
-                const hasRole = ['admin', 'supervisor', 'guard', 'dispatcher', 'user role', 'user_role'].includes(role);
                 const orgId = raw.organization_id;
                 const isSystemAdmin = role === 'admin' && [null, undefined, ''].includes(orgId);
                 const isDispatcher = ['dispatcher', 'user role', 'user_role'].includes(role);
                 const isSupervisor = role === 'supervisor';
                 const isGuard = role === 'guard';
                 const isAdmin = role === 'admin' && !isSystemAdmin;
-                const showAll = !hasRole;
+                const isKnownRole = ['admin', 'supervisor', 'guard', 'dispatcher', 'user role', 'user_role'].includes(role);
+                const showAll = !isKnownRole;
                 const links = [
-                    { url: '/routes/', name: 'Routes', icon: 'fa-route', allow: [isAdmin, isDispatcher].some(Boolean) },
-                    { url: '/mission-builder/', name: 'Mission Builder', icon: 'fa-calendar-check', allow: [isAdmin, isDispatcher].some(Boolean) },
-                    { url: '/dispatch/', name: 'Live Dispatch', icon: 'fa-satellite-dish', allow: [isAdmin, isDispatcher].some(Boolean) },
-                    { url: '/manage/', name: 'Fleet', icon: 'fa-microchip', allow: [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
-                    { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
-                    { url: '/map-view/', name: 'Map', icon: 'fa-map-location-dot', allow: showAll || [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
-                    { url: '/analytics/', name: 'Reports', icon: 'fa-chart-line', allow: showAll || [isAdmin, isSupervisor, isGuard, isDispatcher].some(Boolean) },
-                    { url: '/incidents/', name: 'Incidents', icon: 'fa-triangle-exclamation', allow: showAll || [isAdmin, isSupervisor, isDispatcher].some(Boolean) },
+                    { url: '/routes/', name: 'Routes', icon: 'fa-route', allow: isAdmin || isDispatcher },
+                    { url: '/mission-builder/', name: 'Mission Builder', icon: 'fa-calendar-check', allow: isAdmin || isDispatcher },
+                    { url: '/dispatch/', name: 'Live Dispatch', icon: 'fa-satellite-dish', allow: isAdmin || isDispatcher },
+                    { url: '/manage/', name: 'Fleet', icon: 'fa-microchip', allow: isAdmin || isSupervisor || isDispatcher },
+                    { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: true },
+                    { url: '/map-view/', name: 'Map', icon: 'fa-map-location-dot', allow: isAdmin || isSupervisor || isDispatcher || isGuard || showAll },
+                    { url: '/analytics/', name: 'Reports', icon: 'fa-chart-line', allow: true },
+                    { url: '/incidents/', name: 'Incidents', icon: 'fa-triangle-exclamation', allow: isAdmin || isSupervisor || isDispatcher },
                     { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: isSystemAdmin },
                 ];
                 links.forEach(l => {
@@ -105,7 +105,7 @@
                     a.addEventListener('click', (e) => { if (a.classList.contains('active')) { e.preventDefault(); return false; } });
                     nav.appendChild(a);
                 });
-            } catch (_e) {}
+            } catch (e) { console.error('Nav render error:', e); }
         }
 
         function init() {
