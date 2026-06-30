@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "a82b2afcdafeef9fb0e7cdf236a583a665a1d35d",
-    "indexed_at": "2026-06-30T09:06:41Z",
+    "commit": "e18d25ff9c9f6b9ff1a9855a9dd9b1255132f7a5",
+    "indexed_at": "2026-06-30T09:08:56Z",
     "project": "home-jay-Desktop-projects-GuardTour_Full",
-    "nodes": 2527,
-    "edges": 6000,
-    "original_size": 8585216,
-    "compressed_size": 1410982,
+    "nodes": 2499,
+    "edges": 5891,
+    "original_size": 8454144,
+    "compressed_size": 1394698,
     "compression_level": 3
 }

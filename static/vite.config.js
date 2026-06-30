@@ -16,7 +16,6 @@ export default defineConfig({
         'pages/dispatch': 'src/pages/dispatch.js',
         'pages/manage': 'src/pages/manage.js',
         'pages/routes': 'src/pages/routes.js',
-        'pages/mission-builder': 'src/pages/mission-builder.js',
         'pages/map-view': 'src/pages/map-view.js',
         'pages/guards': 'src/pages/guards.js',
         'pages/incidents': 'src/pages/incidents.js',

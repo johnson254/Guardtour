@@ -47,7 +47,9 @@ def routes_page(request):
 
 @login_required
 def mission_builder_page(request):
-    return render(request, 'mission_builder.html')
+    """Redirect to routes page (Mission Builder is now integrated into routes)."""
+    from django.http import HttpResponseRedirect
+    return HttpResponseRedirect('/routes/')
 
 
 @login_required
