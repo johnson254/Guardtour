@@ -3009,10 +3009,11 @@ if (!document.getElementById('regStyle')) {
     var rs = document.createElement('style');
     rs.id = 'regStyle';
     rs.textContent = [
-        '.cb-reg-row { display:flex; align-items:flex-start; gap:4px; padding:5px 6px; background:rgba(255,255,255,0.015); border-radius:6px; border:1px solid rgba(255,255,255,0.05); border-left:3px solid; margin-bottom:3px; transition:border-color .2s,background .2s,box-shadow .2s,transform .15s; position:relative; animation:regSlideIn .22s ease; cursor:pointer; }',
+        '.cb-reg-row { display:flex; align-items:flex-start; gap:3px; padding:4px 2px; background:rgba(255,255,255,0.015); border-radius:6px; border:1px solid rgba(255,255,255,0.05); border-left:3px solid; margin-bottom:3px; transition:border-color .2s,background .2s,box-shadow .2s,transform .15s; position:relative; animation:regSlideIn .22s ease; cursor:pointer; }',
         '.cb-reg-row:hover { border-color:rgba(255,255,255,0.1); background:rgba(255,255,255,0.025); box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 2px 12px rgba(0,0,0,0.15); }',
         '.cb-reg-row.expanded { border-color:rgba(0,196,154,0.3); background:rgba(0,196,154,0.04); box-shadow:0 0 0 1px rgba(0,196,154,0.15), 0 4px 16px rgba(0,0,0,0.2); }',
         '.cb-reg-row.expanded:hover { background:rgba(0,196,154,0.06); }',
+        '.cb-reg-actions { transition:opacity .15s; }',
         '.cb-reg-row.dragging { opacity:.3; border-style:dashed; transform:scale(.95); }',
         '.cb-reg-row[data-is-saved="0"] { border-left-width:4px; background:rgba(0,196,154,0.025); }',
         '.cb-reg-row[data-is-saved="0"]:hover { background:rgba(0,196,154,0.05); }',
@@ -3040,12 +3041,13 @@ if (!document.getElementById('regStyle')) {
         '.cb-reg-dot.dwell { background:rgba(239,159,39,0.12); color:#EF9F27; border:1px solid rgba(239,159,39,0.15); }',
         '.cb-reg-dot.tol { background:rgba(108,142,239,0.12); color:#6C8EEF; border:1px solid rgba(108,142,239,0.15); }',
         '.cb-reg-dot.time { background:rgba(0,196,154,0.12); color:var(--r-teal); border:1px solid rgba(0,196,154,0.15); }',
+        '.cb-reg-dot.loc { background:rgba(93,202,165,0.12); color:#5DCAA5; border:1px solid rgba(93,202,165,0.15); }',
         '.cb-reg-chev { font-size:0.5rem; opacity:0.12; transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .2s; margin-left:auto; flex-shrink:0; display:flex; align-items:center; }',
         '.cb-reg-hd:hover .cb-reg-chev { opacity:0.35; }',
         '.cb-reg-config { transition:max-height .3s cubic-bezier(.4,0,.2,1); }',
-        '.cb-reg-config-inner { padding-top:2px; }',
+        '.cb-reg-config-inner { padding:0; }',
         // Type-specific field rows
-        '.cb-reg-field-row { display:flex; flex-wrap:wrap; gap:6px; align-items:flex-end; padding:4px 2px 3px 2px; border-bottom:1px solid rgba(255,255,255,0.03); margin-bottom:2px; }',
+        '.cb-reg-field-row { display:flex; flex-wrap:wrap; gap:3px; align-items:flex-end; padding:3px 0 2px 0; border-bottom:1px solid rgba(255,255,255,0.03); margin-bottom:2px; }',
         '.cb-reg-field { display:flex; flex-direction:column; gap:1px; min-width:60px; flex:1; }',
         '.cb-reg-field label { font-size:0.42rem; font-weight:800; color:rgba(255,255,255,0.2); text-transform:uppercase; letter-spacing:0.4px; padding-left:1px; }',
         '.cb-reg-field input { background:rgba(25,25,40,0.6); border:1px solid rgba(255,255,255,0.05); border-radius:4px; padding:3px 6px; font-size:0.62rem; color:#fff; outline:none; min-height:22px; transition:border-color .15s,background .15s,box-shadow .15s; }',
@@ -3076,9 +3078,11 @@ if (!document.getElementById('regStyle')) {
         '.cb-reg-setting.on .sl { opacity:1; }',
         '.cb-reg-actions { display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; padding-top:2px; }',
         '.cb-reg-saved { font-size:0.5rem; color:rgba(255,255,255,0.15); padding:2px; }',
-        '.cb-r-btn { background:none; border:none; color:rgba(255,255,255,0.15); cursor:pointer; padding:3px 4px; border-radius:4px; font-size:0.55rem; transition:all .12s; display:flex; align-items:center; justify-content:center; min-width:20px; min-height:20px; }',
+        '.cb-r-btn { background:none; border:none; color:rgba(255,255,255,0.2); cursor:pointer; padding:4px; border-radius:4px; font-size:0.6rem; transition:all .12s; display:flex; align-items:center; justify-content:center; min-width:22px; min-height:22px; }',
         '.cb-r-btn:hover { color:var(--r-teal,#0CC); background:rgba(0,204,204,0.08); }',
-        '.cb-r-del:hover { color:#d32f2f !important; background:rgba(211,47,47,0.12) !important; }',
+        '.cb-r-save { color:rgba(0,196,154,0.4) !important; }',
+        '.cb-r-save:hover { color:#00C49A !important; background:rgba(0,196,154,0.15) !important; }',
+        
         '.cb-manifest-exit { animation:cbManifestExit .15s ease forwards; }',
         '.rs-hidden { display:none !important; }',
         // Type count badges on quick-add pills
@@ -3130,6 +3134,7 @@ window.addRegistryRow = function(type, data) {
     if (dwell > 0) settingDots.push('<span class="cb-reg-dot dwell" title="Dwell ' + dwell + 'min"><i class="fas fa-stopwatch"></i><span>' + dwell + '</span></span>');
     if (tol > 0) settingDots.push('<span class="cb-reg-dot tol" title="Gap ' + tol + 'min"><i class="fas fa-hourglass-start"></i><span>' + tol + '</span></span>');
     if (time) settingDots.push('<span class="cb-reg-dot time" title="Target ' + time + '"><i class="fas fa-clock"></i><span>' + time + '</span></span>');
+    if (lat && lng) settingDots.push('<span class="cb-reg-dot loc" title="GPS ' + parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4) + '"><i class="fas fa-location-dot"></i></span>');
 
     var div = document.createElement('div');
     div.className = 'cb-reg-row';
@@ -3142,25 +3147,29 @@ window.addRegistryRow = function(type, data) {
     var fieldArea = type === 'nfc' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Point Name</label><input class="rs-fi cp-inline-name" value="' + name + '" placeholder="e.g. Main Gate Checkpoint"></div>',
-            '<div class="cb-reg-field"><label class="rs-lbl">NFC UID</label><div style="display:flex;gap:6px;"><input class="rs-fi cp-inline-tag" value="' + tag + '" placeholder="UID or scan" style="flex:1;font-family:monospace;"><button type="button" class="cb-r-btn" title="Scan" onclick="cbOpenScanWindow(this)" style="font-size:0.8rem;"><i class="fas fa-tower-broadcast"></i></button></div></div>',
+            '<div class="cb-reg-field"><label class="rs-lbl">NFC UID</label><div style="display:flex;gap:4px;"><input class="rs-fi cp-inline-tag" value="' + tag + '" placeholder="UID or scan" style="flex:1;font-family:monospace;"><button type="button" class="cb-r-btn" title="Scan" onclick="cbOpenScanWindow(this)" style="font-size:0.6rem;"><i class="fas fa-tower-broadcast"></i></button></div></div>',
+        '</div>',
+        '<div class="cb-reg-field-row" style="padding-top:2px;">',
+            '<div class="cb-reg-field" style="flex:1;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:3px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="flex:1;min-width:0;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.55rem;color:#d32f2f;padding:2px 4px;"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:1;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="min-width:0;"></div>',
         '</div>'
     ].join('') : type === 'gps' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Point Name</label><input class="rs-fi cp-inline-name" value="' + name + '" placeholder="e.g. North Perimeter"></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:6px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:150px;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.8rem;color:#6C8EEF;"><i class="fas fa-map-pin"></i></button></div></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="width:150px;"></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:6px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="flex:1;min-width:0;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.55rem;color:#6C8EEF;padding:2px 4px;"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="flex:1;min-width:0;"></div>',
         '</div>'
     ].join('') : type === 'geo' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Zone Name</label><input class="rs-fi cp-inline-name" value="' + name + '" placeholder="e.g. Restricted Area"></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:6px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:150px;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.8rem;color:#A855F7;"><i class="fas fa-map-pin"></i></button></div></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="width:150px;"></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:6px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="flex:1;min-width:0;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.55rem;color:#A855F7;padding:2px 4px;"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="flex:1;min-width:0;"></div>',
         '</div>'
     ].join('') : type === 'custom' ? [
         '<div class="cb-reg-field-row">',
             '<div class="cb-reg-field"><label class="rs-lbl">Point Name</label><input class="rs-fi cp-inline-name" value="' + name + '" placeholder="e.g. Custom Point"></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:6px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="width:150px;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.8rem;color:var(--r-teal);"><i class="fas fa-map-pin"></i></button></div></div>',
-            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="width:150px;"></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Latitude</label><div style="display:flex;gap:6px;align-items:center;"><input class="rs-fi cp-inline-lat" value="' + lat + '" placeholder="0.000000" style="flex:1;min-width:0;"><button type="button" class="cb-r-btn" title="Pick on map" onclick="cbPickForRow(this)" style="font-size:0.55rem;color:var(--r-teal);padding:2px 4px;"><i class="fas fa-map-pin"></i></button></div></div>',
+            '<div class="cb-reg-field" style="flex:0 0 auto;"><label class="rs-lbl">Longitude</label><input class="rs-fi cp-inline-lng" value="' + lng + '" placeholder="0.000000" style="flex:1;min-width:0;"></div>',
         '</div>'
     ].join('') : [
         '<div class="cb-reg-field-row">',
@@ -3186,39 +3195,39 @@ window.addRegistryRow = function(type, data) {
             '<div class="cb-reg-config" style="max-height:' + (isSaved ? '0' : '0') + 'px;overflow:hidden;transition:max-height .3s ease;"' + (isSaved ? '' : ' data-auto-expand="1"') + '>',
                 '<div class="cb-reg-config-inner">',
                     fieldArea,
-                    '<div class="cb-reg-enf" style="display:flex;flex-direction:column;gap:4px;padding:0 0 2px;">',
+                    '<div class="cb-reg-enf" style="display:flex;flex-direction:column;gap:2px;padding:0;">',
                         // Radius
                         '<div class="enf-card" style="margin-bottom:0;">',
-                            '<div class="enf-card-head" style="padding:4px 6px;">',
-                                '<div class="enf-card-icon" style="width:20px;height:20px;border-radius:4px;background:rgba(211,47,47,0.12);color:#d32f2f;font-size:0.5rem;"><i class="fas fa-circle-dot"></i></div>',
+                            '<div class="enf-card-head" style="padding:3px 3px;">',
+                                '<div class="enf-card-icon" style="width:16px;height:16px;border-radius:3px;background:rgba(211,47,47,0.12);color:#d32f2f;font-size:0.5rem;"><i class="fas fa-circle-dot"></i></div>',
                                 '<div class="enf-card-info"><div class="enf-card-label" style="font-size:0.45rem;">Radius</div><div class="enf-card-desc" style="font-size:0.35rem;">Detection perimeter</div></div>',
-                                '<div class="enf-card-value cp-rad-val" style="font-size:0.75rem;">' + (rad || 0) + '<small>m</small></div>',
+                                '<div class="enf-card-value cp-rad-val" style="font-size:0.65rem;">' + (rad || 0) + '<small>m</small></div>',
                             '</div>',
-                            '<div class="enf-card-body" style="padding:0 6px 4px;">',
+                            '<div class="enf-card-body" style="padding:0 3px 2px;">',
                                 '<input type="range" class="enf-slider cp-inline-rad" min="0" max="500" value="' + (rad || 0) + '" step="5" oninput="regSliderSync(this)">',
                                 '<div class="enf-presets"><div class="enf-preset" data-v="0">Off</div><div class="enf-preset" data-v="25">25</div><div class="enf-preset" data-v="50">50</div><div class="enf-preset" data-v="100">100</div><div class="enf-preset" data-v="250">250</div></div>',
                             '</div>',
                         '</div>',
                         // Dwell
                         '<div class="enf-card" style="margin-bottom:0;">',
-                            '<div class="enf-card-head" style="padding:4px 6px;">',
-                                '<div class="enf-card-icon" style="width:20px;height:20px;border-radius:4px;background:rgba(239,159,39,0.12);color:#EF9F27;font-size:0.5rem;"><i class="fas fa-stopwatch"></i></div>',
+                            '<div class="enf-card-head" style="padding:3px 3px;">',
+                                '<div class="enf-card-icon" style="width:16px;height:16px;border-radius:3px;background:rgba(239,159,39,0.12);color:#EF9F27;font-size:0.5rem;"><i class="fas fa-stopwatch"></i></div>',
                                 '<div class="enf-card-info"><div class="enf-card-label" style="font-size:0.45rem;">Dwell</div><div class="enf-card-desc" style="font-size:0.35rem;">Minimum stay</div></div>',
-                                '<div class="enf-card-value cp-dwell-val" style="font-size:0.75rem;">' + (dwell || 0) + '<small>min</small></div>',
+                                '<div class="enf-card-value cp-dwell-val" style="font-size:0.65rem;">' + (dwell || 0) + '<small>min</small></div>',
                             '</div>',
-                            '<div class="enf-card-body" style="padding:0 6px 4px;">',
+                            '<div class="enf-card-body" style="padding:0 3px 2px;">',
                                 '<input type="range" class="enf-slider cp-inline-dwell" min="0" max="60" value="' + (dwell || 0) + '" step="1" oninput="regSliderSync(this)">',
                                 '<div class="enf-presets"><div class="enf-preset" data-v="0">Off</div><div class="enf-preset" data-v="5">5</div><div class="enf-preset" data-v="10">10</div><div class="enf-preset" data-v="30">30</div><div class="enf-preset" data-v="60">60</div></div>',
                             '</div>',
                         '</div>',
                         // Tolerance
                         '<div class="enf-card" style="margin-bottom:0;">',
-                            '<div class="enf-card-head" style="padding:4px 6px;">',
-                                '<div class="enf-card-icon" style="width:20px;height:20px;border-radius:4px;background:rgba(108,142,239,0.12);color:#6C8EEF;font-size:0.5rem;"><i class="fas fa-hourglass-start"></i></div>',
+                            '<div class="enf-card-head" style="padding:3px 3px;">',
+                                '<div class="enf-card-icon" style="width:16px;height:16px;border-radius:3px;background:rgba(108,142,239,0.12);color:#6C8EEF;font-size:0.5rem;"><i class="fas fa-hourglass-start"></i></div>',
                                 '<div class="enf-card-info"><div class="enf-card-label" style="font-size:0.45rem;">Tolerance</div><div class="enf-card-desc" style="font-size:0.35rem;">Grace window</div></div>',
-                                '<div class="enf-card-value cp-tol-val" style="font-size:0.75rem;">' + (tol || 0) + '<small>min</small></div>',
+                                '<div class="enf-card-value cp-tol-val" style="font-size:0.65rem;">' + (tol || 0) + '<small>min</small></div>',
                             '</div>',
-                            '<div class="enf-card-body" style="padding:0 6px 4px;">',
+                            '<div class="enf-card-body" style="padding:0 3px 2px;">',
                                 '<input type="range" class="enf-slider cp-inline-tol" min="0" max="60" value="' + (tol || 0) + '" step="1" oninput="regSliderSync(this)">',
                                 '<div class="enf-presets"><div class="enf-preset" data-v="0">Off</div><div class="enf-preset" data-v="5">5</div><div class="enf-preset" data-v="15">15</div><div class="enf-preset" data-v="30">30</div><div class="enf-preset" data-v="60">60</div></div>',
                             '</div>',
@@ -3235,8 +3244,8 @@ window.addRegistryRow = function(type, data) {
         '</div>',
         '<div class="cb-reg-actions">',
             (isSaved ? '<span class="cb-reg-saved" title="Saved"><i class="fas fa-database"></i></span>' : ''),
-            '<button type="button" class="cb-r-btn" title="Duplicate" onclick="duplicateRegistryRow(this)" style="color:rgba(255,255,255,0.2);"><i class="fas fa-copy"></i></button>',
-            '<button type="button" class="cb-r-btn cb-r-del" title="Remove" onclick="removeRegistryRow(this)"><i class="fas fa-times"></i></button>',
+            '<button type="button" class="cb-r-btn" title="Duplicate" onclick="duplicateRegistryRow(this)" style="color:rgba(255,255,255,0.25);"><i class="fas fa-copy"></i></button>',
+            '<button type="button" class="cb-r-btn cb-r-save" title="Save to server" onclick="cbSaveSingleRow(this)"><i class="fas fa-check"></i></button>',
         '</div>'
     ].join('');
 
@@ -3441,11 +3450,14 @@ function updateRowDots(row) {
     var dwell = parseInt(row.querySelector('.cp-inline-dwell')?.value) || 0;
     var tol = parseInt(row.querySelector('.cp-inline-tol')?.value) || 0;
     var time = row.querySelector('.cp-inline-time')?.value || '';
+    var lat = row.querySelector('.cp-inline-lat')?.value || '';
+    var lng = row.querySelector('.cp-inline-lng')?.value || '';
     var parts = [];
     if (rad > 0) parts.push('<span class="cb-reg-dot rad" title="Radius ' + rad + 'm"><i class="fas fa-circle-dot"></i><span>' + rad + '</span></span>');
     if (dwell > 0) parts.push('<span class="cb-reg-dot dwell" title="Dwell ' + dwell + 'min"><i class="fas fa-stopwatch"></i><span>' + dwell + '</span></span>');
     if (tol > 0) parts.push('<span class="cb-reg-dot tol" title="Gap ' + tol + 'min"><i class="fas fa-hourglass-start"></i><span>' + tol + '</span></span>');
     if (time) parts.push('<span class="cb-reg-dot time" title="Target ' + time + '"><i class="fas fa-clock"></i><span>' + time + '</span></span>');
+    if (lat && lng) parts.push('<span class="cb-reg-dot loc" title="GPS ' + parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4) + '"><i class="fas fa-location-dot"></i></span>');
     dotsEl.innerHTML = parts.join('');
 }
 
@@ -3540,6 +3552,62 @@ window.removeRegistryRow = function(btn) {
     }, 150);
 };
 
+window.cbSaveSingleRow = function(btn) {
+    var row = btn.closest('.cb-reg-row');
+    if (!row) return;
+    var type = row.dataset.cpType || 'nfc';
+    var name = row.querySelector('.cp-inline-name')?.value?.trim() || '';
+    if (!name) { toast('Enter a name first', true); return; }
+
+    var entry = {
+        name: name,
+        checkpoint_type: type,
+        nfc_tag: type === 'nfc' ? (row.querySelector('.cp-inline-tag')?.value?.trim() || null) : null,
+        lat: parseFloat(row.querySelector('.cp-inline-lat')?.value) || null,
+        lng: parseFloat(row.querySelector('.cp-inline-lng')?.value) || null,
+        radius: parseInt(row.querySelector('.cp-inline-rad')?.value) || 0,
+        dwell_time: parseInt(row.querySelector('.cp-inline-dwell')?.value) || 0,
+        time_tolerance: parseInt(row.querySelector('.cp-inline-tol')?.value) || 15,
+        planned_time: row.querySelector('.cp-inline-time')?.value || null,
+        auditor_id: type === 'peer' ? (row.querySelector('.cp-inline-auditor')?.value?.trim() || null) : null,
+        target_id: type === 'peer' ? (row.querySelector('.cp-inline-target')?.value?.trim() || null) : null,
+    };
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    api('/api/v1/checkpoints/schedule/', {
+        method: 'POST',
+        body: JSON.stringify(entry)
+    }).then(function(res) {
+        return res.json().then(function(data) {
+            if (res.ok && data.id) {
+                toast('Saved: ' + name);
+                row.dataset.isSaved = '1';
+                row.dataset.serverId = data.id;
+                row.classList.remove('expanded');
+                var config = row.querySelector('.cb-reg-config');
+                if (config) config.style.maxHeight = '0px';
+                var chevron = row.querySelector('.cb-reg-chev i');
+                if (chevron) chevron.style.transform = '';
+                var actions = row.querySelector('.cb-reg-actions');
+                if (actions) {
+                    actions.innerHTML = '<span class="cb-reg-saved" title="Saved"><i class="fas fa-database"></i></span>';
+                }
+                mgLogFleetEvent('check', 'Checkpoint saved', name);
+            } else {
+                toast(data.detail || 'Save failed', true);
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.disabled = false;
+            }
+        });
+    }).catch(function() {
+        toast('Network error', true);
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.disabled = false;
+    });
+};
+
 window.undoRemoveRegistryRow = function(btn) {
     var toast = btn.closest('.mg-toast');
     if (!toast) return;
@@ -3579,12 +3647,10 @@ window.mgToggleCpAdders = function(forceOpen) {
     if (!adders) return;
     var isOpen = adders.classList.contains('open');
     if (forceOpen || !isOpen) {
-        adders.style.display = 'block';
         adders.classList.add('open');
         if (icon) icon.style.transform = 'rotate(180deg)';
     } else {
         adders.classList.remove('open');
-        setTimeout(function() { adders.style.display = 'none'; }, 300);
         if (icon) icon.style.transform = '';
     }
 };
@@ -3607,6 +3673,16 @@ window.cbCollapseAll = function() {
         if (ch) ch.style.transform = '';
         r.classList.remove('expanded');
     });
+};
+
+window.cbCollapseRow = function(btn) {
+    var row = btn.closest('.cb-reg-row');
+    if (!row) return;
+    var config = row.querySelector('.cb-reg-config');
+    var chevron = row.querySelector('.cb-reg-chev i');
+    if (config) config.style.maxHeight = '0px';
+    if (chevron) chevron.style.transform = '';
+    row.classList.remove('expanded');
 };
 
 /* ── Direct inline add (like routes.html qAddPoint) ── */
