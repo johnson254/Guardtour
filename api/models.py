@@ -29,6 +29,11 @@ class Organization(models.Model):
     is_archived = models.BooleanField(default=False, help_text="If True, organization is soft-deleted and hidden from queries")
     archived_at = models.DateTimeField(null=True, blank=True)
 
+    # Operational Area of Interest — polygon defining where operations happen
+    area_of_interest = models.JSONField(null=True, blank=True,
+        help_text="Polygon defining the operational area. Format: [[lat,lng],...]. Used to lock maps and validate checkpoint placement.")
+    operational_note = models.TextField(blank=True, help_text="Notes about this operational zone")
+
     class Meta:
         indexes = [models.Index(fields=['is_archived'])]
 

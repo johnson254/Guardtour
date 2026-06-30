@@ -15,7 +15,7 @@ from api.views.manage import (
     GuardSupervisorViewSet, CallSignViewSet, DeviceViewSet,
     PatrolRouteViewSet, CheckpointViewSet,
     ShiftAssignmentViewSet, MapObjectViewSet, IncidentReportViewSet,
-    OperatorAlertViewSet,
+    OperatorAlertViewSet, org_area_of_interest, set_org_area_of_interest, check_point_in_area,
 )
 from api.views.auth import (
     register, login,

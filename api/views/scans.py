@@ -445,30 +445,45 @@ def schedule_checkpoints(request):
     route_id = request.data.get('route_id')
     checkpoints_data = request.data.get('checkpoints', [])
 
-    if not route_id:
-        return Response({'detail': 'route_id required'}, status=400)
+    # Support single-checkpoint format: {name, type, ...} without wrapping
+    if not checkpoints_data and request.data.get('name'):
+        checkpoints_data = [request.data]
+        single_mode = True
+    else:
+        single_mode = False
+
     if not isinstance(checkpoints_data, list) or not checkpoints_data:
-        return Response({'detail': 'checkpoints array required'}, status=400)
+        return Response({'detail': 'checkpoints array or single checkpoint object required'}, status=400)
 
     from api.models import PatrolRoute, Checkpoint
 
-    try:
-        route = PatrolRoute.objects.get(id=route_id)
-    except PatrolRoute.DoesNotExist:
-        return Response({'detail': 'Route not found'}, status=404)
-
-    # Org context for the route
-    org = route.organization
-    if not org:
-        return Response({'detail': 'Route has no organization'}, status=400)
+    # Resolve org context
+    org = None
+    route = None
+    if route_id:
+        try:
+            route = PatrolRoute.objects.get(id=route_id)
+        except PatrolRoute.DoesNotExist:
+            return Response({'detail': 'Route not found'}, status=404)
+        org = route.organization
+        if not org:
+            return Response({'detail': 'Route has no organization'}, status=400)
+    else:
+        # No route — resolve org from user context
+        try:
+            org = get_user_organization(request.user)
+        except Exception:
+            org = None
 
     created = []
     errors = []
     for idx, cp_data in enumerate(checkpoints_data):
         try:
             cp_data = cp_data.copy()
-            cp_data['route'] = route_id
-            cp_data['organization'] = org.id
+            if route_id:
+                cp_data['route'] = route_id
+            if org:
+                cp_data['organization'] = org.id
 
             serializer = CheckpointSerializer(data=cp_data)
             if serializer.is_valid():

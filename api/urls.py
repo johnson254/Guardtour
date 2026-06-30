@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 import api.scan_guards_views as scan_guards_views
-from .views import OrganizationViewSet, AdminViewSet, DispatcherViewSet, GuardSupervisorViewSet, CallSignViewSet, DeviceViewSet, PatrolRouteViewSet, CheckpointViewSet, ScanRecordViewSet, ShiftAssignmentViewSet, MapObjectViewSet, IncidentReportViewSet, OperatorAlertViewSet
+from .views import OrganizationViewSet, AdminViewSet, DispatcherViewSet, GuardSupervisorViewSet, CallSignViewSet, DeviceViewSet, PatrolRouteViewSet, CheckpointViewSet, ScanRecordViewSet, ShiftAssignmentViewSet, MapObjectViewSet, IncidentReportViewSet, OperatorAlertViewSet, org_area_of_interest, set_org_area_of_interest, check_point_in_area
 
 router = DefaultRouter()
 router.register('organizations', OrganizationViewSet, basename='organization')
@@ -144,5 +144,10 @@ urlpatterns = [
 
     # Seed attendance data for testing
     path('seed-attendance/', views.seed_attendance, name='seed_attendance'),
+
+    # Organization operational area of interest
+    path('org/area-of-interest/', views.org_area_of_interest, name='org-area-of-interest'),
+    path('org/area-of-interest/set/', views.set_org_area_of_interest, name='set-org-area-of-interest'),
+    path('org/check-point/', views.check_point_in_area, name='check-point-in-area'),
 ]
 

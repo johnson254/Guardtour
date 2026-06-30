@@ -759,6 +759,165 @@ window.mgDeviceFilter=function(f,el){
     if(el) el.classList.add('active');
     mgRenderDevices();
 };
+window.mgUpdateChipCounts=function(){
+    var status = function(d) { return d.status || (d.is_online ? 'online' : 'offline'); };
+    var counts = {
+        all: allDevices.length,
+        online: allDevices.filter(d=>status(d)==='online').length,
+        idle: allDevices.filter(d=>status(d)==='idle').length,
+        mission: allDevices.filter(d=>d.current_mission && d.current_mission.route_name).length,
+        available: allDevices.filter(d=>!d.current_mission || !d.current_mission.route_name).length,
+        nfc: allDevices.filter(d=>d.nfc_fetch_requested).length
+    };
+    $$('#mgPanelFleet .mg-filter-chip').forEach(function(c){
+        var s = c.dataset.status;
+        if (counts[s] != null) {
+            var existing = c.querySelector('.chip-count');
+            if (!existing) {
+                existing = document.createElement('span');
+                existing.className = 'chip-count';
+                existing.style.cssText = 'margin-left:3px;opacity:0.5;font-size:0.42rem;font-weight:900;';
+                c.appendChild(existing);
+            }
+            existing.textContent = counts[s];
+        }
+    });
+};
+
+/* ── Inline device detail (replaces dropdown) ── */
+window.mgToggleDeviceDetail = function(deviceId) {
+    var detail = $('dd_' + deviceId);
+    if (!detail) return;
+    var card = detail.previousElementSibling;
+    if (detail.classList.contains('open')) {
+        detail.style.display = 'none';
+        detail.classList.remove('open');
+        detail.innerHTML = '';
+        if (card) card.classList.remove('expanded');
+        return;
+    }
+    // Close any other open details
+    $$('.mg-device-detail.open').forEach(function(el) {
+        el.style.display = 'none';
+        el.classList.remove('open');
+        el.innerHTML = '';
+        var otherCard = el.previousElementSibling;
+        if (otherCard) otherCard.classList.remove('expanded');
+    });
+    // Render and show
+    mgRenderDeviceDetail(deviceId);
+    detail.style.display = 'block';
+    detail.classList.add('open');
+    if (card) card.classList.add('expanded');
+    // Scroll card into view
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+
+window.mgRenderDeviceDetail = function(deviceId) {
+    var d = allDevices.find(function(x){return x.id===deviceId;});
+    if (!d) return;
+    var detail = $('dd_' + deviceId);
+    if (!detail) return;
+    var gpsAcc = d.gps_accuracy_threshold || 5;
+    var callsign = d.assigned_callsign || d.callsign || d.device_id || '';
+    var guardOpts = (allGuards||[]).map(function(g) {
+        var label = [g.first_name, g.last_name].filter(Boolean).join(' ') || g.username || 'Unnamed';
+        var sel = d.assigned_guard_id === g.id ? ' selected' : '';
+        var suffix = g.callsign ? ' (' + g.callsign + ')' : '';
+        return '<option value="' + g.id + '"' + sel + '>' + label + suffix + '</option>';
+    }).join('');
+    var ttsOpts = ['en-US','en-GB','en-AU','en-CA','en-IN','fr-FR','de-DE','es-ES','it-IT','pt-BR','ar-SA','ja-JP','ko-KR','zh-CN'].map(function(v) { return '<option value="' + v + '"' + (d.tts_voice === v ? ' selected' : '') + '>' + v + '</option>'; }).join('');
+    var gpsStatus = (d.last_latitude && d.last_longitude) ? 'Last: ' + parseFloat(d.last_latitude).toFixed(5) + ', ' + parseFloat(d.last_longitude).toFixed(5) : 'No recent GPS data';
+    if (d.last_gps_accuracy) gpsStatus += ' \u00b7 Acc: ' + d.last_gps_accuracy + 'm';
+    var nfcStatus = d.last_nfc_scan_uid ? 'Last scan: ' + d.last_nfc_scan_uid + (d.last_nfc_scan ? ' \u00b7 ' + new Date(d.last_nfc_scan).toLocaleTimeString() : '') : 'No NFC scans recorded';
+
+    var s = '<div class="mg-dd-inner">';
+    // Credentials
+    s += '<div class="mg-dd-section open"><div class="mg-dd-section-title" onclick="this.parentElement.classList.toggle(\'open\')"><i class="fas fa-key" style="color:rgba(255,255,255,0.4);"></i> Credentials &amp; Assignment<i class="fas fa-chevron-down mg-dd-chev"></i></div>';
+    s += '<div class="mg-dd-section-body">';
+    s += '<div class="mg-dd-row"><span class="mg-dd-label">Login Code</span><input class="mg-dd-input" id="dcLoginCode_' + deviceId + '" value="' + (d.assigned_callsign||d.callsign||d.device_id||'') + '" placeholder="ORG-NN"></div>';
+    s += '<div class="mg-dd-row"><span class="mg-dd-label">Password</span><input class="mg-dd-input" id="dcPassword_' + deviceId + '" placeholder="Leave blank to keep" value="" type="password"></div>';
+    s += '<div class="mg-dd-row"><span class="mg-dd-label">Operator</span><select class="mg-dd-input" id="dcOfficer_' + deviceId + '"><option value="">\u2014 Unassigned \u2014</option>' + guardOpts + '</select></div>';
+    s += '</div></div>';
+    // GPS
+    s += '<div class="mg-dd-section open"><div class="mg-dd-section-title" onclick="this.parentElement.classList.toggle(\'open\')"><i class="fas fa-satellite" style="color:#6C8EEF;"></i> GPS<i class="fas fa-chevron-down mg-dd-chev"></i></div>';
+    s += '<div class="mg-dd-section-body">';
+    s += '<div class="mg-dd-row"><span class="mg-dd-label">Accuracy</span><input type="range" class="mg-dd-slider" id="dcGpsAcc_' + deviceId + '" min="1" max="50" step="1" value="' + gpsAcc + '"><span class="mg-dd-val">' + gpsAcc + 'm</span></div>';
+    s += '<div class="mg-dd-row"><button type="button" class="mg-dd-btn mg-dd-btn-sm" onclick="mgDcRequestGps(' + deviceId + ')"><i class="fas fa-location-crosshairs"></i> Request GPS</button><button type="button" class="mg-dd-btn mg-dd-btn-sm mg-dd-btn-secondary" onclick="mgDcSetAccuracy(' + deviceId + ')"><i class="fas fa-check"></i> Set Threshold</button></div>';
+    s += '<div class="mg-dd-status">' + gpsStatus + '</div></div></div>';
+    // NFC
+    s += '<div class="mg-dd-section open"><div class="mg-dd-section-title" onclick="this.parentElement.classList.toggle(\'open\')"><i class="fas fa-wifi" style="color:#d32f2f;"></i> NFC<i class="fas fa-chevron-down mg-dd-chev"></i></div>';
+    s += '<div class="mg-dd-section-body">';
+    if (d.nfc_fetch_requested) {
+        s += '<div class="mg-dd-alert"><span class="pulse" style="background:#EF9F27;width:8px;height:8px;border-radius:50%;flex-shrink:0;"></span><span style="flex:1;font-size:0.62rem;color:#EF9F27;">Awaiting NFC scan...</span><button type="button" class="mg-dd-btn mg-dd-btn-xs" onclick="mgDcCancNfc(' + deviceId + ')">Cancel</button></div>';
+    }
+    s += '<div class="mg-dd-row"><button type="button" class="mg-dd-btn mg-dd-btn-sm" onclick="mgDcRequestNfc(' + deviceId + ')"><i class="fas fa-wifi"></i> Request NFC Scan</button></div>';
+    s += '<div class="mg-dd-status">' + nfcStatus + '</div></div></div>';
+    // TTS
+    s += '<div class="mg-dd-section open"><div class="mg-dd-section-title" onclick="this.parentElement.classList.toggle(\'open\')"><i class="fas fa-volume-high" style="color:#EF9F27;"></i> TTS<i class="fas fa-chevron-down mg-dd-chev"></i></div>';
+    s += '<div class="mg-dd-section-body">';
+    s += '<div class="mg-dd-row"><span class="mg-dd-label">Voice</span><select class="mg-dd-input" id="dcTtsVoice_' + deviceId + '" style="flex:1;">' + ttsOpts + '</select></div>';
+    s += '<div class="mg-dd-row"><span class="mg-dd-label">Rate</span><input type="range" class="mg-dd-slider" id="dcTtsRate_' + deviceId + '" min="0.5" max="2.0" step="0.1" value="' + (d.tts_rate||1.0) + '"><span class="mg-dd-val">' + (d.tts_rate||1.0).toFixed(1) + '</span></div>';
+    s += '<textarea class="mg-dd-textarea" id="dcTtsMsg_' + deviceId + '" rows="2" placeholder="Type a TTS message..."></textarea>';
+    s += '<div class="mg-dd-row"><button type="button" class="mg-dd-btn mg-dd-btn-sm" onclick="mgDcSendTts(' + deviceId + ')"><i class="fas fa-paper-plane"></i> Send TTS</button></div></div></div>';
+    // Hardware (collapsed)
+    s += '<div class="mg-dd-section collapsed"><div class="mg-dd-section-title" onclick="this.parentElement.classList.toggle(\'open\')"><i class="fas fa-microchip" style="color:rgba(255,255,255,0.3);"></i> Hardware Info<i class="fas fa-chevron-down mg-dd-chev"></i></div>';
+    s += '<div class="mg-dd-section-body">';
+    s += '<div class="mg-dd-grid"><div><label class="mg-dd-mini-label">IMEI</label><input class="mg-dd-input" id="dcImei_' + deviceId + '" value="' + (d.imei||'') + '"></div>';
+    s += '<div><label class="mg-dd-mini-label">IMSI</label><input class="mg-dd-input" id="dcImsi_' + deviceId + '" value="' + (d.imsi||'') + '"></div>';
+    s += '<div><label class="mg-dd-mini-label">SIM Phone</label><input class="mg-dd-input" id="dcSimPhone_' + deviceId + '" value="' + (d.sim_phone_number||'') + '"></div>';
+    s += '<div><label class="mg-dd-mini-label">OS</label><input class="mg-dd-input" id="dcOs_' + deviceId + '" value="' + (d.os_version||'') + '"></div>';
+    s += '<div><label class="mg-dd-mini-label">Manufacturer</label><input class="mg-dd-input" id="dcMan_' + deviceId + '" value="' + (d.manufacturer||'') + '"></div>';
+    s += '<div><label class="mg-dd-mini-label">Model</label><input class="mg-dd-input" id="dcModel_' + deviceId + '" value="' + (d.model||'') + '"></div></div>';
+    s += '</div></div>';
+    // Footer
+    s += '<div class="mg-dd-footer">';
+    s += '<button type="button" class="mg-dd-btn mg-dd-btn-primary" onclick="mgDcSaveDeviceInline(' + deviceId + ')"><i class="fas fa-floppy-disk"></i> Save Changes</button>';
+    s += '<button type="button" class="mg-dd-btn mg-dd-btn-secondary" onclick="mgToggleDeviceDetail(' + deviceId + ')"><i class="fas fa-chevron-up"></i> Collapse</button>';
+    s += '</div></div>';
+    detail.innerHTML = s;
+};
+
+window.mgDeviceQuickNfc = function(deviceId) {
+    mgDcRequestNfc(deviceId);
+};
+
+
+
+window.mgDcSaveDeviceInline = function(deviceId) {
+    var row = $('dd_' + deviceId);
+    if (!row) return;
+    var entry = {
+        imei: row.querySelector('#dcImei_' + deviceId)?.value?.trim() || null,
+        imsi: row.querySelector('#dcImsi_' + deviceId)?.value?.trim() || null,
+        sim_phone_number: row.querySelector('#dcSimPhone_' + deviceId)?.value?.trim() || null,
+        os_version: row.querySelector('#dcOs_' + deviceId)?.value?.trim() || null,
+        manufacturer: row.querySelector('#dcMan_' + deviceId)?.value?.trim() || null,
+        model: row.querySelector('#dcModel_' + deviceId)?.value?.trim() || null,
+        assigned_callsign: row.querySelector('#dcLoginCode_' + deviceId)?.value?.trim() || null,
+        assigned_guard_id: row.querySelector('#dcOfficer_' + deviceId)?.value || null,
+        gps_accuracy_threshold: parseInt(row.querySelector('#dcGpsAcc_' + deviceId)?.value) || 10,
+        password: row.querySelector('#dcPassword_' + deviceId)?.value || null,
+    };
+    if (!entry.password) delete entry.password;
+    if (!entry.assigned_guard_id) entry.assigned_guard_id = null;
+    var btn = row.querySelector('.mg-dd-footer .mg-dd-btn-primary');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    api('/api/devices/' + deviceId + '/', { method: 'PATCH', body: JSON.stringify(entry) }).then(function(res) {
+        return res.json().then(function(data) {
+            if (res.ok) {
+                toast('Device saved');
+                var idx = allDevices.findIndex(function(d){return d.id===deviceId;});
+                if (idx >= 0) Object.assign(allDevices[idx], data);
+                mgToggleDeviceDetail(deviceId);
+                mgUpdateChipCounts();
+            } else {
+                btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Save Changes';
+                toast(data.detail || 'Save failed', true);
+            }
+        });
+    });
+};
 window.mgFilterDevices=function(){ mgRenderDevices(); };
 
 let _deviceSearchTimer = null;
@@ -803,7 +962,7 @@ function mgRenderDevices(){
         var accentColor = d.is_online ? '#5DCAA5' : 'rgba(255,255,255,0.15)';
         var mission = d.current_mission || null;
         var hasMission = mission && mission.route_name;
-        return `<div class="mg-card mg-card-device${d.nfc_fetch_requested ? ' staged' : ''}" data-device-id="${d.id}" style="cursor:pointer;--i:${i};--card-accent:${hasMission ? '#6C8EEF' : accentColor};">
+        return `<div class="mg-card-wrapper" data-device-id="${d.id}"><div class="mg-card mg-card-device${d.nfc_fetch_requested ? ' staged' : ''}" data-device-id="${d.id}" style="cursor:pointer;--i:${i};--card-accent:${hasMission ? '#6C8EEF' : accentColor};">
             <div class="mg-card-topline" style="background:${hasMission ? '#6C8EEF' : accentColor};"></div>
             <div class="mg-card-avatar" style="background:${d.is_online?'rgba(29,158,117,.12)':'rgba(255,255,255,.03)'};position:relative;width:42px;height:42px;border-radius:14px;">
                 <i class="fas fa-mobile-screen" style="color:${d.is_online?'#5DCAA5':'rgba(255,255,255,.25)'};font-size:0.95rem;"></i>
@@ -832,245 +991,16 @@ function mgRenderDevices(){
                 </div>
             </div>
             <div class="mg-card-actions" style="gap:3px;">
-                <button type="button" class="mg-btn mg-btn-xs" onclick="mgDeviceControls(${d.id}, this)" title="Configure" style="background:rgba(108,142,239,0.12);color:#6C8EEF;border-color:rgba(108,142,239,0.15);"><i class="fas fa-sliders"></i></button>
-                <button type="button" class="mg-btn mg-btn-xs" onclick="mgSwapOperator(${d.id},'${(d.device_name||d.device_id||'Device').replace(/'/g,"\\'")}')" title="Swap Operator" style="background:rgba(245,166,35,0.12);color:#F5A623;border-color:rgba(245,166,35,0.15);"><i class="fas fa-exchange-alt"></i></button>
-                <button type="button" class="mg-btn mg-btn-xs mg-btn-danger" onclick="mgDelete('devices',${d.id},'devices')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgOpenDeviceEditor(${d.id})" title="Edit" style="background:rgba(108,142,239,0.12);color:#6C8EEF;border-color:rgba(108,142,239,0.15);"><i class="fas fa-pen"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgDeviceQuickNfc(${d.id})" title="Request NFC" style="background:rgba(211,47,47,0.12);color:#d32f2f;border-color:rgba(211,47,47,0.15);"><i class="fas fa-wifi"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs" onclick="event.stopPropagation();mgSwapOperator(${d.id},'${(d.device_name||d.device_id||'Device').replace(/'/g,"\\'")}')" title="Swap Operator" style="background:rgba(245,166,35,0.12);color:#F5A623;border-color:rgba(245,166,35,0.15);"><i class="fas fa-exchange-alt"></i></button>
+                <button type="button" class="mg-btn mg-btn-xs mg-btn-danger" onclick="event.stopPropagation();mgDelete('devices',${d.id},'devices')" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                <span class="mg-card-chev"><i class="fas fa-chevron-down"></i></span>
             </div>
-        </div>`;
+        </div>
+        <div class="mg-device-detail" id="dd_${d.id}" style="display:none;"></div>`;
     });
 }
-
-/* ── Device Control Dropdown ─────────────────────── */
-let _dcDeviceId = null;
-let _dcPollTimers = [];
-
-window.mgDeviceControls = function(deviceId, btn) {
-    const d = allDevices.find(x => x.id === deviceId);
-    if(!d) return;
-
-    // If same device already open, close it
-    if (_dcDeviceId === deviceId && $('mgDcDropdown').classList.contains('open')) {
-        mgDcClose();
-        return;
-    }
-    // Close any other first
-    if (_dcDeviceId) mgDcClose();
-
-    _dcDeviceId = deviceId;
-    const gpsAcc = d.gps_accuracy_threshold || 5;
-    const callsign = d.assigned_callsign || d.callsign || d.device_id || '—';
-
-    // Build guard options
-    var guardOpts = (allGuards||[]).map(function(g) {
-        var label = [g.first_name, g.last_name].filter(Boolean).join(' ') || g.username || 'Unnamed';
-        var sel = d.assigned_guard_id === g.id ? ' selected' : '';
-        var suffix = g.callsign ? ' (' + g.callsign + ')' : '';
-        return '<option value="' + g.id + '"' + sel + '>' + label + suffix + '</option>';
-    }).join('');
-
-    var devName = d.device_name || d.device_id || 'Device #'+d.id;
-    var onlineColor = d.is_online ? '#5DCAA5' : 'rgba(255,255,255,0.3)';
-    var onlineBg = d.is_online ? 'rgba(93,202,165,0.12)' : 'rgba(255,255,255,0.04)';
-
-    // Build menu content (using string concat to avoid template-literal nesting issues)
-    var html = '';
-    // Header
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:rgba(0,0,0,0.12);">';
-    html +=   '<div style="width:36px;height:36px;border-radius:10px;background:' + onlineBg + ';color:' + onlineColor + ';display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;"><i class="fas fa-mobile-screen"></i></div>';
-    html +=   '<div style="flex:1;min-width:0;"><div style="font-size:0.85rem;font-weight:800;color:#fff;">' + devName + '</div><div style="font-size:0.58rem;color:rgba(255,255,255,0.35);margin-top:1px;">' + callsign + (d.manufacturer ? ' &middot; ' + d.manufacturer : '') + (d.model ? ' ' + d.model : '') + ' &middot; ' + (d.is_online ? 'Online' : 'Offline') + '</div></div>';
-    html +=   '<button type="button" onclick="mgDcClose()" style="width:28px;height:28px;border-radius:7px;border:none;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;transition:background .15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.06)\'"><i class="fas fa-xmark"></i></button>';
-    html += '</div>';
-    // Body
-    html += '<div style="flex:1;overflow-y:auto;padding:18px 20px 14px;">';
-
-    // Hardware & Identity
-    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-microchip" style="color:rgba(255,255,255,0.3);"></i> Hardware &amp; Identity</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-    html +=   '<div><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);display:block;margin-bottom:3px;font-weight:700;">IMEI</label><input class="mg-dc-select" id="dcImei_' + deviceId + '" value="' + (d.imei||'') + '" placeholder="352656106111232" style="height:32px;font-size:0.7rem;"></div>';
-    html +=   '<div><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);display:block;margin-bottom:3px;font-weight:700;">IMSI</label><input class="mg-dc-select" id="dcImsi_' + deviceId + '" value="' + (d.imsi||'') + '" placeholder="310150123456789" style="height:32px;font-size:0.7rem;"></div>';
-    html +=   '<div><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);display:block;margin-bottom:3px;font-weight:700;">SIM Phone</label><input class="mg-dc-select" id="dcSimPhone_' + deviceId + '" value="' + (d.sim_phone_number||'') + '" placeholder="+254712345678" style="height:32px;font-size:0.7rem;"></div>';
-    html +=   '<div><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);display:block;margin-bottom:3px;font-weight:700;">OS Version</label><input class="mg-dc-select" id="dcOs_' + deviceId + '" value="' + (d.os_version||'') + '" placeholder="Android 14" style="height:32px;font-size:0.7rem;"></div>';
-    html +=   '<div><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);display:block;margin-bottom:3px;font-weight:700;">Manufacturer</label><input class="mg-dc-select" id="dcMan_' + deviceId + '" value="' + (d.manufacturer||'') + '" placeholder="Samsung" style="height:32px;font-size:0.7rem;"></div>';
-    html +=   '<div><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);display:block;margin-bottom:3px;font-weight:700;">Model</label><input class="mg-dc-select" id="dcModel_' + deviceId + '" value="' + (d.model||'') + '" placeholder="Galaxy S24" style="height:32px;font-size:0.7rem;"></div>';
-    html += '</div></div>';
-    html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
-
-    // Credentials & Assignment
-    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-key" style="color:rgba(255,255,255,0.3);"></i> Credentials &amp; Assignment</div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Login Code</span><input class="mg-dc-select" id="dcLoginCode_' + deviceId + '" value="' + (d.assigned_callsign||d.callsign||d.device_id||'') + '" placeholder="ORG-NN (e.g. TCN-01)" style="height:32px;font-size:0.7rem;"><button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-sm" onclick="mgDcGenLoginCode(' + deviceId + ')" style="flex-shrink:0;"><i class="fas fa-magic"></i></button></div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Password</span><input class="mg-dc-select" id="dcPassword_' + deviceId + '" placeholder="Leave blank to keep current" value="" type="password" style="height:32px;font-size:0.7rem;"></div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Operator</span><select class="mg-dc-select" id="dcOfficer_' + deviceId + '" style="height:32px;font-size:0.7rem;"><option value="">— Unassigned —</option>' + guardOpts + '</select></div>';
-    html += '</div>';
-    html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
-
-    // GPS Controls
-    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-satellite" style="color:#6C8EEF;"></i> GPS Fine-Tuning</div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Accuracy</span><input type="range" class="mg-dc-slider" id="dcGpsAcc_' + deviceId + '" min="1" max="50" step="1" value="' + gpsAcc + '" oninput="var l=$(\'dcGpsAccVal_' + deviceId + '\');if(l)l.textContent=this.value+\'m\'"><span class="mg-dc-val" id="dcGpsAccVal_' + deviceId + '">' + gpsAcc + 'm</span></div>';
-    html += '<div style="display:flex;gap:6px;margin-top:8px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestGps(' + deviceId + ')"><i class="fas fa-location-crosshairs"></i> Request GPS Fix</button><button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-sm" onclick="mgDcSetAccuracy(' + deviceId + ')"><i class="fas fa-check"></i> Set Threshold</button></div>';
-    var gpsStatus = (d.last_latitude && d.last_longitude) ? 'Last: ' + parseFloat(d.last_latitude).toFixed(5) + ', ' + parseFloat(d.last_longitude).toFixed(5) : 'No recent GPS data';
-    if (d.last_gps_accuracy) gpsStatus += ' &middot; Acc: ' + d.last_gps_accuracy + 'm';
-    html += '<div class="mg-dc-status" id="dcGpsStatus_' + deviceId + '" style="margin-top:6px;">' + gpsStatus + '</div></div>';
-    html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
-
-    // NFC Controls
-    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-rss" style="color:#d32f2f;"></i> NFC Scan &amp; Checkpoint Registration</div>';
-
-    // Show fetch requested status
-    if (d.nfc_fetch_requested) {
-        var fetchTime = new Date(d.nfc_fetch_requested).toLocaleTimeString();
-        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(239,159,39,0.08);border:1px solid rgba(239,159,39,0.2);margin-bottom:8px;">';
-        html +=   '<div class="pulse" style="background:#EF9F27;width:8px;height:8px;border-radius:50%;"></div>';
-        html +=   '<div style="flex:1;"><div style="font-size:0.62rem;font-weight:700;color:#EF9F27;">Awaiting NFC scan…</div>';
-        html +=     '<div style="font-size:0.5rem;color:rgba(255,255,255,0.4);">Requested at ' + fetchTime + ' — device will register checkpoint on scan</div></div>';
-        html +=   '<button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-xs" onclick="mgDcCancNfc(' + deviceId + ')" style="padding:3px 8px;font-size:0.55rem;">Cancel</button>';
-        html += '</div>';
-    }
-
-    html += '<div style="display:flex;gap:6px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcRequestNfc(' + deviceId + ')"><i class="fas fa-wifi"></i> Request NFC Scan</button></div>';
-    var nfcStatus = d.last_nfc_scan_uid ? 'Last scan: ' + d.last_nfc_scan_uid + (d.last_nfc_scan ? ' &middot; ' + new Date(d.last_nfc_scan).toLocaleTimeString() : '') : 'No NFC scans recorded';
-    html += '<div class="mg-dc-status" id="dcNfcStatus_' + deviceId + '" style="margin-top:6px;">' + nfcStatus + '</div>';
-    if (d.current_mission && d.current_mission.route_name) {
-        html += '<div class="mg-dc-status" style="margin-top:4px;color:rgba(93,202,165,0.7);"><i class="fas fa-route"></i> On mission: ' + d.current_mission.route_name + ' (' + d.current_mission.progress_pct + '%)</div>';
-    }
-    html += '</div>';
-    html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
-
-    // TTS Controls
-    html += '<div class="mg-dc-section"><div class="mg-dc-section-title"><i class="fas fa-volume-high" style="color:#EF9F27;"></i> TTS Announcement <span style="font-weight:400;color:rgba(255,255,255,0.2);font-size:0.5rem;text-transform:none;letter-spacing:0;">&mdash; sent directly to device, no route needed</span></div>';
-
-    // ── Pending TTS & Ack Status ──
-    var ttsAcked = d.tts_acked !== false; // true if acked or no pending
-    var hasPending = d.tts_pending && d.tts_pending.trim();
-    var ackColor = ttsAcked ? 'rgba(93,202,165,0.7)' : '#EF9F27';
-    var ackIcon = ttsAcked ? 'fa-circle-check' : 'fa-circle-exclamation';
-    var ackLabel = ttsAcked ? 'Acknowledged' : 'Awaiting confirmation';
-    var ackBg = ttsAcked ? 'rgba(93,202,165,0.08)' : 'rgba(239,159,39,0.1)';
-    var ackBorder = ttsAcked ? 'rgba(93,202,165,0.2)' : 'rgba(239,159,39,0.2)';
-    var pendingTime = d.tts_pending_at ? new Date(d.tts_pending_at).toLocaleString() : '';
-
-    html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:' + ackBg + ';border:1px solid ' + ackBorder + ';margin-bottom:8px;">';
-    html +=   '<i class="fas ' + ackIcon + '" style="color:' + ackColor + ';font-size:0.75rem;"></i>';
-    html +=   '<div style="flex:1;min-width:0;">';
-    html +=     '<div style="font-size:0.62rem;font-weight:700;color:' + ackColor + ';">' + ackLabel + '</div>';
-    if (hasPending) {
-        html +=   '<div style="font-size:0.55rem;color:rgba(255,255,255,0.5);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Pending: "' + d.tts_pending.replace(/"/g,'&quot;') + '"</div>';
-        if (pendingTime) html += '<div style="font-size:0.48rem;color:rgba(255,255,255,0.2);margin-top:1px;">Queued: ' + pendingTime + '</div>';
-    } else {
-        html +=   '<div style="font-size:0.55rem;color:rgba(255,255,255,0.35);margin-top:2px;">No pending messages</div>';
-    }
-    html +=   '</div>';
-    if (hasPending) {
-        if (!ttsAcked) {
-            html += '<button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-xs" onclick="mgDcResendTts(' + deviceId + ')" title="Resend pending TTS" style="padding:3px 8px;font-size:0.55rem;"><i class="fas fa-rotate"></i> Resend</button>';
-        }
-        html += '<button type="button" class="mg-dc-btn mg-dc-btn-secondary mg-dc-btn-xs" onclick="mgDcDismissPending(' + deviceId + ')" title="Dismiss pending TTS" style="padding:3px 8px;font-size:0.55rem;background:rgba(255,255,255,0.06);"><i class="fas fa-xmark"></i></button>';
-    }
-    html += '</div>';
-
-    var ttsOpts = ['en-US','en-GB','en-AU','en-CA','en-IN','fr-FR','de-DE','es-ES','it-IT','pt-BR','ar-SA','ja-JP','ko-KR','zh-CN'].map(function(v) { return '<option value="' + v + '"' + (d.tts_voice === v ? ' selected' : '') + '>' + v + '</option>'; }).join('');
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Voice</span><select class="mg-dc-select" id="dcTtsVoice_' + deviceId + '" style="height:32px;font-size:0.7rem;">' + ttsOpts + '</select></div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Rate</span><input type="range" class="mg-dc-slider" id="dcTtsRate_' + deviceId + '" min="0.5" max="2.0" step="0.1" value="' + (d.tts_rate !== undefined && d.tts_rate !== null ? d.tts_rate : 1.0) + '" oninput="var l=$(\'dcTtsRateVal_' + deviceId + '\');if(l)l.textContent=parseFloat(this.value).toFixed(1)"><span class="mg-dc-val" id="dcTtsRateVal_' + deviceId + '">' + (d.tts_rate !== undefined && d.tts_rate !== null ? d.tts_rate : 1.0).toFixed(1) + '</span></div>';
-    html += '<div class="mg-dc-row"><span class="mg-dc-label" style="min-width:75px;">Pitch</span><input type="range" class="mg-dc-slider" id="dcTtsPitch_' + deviceId + '" min="0.5" max="2.0" step="0.1" value="' + (d.tts_pitch !== undefined && d.tts_pitch !== null ? d.tts_pitch : 1.0) + '" oninput="var l=$(\'dcTtsPitchVal_' + deviceId + '\');if(l)l.textContent=parseFloat(this.value).toFixed(1)"><span class="mg-dc-val" id="dcTtsPitchVal_' + deviceId + '">' + (d.tts_pitch !== undefined && d.tts_pitch !== null ? d.tts_pitch : 1.0).toFixed(1) + '</span></div>';
-    html += '<textarea class="mg-dc-textarea" id="dcTtsMsg_' + deviceId + '" rows="2" placeholder="Type a TTS message to send to this device…" style="font-size:0.7rem;"></textarea>';
-    html += '<div style="display:flex;gap:6px;margin-top:4px;"><button type="button" class="mg-dc-btn mg-dc-btn-primary mg-dc-btn-sm" onclick="mgDcSendTts(' + deviceId + ')"><i class="fas fa-paper-plane"></i> Send TTS</button></div>';
-    html += '<div class="mg-dc-status" id="dcTtsStatus_' + deviceId + '" style="margin-top:6px;"></div></div>';
-    html += '<hr class="mg-dc-divider" style="margin:14px 0;">';
-
-    // Save / Close
-    html += '<div style="display:flex;gap:8px;padding-top:4px;">';
-    html +=   '<button type="button" class="mg-dc-btn mg-dc-btn-primary" style="flex:1;padding:8px 14px;font-size:0.7rem;" onclick="mgDcSaveDevice(' + deviceId + ')"><i class="fas fa-floppy-disk"></i> Save Changes</button>';
-    html +=   '<button type="button" class="mg-dc-btn mg-dc-btn-secondary" style="flex:1;padding:8px 14px;font-size:0.7rem;" onclick="mgDcClose()"><i class="fas fa-xmark"></i> Cancel</button>';
-    html += '</div></div>';
-
-    $('mgDcDropdownBody').innerHTML = html;
-
-    // Position the dropdown near the trigger button
-    var rect = (btn && btn.getBoundingClientRect) ? btn.getBoundingClientRect() : { bottom: 0, left: 0, top: 0, right: 0 };
-    var dw = 500;
-    var dh = Math.min($('mgDcDropdownBody').scrollHeight + 2, 700);
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    var gap = 8;
-    var left = Math.max(12, Math.min(rect.left + rect.width / 2 - dw / 2, vw - dw - 12));
-    var top = rect.bottom + gap;
-    // If dropdown would overflow bottom, flip above
-    if (top + dh > vh - 12) {
-        top = Math.max(12, rect.top - dh - gap);
-    }
-    // Ensure it doesn't go off top
-    top = Math.max(12, top);
-
-    var dd = $('mgDcDropdown');
-    var body = $('mgDcDropdownBody');
-    dd.style.left = left + 'px';
-    dd.style.top = top + 'px';
-    // Set explicit max-height so it doesn't overflow viewport
-    body.style.maxHeight = Math.min(dh, vh - top - 12) + 'px';
-
-    // Show with animation
-    $('mgDcDropdownBackdrop').classList.add('open');
-    dd.classList.add('open');
-};
-
-window.mgDcClose = function() {
-    var dd = $('mgDcDropdown');
-    var bk = $('mgDcDropdownBackdrop');
-    if (dd) dd.classList.remove('open');
-    if (bk) bk.classList.remove('open');
-    // Clean up poll timers
-    _dcPollTimers.forEach(function(t) { clearInterval(t); });
-    _dcPollTimers = [];
-    _dcDeviceId = null;
-};
-
-// Close overlays on Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        if (_dcDeviceId) mgDcClose();
-        if (_swapDeviceId) {
-            $('mgSwapOverlay').classList.add('mg-hidden');
-            _swapDeviceId = null;
-            _swapDeviceName = null;
-        }
-    }
-});
-
-window.mgDcSaveDevice = async function(deviceId) {
-    if(!deviceId) deviceId = _dcDeviceId;
-    const payload = {
-        device_id: $('dcLoginCode_' + deviceId)?.value?.trim(),
-        imei: $('dcImei_' + deviceId)?.value?.trim() || null,
-        imsi: $('dcImsi_' + deviceId)?.value?.trim() || null,
-        sim_phone_number: $('dcSimPhone_' + deviceId)?.value?.trim() || null,
-        os_version: $('dcOs_' + deviceId)?.value?.trim() || null,
-        manufacturer: $('dcMan_' + deviceId)?.value?.trim() || null,
-        model: $('dcModel_' + deviceId)?.value?.trim() || null,
-    };
-    const pwd = $('dcPassword_' + deviceId)?.value?.trim();
-    if (pwd) payload.password = pwd;
-    if(!payload.device_id) { toast('Login code required', true); return; }
-
-    const method = deviceId && allDevices.find(x=>x.id===deviceId) ? 'PATCH' : 'POST';
-    const url = method === 'PATCH' ? `/api/devices/${deviceId}/` : '/api/devices/';
-    const res = await api(url, { method, body: JSON.stringify(payload) });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) {
-        toast(data.detail || 'Save failed', true);
-        return;
-    }
-
-    const guardId = $('dcOfficer_' + deviceId)?.value;
-    if(guardId) {
-        await api('/api/provision-device/', {
-            method: 'POST',
-            body: JSON.stringify({ device_id: data.device_id || payload.device_id, guard_id: parseInt(guardId, 10) })
-        });
-    }
-
-    toast('Device saved');
-    mgDcClose(deviceId);
-    mgLoadDevices();
-};
 
 window.mgDcGenLoginCode = async function(deviceId) {
     if(!deviceId) deviceId = _dcDeviceId;
@@ -2658,7 +2588,34 @@ var _cbMapInitTimer = null;
 function initMap() {
     var el = document.getElementById('mgFleetMap');
     if (!el) return;
-    if (cbMap) { cbMap.invalidateSize(); return; }
+    if (cbMap) {
+        // Map exists - ensure it has proper size after tab switch
+        setTimeout(function(){ cbMap.invalidateSize(); }, 50);
+        setTimeout(function(){ cbMap.invalidateSize(); }, 200);
+        return;
+    }
+    
+    // Wait for container to have dimensions (panel might still be animating)
+    var attempts = 0;
+    function tryInit() {
+        attempts++;
+        var rect = el.getBoundingClientRect();
+        if (rect.width < 10 || rect.height < 10) {
+            if (attempts < 20) {
+                setTimeout(tryInit, 100);
+                return;
+            }
+            // Force minimum size as fallback
+            el.style.minHeight = '300px';
+        }
+        _doInitMap();
+    }
+    tryInit();
+}
+
+function _doInitMap() {
+    var el = document.getElementById('mgFleetMap');
+    if (!el || cbMap) return;
     try {
         cbMap = L.map('mgFleetMap', {
             zoomControl: false,
@@ -2671,21 +2628,27 @@ function initMap() {
 
         L.control.zoom({ position: 'bottomright' }).addTo(cbMap);
 
+        // Area of interest boundary layer
+        cbBoundaryLayer = null;
+
         cbMap.on('click', function(e) {
             if (cbPickMode && cbPickRow) {
                 var lat = e.latlng.lat.toFixed(6);
                 var lng = e.latlng.lng.toFixed(6);
+                // Warn if outside area of interest but still allow placement
+                if (cbAreaOfInterest && !pointInPolygon(e.latlng.lat, e.latlng.lng, cbAreaOfInterest)) {
+                    toast('Warning: Outside operational area', true);
+                }
                 var latInp = cbPickRow.querySelector('.cp-inline-lat');
                 var lngInp = cbPickRow.querySelector('.cp-inline-lng');
                 if (latInp) latInp.value = lat;
                 if (lngInp) lngInp.value = lng;
-                // Add a temporary marker
-                var m = L.marker([e.latlng.lat, e.latlng.lng]).addTo(cbMap);
-                m.bindPopup(cbPickMode.toUpperCase() + ' — ' + lat + ', ' + lng).openPopup();
+                addMapMarker(lat, lng, cbPickMode);
                 cbPickMode = null;
                 cbPickRow = null;
                 var hint = $('cbMapHint');
                 if (hint) hint.classList.remove('active');
+                mgRenderAssetsOnMap();
             }
         });
 
@@ -2694,11 +2657,227 @@ function initMap() {
             if (coord) coord.textContent = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
         });
 
+        // Load area of interest and fit map to it
+        loadAreaOfInterest();
+
         // Fix map size after layout settles
-        setTimeout(function() { cbMap.invalidateSize(); }, 500);
+        setTimeout(function() { cbMap.invalidateSize(); }, 200);
+        setTimeout(function() { cbMap.invalidateSize(); }, 600);
     } catch(e) {
         console.warn('Map init failed:', e);
     }
+}
+
+/* ── Area of Interest ── */
+var cbAreaOfInterest = null;
+var cbBoundaryLayer = null;
+var cbBoundaryPoints = [];
+
+function loadAreaOfInterest() {
+    api('/api/org/area-of-interest/').then(function(res) {
+        if (res.ok) res.json().then(function(data) {
+            cbAreaOfInterest = data.area_of_interest;
+            if (cbAreaOfInterest && cbAreaOfInterest.length >= 3) {
+                renderBoundary();
+                cbMarkOutOfBounds();
+                // Fit map to boundary with proper padding
+                var latlngs = cbAreaOfInterest.map(function(p) { return L.latLng(p[0], p[1]); });
+                var bounds = L.latLngBounds(latlngs);
+                cbMap.fitBounds(bounds.pad(0.3), { animate: true, duration: 0.5 });
+                // Set max bounds so user can't pan too far away
+                cbMap.setMaxBounds(bounds.pad(1.0));
+                // Don't allow zooming out too far
+                var fitZoom = cbMap.getBoundsZoom(bounds.pad(0.3));
+                cbMap.setMinZoom(fitZoom - 3);
+                cbMap.setMaxZoom(19);
+            }
+        });
+    });
+}
+
+function renderBoundary() {
+    if (cbBoundaryLayer) { cbMap.removeLayer(cbBoundaryLayer); }
+    if (!cbAreaOfInterest || cbAreaOfInterest.length < 3) return;
+    cbBoundaryLayer = L.polygon(cbAreaOfInterest, {
+        color: '#00C49A',
+        weight: 2,
+        dashArray: '6, 4',
+        fillColor: '#00C49A',
+        fillOpacity: 0.05,
+        interactive: false
+    }).addTo(cbMap);
+}
+
+function pointInPolygon(lat, lng, polygon) {
+    var inside = false;
+    var n = polygon.length;
+    var j = n - 1;
+    for (var i = 0; i < n; i++) {
+        var yi = polygon[i][0], xi = polygon[i][1];
+        var yj = polygon[j][0], xj = polygon[j][1];
+        if ((yi > lat) != (yj > lat) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+        j = i;
+    }
+    return inside;
+}
+
+
+
+/* ── Map Markers ── */
+function cbMarkOutOfBounds() {
+    if (!cbAreaOfInterest) return;
+    var rows = document.querySelectorAll('#cpRegistry .cb-reg-row');
+    rows.forEach(function(r) {
+        var lat = parseFloat(r.querySelector('.cp-inline-lat')?.value);
+        var lng = parseFloat(r.querySelector('.cp-inline-lng')?.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            var oob = !pointInPolygon(lat, lng, cbAreaOfInterest);
+            r.classList.toggle('out-of-bounds', oob);
+            var tag = r.querySelector('.cb-reg-tag');
+            if (tag) {
+                var existing = tag.querySelector('.cb-oob-warn');
+                if (oob && !existing) {
+                    existing = document.createElement('span');
+                    existing.className = 'cb-oob-warn';
+                    existing.innerHTML = '<i class="fas fa-triangle-exclamation"></i>';
+                    existing.title = 'Outside operational area';
+                    tag.appendChild(existing);
+                } else if (!oob && existing) {
+                    existing.remove();
+                }
+            }
+        }
+    });
+}
+
+/* ── Zone Setup Modal ── */
+var cbZoneMap = null;
+var cbZoneDrawing = false;
+var cbZonePoints = [];
+
+window.cbOpenZoneModal = function() {
+    var modal = $('cbZoneModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    // Init zone map if not already
+    if (!cbZoneMap) {
+        setTimeout(function() {
+            cbZoneMap = L.map('cbZoneMap', { zoomControl: false, attributionControl: false }).setView([-1.2921, 36.8219], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(cbZoneMap);
+            L.control.zoom({ position: 'bottomright' }).addTo(cbZoneMap);
+            cbZoneMap.on('click', function(e) {
+                if (cbZoneDrawing) {
+                    cbZonePoints.push([e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6)]);
+                    cbRenderZonePoints();
+                    cbRenderZonePolygon();
+                }
+            });
+            // Load existing
+            if (cbAreaOfInterest) {
+                cbZonePoints = cbAreaOfInterest.map(function(p) { return [p[0].toFixed(6), p[1].toFixed(6)]; });
+                cbRenderZonePoints();
+                cbRenderZonePolygon();
+                var bounds = L.latLngBounds(cbAreaOfInterest.map(function(p) { return [p[0], p[1]]; }));
+                cbZoneMap.fitBounds(bounds.pad(0.2));
+            }
+        }, 100);
+    } else {
+        setTimeout(function() { cbZoneMap.invalidateSize(); }, 100);
+    }
+};
+
+window.cbCloseZoneModal = function() {
+    var modal = $('cbZoneModal');
+    if (modal) modal.style.display = 'none';
+    cbZoneDrawing = false;
+    var instr = $('cbZoneInstructions');
+    if (instr) instr.style.display = 'none';
+};
+
+window.cbStartZoneDraw = function() {
+    cbZoneDrawing = true;
+    var instr = $('cbZoneInstructions');
+    if (instr) instr.style.display = 'block';
+    var btn = $('cbZoneDrawBtn');
+    if (btn) { btn.innerHTML = '<i class="fas fa-check"></i> Done Drawing'; btn.onclick = cbStopZoneDraw; btn.style.background = 'rgba(0,196,154,0.3)'; }
+};
+
+window.cbStopZoneDraw = function() {
+    cbZoneDrawing = false;
+    var instr = $('cbZoneInstructions');
+    if (instr) instr.style.display = 'none';
+    var btn = $('cbZoneDrawBtn');
+    if (btn) { btn.innerHTML = '<i class="fas fa-pen"></i> Draw Boundary'; btn.onclick = cbStartZoneDraw; btn.style.background = 'rgba(0,196,154,0.15)'; }
+};
+
+window.cbClearZone = function() {
+    cbZonePoints = [];
+    cbRenderZonePoints();
+    cbRenderZonePolygon();
+};
+
+function cbRenderZonePoints() {
+    var container = $('cbZonePoints');
+    if (!container) return;
+    if (!cbZonePoints.length) { container.innerHTML = '<div style="font-size:0.55rem;color:rgba(255,255,255,0.2);">No points added yet</div>'; return; }
+    container.innerHTML = cbZonePoints.map(function(p, i) {
+        return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);"><span style="font-size:0.5rem;color:#00C49A;font-weight:800;">' + (i+1) + '</span><span style="font-size:0.55rem;color:rgba(255,255,255,0.6);font-family:monospace;">' + p[0] + ', ' + p[1] + '</span><button onclick="cbRemoveZonePoint(' + i + ')" style="margin-left:auto;background:none;border:none;color:rgba(255,102,89,0.5);cursor:pointer;font-size:0.5rem;"><i class="fas fa-times"></i></button></div>';
+    }).join('');
+}
+
+function cbRemoveZonePoint(idx) {
+    cbZonePoints.splice(idx, 1);
+    cbRenderZonePoints();
+    cbRenderZonePolygon();
+}
+
+function cbRenderZonePolygon() {
+    if (!cbZoneMap) return;
+    if (cbZoneMap._zoneLayer) { cbZoneMap.removeLayer(cbZoneMap._zoneLayer); }
+    if (cbZonePoints.length >= 3) {
+        var latlngs = cbZonePoints.map(function(p) { return [parseFloat(p[0]), parseFloat(p[1])]; });
+        // Close polygon
+        latlngs.push(latlngs[0]);
+        cbZoneMap._zoneLayer = L.polygon(latlngs, { color: '#00C49A', weight: 2, dashArray: '6,4', fillColor: '#00C49A', fillOpacity: 0.1 }).addTo(cbZoneMap);
+    } else if (cbZonePoints.length === 2) {
+        cbZoneMap._zoneLayer = L.polyline(cbZonePoints.map(function(p) { return [parseFloat(p[0]), parseFloat(p[1])]; }), { color: '#00C49A', weight: 2, dashArray: '6,4' }).addTo(cbZoneMap);
+    }
+}
+
+window.cbSaveZone = function() {
+    if (cbZonePoints.length < 3) { toast('Need at least 3 points', true); return; }
+    var area = cbZonePoints.map(function(p) { return [parseFloat(p[0]), parseFloat(p[1])]; });
+    // Close polygon
+    area.push(area[0]);
+    var note = $('cbZoneNote')?.value || '';
+    api('/api/org/area-of-interest/set/', {
+        method: 'POST',
+        body: JSON.stringify({ area_of_interest: area, operational_note: note })
+    }).then(function(res) {
+        if (res.ok) {
+            toast('Operational area saved');
+            cbAreaOfInterest = area;
+            renderBoundary();
+            cbMarkOutOfBounds();
+            mgRenderAssetsOnMap();
+            cbCloseZoneModal();
+        } else {
+            toast('Save failed', true);
+        }
+    });
+};
+
+function addMapMarker(lat, lng, type) {
+    if (!cbMap) return;
+    var colors = { nfc:'#d32f2f', gps:'#6C8EEF', geo:'#A855F7', peer:'#F59E0B' };
+    var color = colors[type] || '#d32f2f';
+    var marker = L.circleMarker([parseFloat(lat), parseFloat(lng)], {
+        radius: 6, fillColor: color, color: color, weight: 2, opacity: 0.9, fillOpacity: 0.6
+    }).addTo(cbMap);
+    marker.bindPopup(type.toUpperCase() + ' — ' + lat + ', ' + lng);
+    cbMarkers.push(marker);
 }
 window.cbZoomFit = function() {
     if (cbMap && cbMarkers.length) {
@@ -2720,10 +2899,20 @@ function mgRenderAssetsOnMap() {
             var type = r.dataset.cpType || 'nfc';
             var colors = { nfc:'#d32f2f', gps:'#6C8EEF', geo:'#A855F7', peer:'#F59E0B' };
             var color = colors[type] || '#d32f2f';
+            var name = r.querySelector('.cp-inline-name')?.value || 'Unnamed';
+            // Check if outside area of interest
+            var outOfBounds = cbAreaOfInterest && !pointInPolygon(lat, lng, cbAreaOfInterest);
             var marker = L.circleMarker([lat, lng], {
-                radius: 6, fillColor: color, color: color, weight: 2, opacity: 0.9, fillOpacity: 0.6
+                radius: outOfBounds ? 8 : 6,
+                fillColor: outOfBounds ? '#FF6659' : color,
+                color: outOfBounds ? '#FF6659' : color,
+                weight: outOfBounds ? 3 : 2,
+                opacity: 0.9,
+                fillOpacity: outOfBounds ? 0.8 : 0.6
             }).addTo(cbMap);
-            marker.bindPopup((type.toUpperCase()) + ': ' + (r.querySelector('.cp-inline-name')?.value || 'Unnamed'));
+            var popupText = type.toUpperCase() + ': ' + name;
+            if (outOfBounds) popupText += ' <span style="color:#FF6659;font-weight:bold;">⚠ OUTSIDE AREA</span>';
+            marker.bindPopup(popupText);
             cbMarkers.push(marker);
         }
     });
@@ -3136,6 +3325,12 @@ window.addRegistryRow = function(type, data) {
     if (time) settingDots.push('<span class="cb-reg-dot time" title="Target ' + time + '"><i class="fas fa-clock"></i><span>' + time + '</span></span>');
     if (lat && lng) settingDots.push('<span class="cb-reg-dot loc" title="GPS ' + parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4) + '"><i class="fas fa-location-dot"></i></span>');
 
+    // Determine target group container
+    var groupBody = $('group-' + type);
+    var list = groupBody || $('cpRegistry');
+    var empty = $('regEmpty');
+    if (empty) empty.style.display = 'none';
+    
     var div = document.createElement('div');
     div.className = 'cb-reg-row';
     div.dataset.cpType = type;
@@ -3186,13 +3381,13 @@ window.addRegistryRow = function(type, data) {
             '<span class="cb-reg-ico"><i class="fas ' + icons[type] + '" style="color:' + col + '"></i></span>',
         '</div>',
         '<div class="cb-reg-body">',
-            '<div class="cb-reg-hd" onclick="mgToggleCpConfig(event,this)">',
+            '<div class="cb-reg-hd" onclick="cbRowClickEdit(this.closest(".cb-reg-row"))">',
                 '<span class="cb-reg-name">' + (name || '<span style="opacity:0.35;font-style:italic;">Unnamed</span>') + '</span>',
                 '<span class="cb-reg-tag" style="background:' + col + '18;color:' + col + ';border:1px solid ' + col + '30;">' + type.toUpperCase() + '</span>',
                 '<span class="cb-reg-dots">' + settingDots.join('') + '</span>',
                 '<span class="cb-reg-chev"><i class="fas fa-chevron-down"></i></span>',
             '</div>',
-            '<div class="cb-reg-config" style="max-height:' + (isSaved ? '0' : '0') + 'px;overflow:hidden;transition:max-height .3s ease;"' + (isSaved ? '' : ' data-auto-expand="1"') + '>',
+            '<div class="cb-reg-config" style="max-height:0;overflow:hidden;transition:max-height .3s ease;"' + (isSaved ? '' : ' data-auto-expand="1"') + '>',
                 '<div class="cb-reg-config-inner">',
                     fieldArea,
                     '<div class="cb-reg-enf" style="display:flex;flex-direction:column;gap:2px;padding:0;">',
@@ -3305,7 +3500,7 @@ window.addRegistryRow = function(type, data) {
         nameInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                addRegistryRow(type, {});
+                addRegistryRow(type, {}); mgRenderAssetsOnMap(); updateGroupCounts();
             }
         });
     }
@@ -3339,10 +3534,11 @@ window.addRegistryRow = function(type, data) {
     }
 
     list.appendChild(div);
+    updateGroupCounts();
     // Auto-expand config for new (staged) rows
     if (!isSaved) {
         // Collapse any other open rows (accordion behavior)
-        $$('#cp-registry .cb-reg-row').forEach(function(r) {
+        $$('#cpRegistry .cb-reg-row').forEach(function(r) {
             if (r === div) return;
             var c = r.querySelector('.cb-reg-config');
             var ch = r.querySelector('.cb-reg-chev i');
@@ -3407,7 +3603,7 @@ window.duplicateRegistryRow = function(btn) {
         time_tolerance: tolSlider ? parseInt(tolSlider.value) || 0 : 15,
         planned_time: timeInp ? timeInp.value : ''
     };
-    addRegistryRow(type, cloned);
+    addRegistryRow(type, cloned); mgRenderAssetsOnMap(); updateGroupCounts();
     toast('Duplicated');
 };
 
@@ -3476,14 +3672,14 @@ document.addEventListener('click', function(e) {
 
 /* ── Toggle config panel on click (max-height animation) ── */
 window.mgToggleCpConfig = function(ev, headEl) {
-    if (ev.target.tagName === 'INPUT' || ev.target.closest('.cb-r-btn') || ev.target.closest('.cb-reg-setting')) return;
-    var row = headEl?.closest('.cb-reg-row');
+    if (ev && ev.target && (ev.target.tagName === 'INPUT' || ev.target.closest('.cb-r-btn') || ev.target.closest('.cb-reg-setting'))) return;
+    var row = headEl?.closest('.cb-reg-row') || (ev && ev.target ? ev.target.closest('.cb-reg-row') : null);
     var config = row?.querySelector('.cb-reg-config');
-    var chevron = headEl?.closest('.cb-reg-hd')?.querySelector('.cb-reg-chev i');
+    var chevron = row?.querySelector('.cb-reg-chev i');
     if (!config || !row) return;
     var inner = config.querySelector('.cb-reg-config-inner');
     if (!inner) return;
-    var isOpen = config.style.maxHeight !== '0px' && config.style.maxHeight !== '';
+    var isOpen = config.style.maxHeight && config.style.maxHeight !== '0px';
 
     // Accordion: close all other open rows first
     if (!isOpen) {
@@ -3534,7 +3730,7 @@ window.removeRegistryRow = function(btn) {
     var removedHTML = row.outerHTML;
     var removedType = type;
     setTimeout(function() {
-        row.remove(); renumberRegistryRows(); syncRegistryFromRows(); updateRegistryStats(); autoFitMap();
+        row.remove(); renumberRegistryRows(); syncRegistryFromRows(); updateRegistryStats(); autoFitMap(); mgRenderAssetsOnMap(); updateGroupCounts();
         if (!$$('#cpRegistry .cb-reg-row').length) {
             var empty = $('regEmpty');
             if (empty) empty.style.display = 'block';
@@ -3633,7 +3829,11 @@ window.undoRemoveRegistryRow = function(btn) {
 
 /* ── Quick Add ── */
 window.cbQuickAdd = function(type) {
-    addRegistryRow(type, {});
+    // Ensure group is visible (not collapsed)
+    var group = document.querySelector('.cb-group[data-group="' + type + '"]');
+    if (group) group.classList.remove('collapsed');
+    addRegistryRow(type, {}); mgRenderAssetsOnMap(); updateGroupCounts();
+    cbMarkOutOfBounds();
 };
 
 window.cbOpenCheckpointForm = function() {
@@ -3663,6 +3863,7 @@ window.cbClearStaged = function() {
     inlineCps = [];
     savedCps = [];
     updateRegistryStats();
+    updateGroupCounts();
 };
 
 window.cbCollapseAll = function() {
@@ -3683,6 +3884,409 @@ window.cbCollapseRow = function(btn) {
     if (config) config.style.maxHeight = '0px';
     if (chevron) chevron.style.transform = '';
     row.classList.remove('expanded');
+};
+
+/* ── Group Management ── */
+window.cbToggleGroup = function(type) {
+    var group = document.querySelector('.cb-group[data-group="' + type + '"]');
+    if (group) group.classList.toggle('collapsed');
+};
+
+window.cbSaveGroup = function(type) {
+    var group = document.querySelector('.cb-group[data-group="' + type + '"]');
+    if (!group) return;
+    var rows = group.querySelectorAll('.cb-reg-row[data-is-saved="0"]');
+    if (!rows.length) { toast('No unsaved ' + type.toUpperCase() + ' checkpoints', true); return; }
+    
+    var btn = group.querySelector('.cb-group-save');
+    if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
+    
+    var checkpoints = [];
+    rows.forEach(function(row) {
+        var name = row.querySelector('.cp-inline-name')?.value?.trim() || '';
+        if (!name) return;
+        var entry = {
+            name: name,
+            checkpoint_type: type,
+            nfc_tag: type === 'nfc' ? (row.querySelector('.cp-inline-tag')?.value?.trim() || null) : null,
+            lat: parseFloat(row.querySelector('.cp-inline-lat')?.value) || null,
+            lng: parseFloat(row.querySelector('.cp-inline-lng')?.value) || null,
+            radius: parseInt(row.querySelector('.cp-inline-rad')?.value) || 0,
+            dwell_time: parseInt(row.querySelector('.cp-inline-dwell')?.value) || 0,
+            time_tolerance: parseInt(row.querySelector('.cp-inline-tol')?.value) || 15,
+            planned_time: row.querySelector('.cp-inline-time')?.value || null,
+            auditor_id: type === 'peer' ? (row.querySelector('.cp-inline-auditor')?.value?.trim() || null) : null,
+            target_id: type === 'peer' ? (row.querySelector('.cp-inline-target')?.value?.trim() || null) : null,
+        };
+        checkpoints.push(entry);
+    });
+    
+    if (!checkpoints.length) { toast('No valid checkpoints to save', true); return; }
+    
+    api('/api/v1/checkpoints/bulk-schedule/', {
+        method: 'POST',
+        body: JSON.stringify({ checkpoints: checkpoints })
+    }).then(function(res) {
+        return res.json().then(function(data) {
+            if (res.ok) {
+                var count = data.count || data.created_count || checkpoints.length;
+                toast('Saved ' + count + ' ' + type.toUpperCase() + ' checkpoint' + (count !== 1 ? 's' : ''));
+                // Mark rows as saved
+                rows.forEach(function(row) {
+                    row.dataset.isSaved = '1';
+                    var actions = row.querySelector('.cb-reg-actions');
+                    if (actions) {
+                        actions.innerHTML = '<span class="cb-reg-saved" title="Saved"><i class="fas fa-database"></i></span>';
+                    }
+                });
+                updateGroupCounts();
+            } else {
+                toast(data.detail || 'Save failed', true);
+            }
+            if (btn) { btn.innerHTML = '<i class="fas fa-check"></i>'; btn.disabled = false; }
+        });
+    }).catch(function() {
+        toast('Save error', true);
+        if (btn) { btn.innerHTML = '<i class="fas fa-check"></i>'; btn.disabled = false; }
+    });
+};
+
+function updateGroupCounts() {
+    ['nfc', 'gps', 'peer', 'geo', 'custom'].forEach(function(type) {
+        var body = $('group-' + type);
+        var count = body ? body.querySelectorAll('.cb-reg-row').length : 0;
+        var countEl = $('count-' + type);
+        if (countEl) countEl.textContent = count;
+        // Hide empty groups
+        var group = document.querySelector('.cb-group[data-group="' + type + '"]');
+        if (group) group.style.display = count === 0 ? 'none' : '';
+    });
+    // Show empty message if all groups empty
+    var total = ['nfc', 'gps', 'peer', 'geo', 'custom'].reduce(function(sum, t) {
+        var body = $('group-' + t);
+        return sum + (body ? body.querySelectorAll('.cb-reg-row').length : 0);
+    }, 0);
+    var empty = $('regEmpty');
+    if (empty) empty.style.display = total === 0 ? '' : 'none';
+}
+
+/* ── CENTER EDITOR ── */
+var mgEditorMap = null;
+var mgEditorPickCallback = null;
+var mgEditingRow = null;
+var mgEditingDevice = null;
+
+window.mgOpenCheckpointEditor = function(row) {
+    mgEditingRow = row;
+    mgEditingDevice = null;
+    var type = row.dataset.cpType || 'nfc';
+    var name = row.querySelector('.cp-inline-name')?.value || '';
+    var lat = row.querySelector('.cp-inline-lat')?.value || '';
+    var lng = row.querySelector('.cp-inline-lng')?.value || '';
+    var rad = row.querySelector('.cp-inline-rad')?.value || '0';
+    var dwell = row.querySelector('.cp-inline-dwell')?.value || '0';
+    var tol = row.querySelector('.cp-inline-tol')?.value || '15';
+    var time = row.querySelector('.cp-inline-time')?.value || '';
+    var tag = row.querySelector('.cp-inline-tag')?.value || '';
+    
+    var icons = {nfc:'fa-wifi',gps:'fa-map-pin',peer:'fa-user-shield',geo:'fa-draw-polygon',custom:'fa-pen'};
+    $('mgEditorLabel').textContent = name || ('New ' + type.toUpperCase());
+    $('mgEditorTitle').querySelector('i').className = 'fas ' + (icons[type] || 'fa-crosshairs');
+    
+    var body = $('mgEditorBody');
+    var h = '';
+    
+    // Name
+    h += '<div style="margin-bottom:10px;"><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);font-weight:700;display:block;margin-bottom:3px;">Point Name</label>';
+    h += '<input type="text" id="edt_cp_name" value="' + name + '" placeholder="e.g. Main Gate" class="edt-inp"></div>';
+    
+    // NFC UID (only NFC)
+    if (type === 'nfc') {
+        h += '<div style="margin-bottom:10px;"><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);font-weight:700;display:block;margin-bottom:3px;">NFC UID</label>';
+        h += '<input type="text" id="edt_cp_tag" value="' + tag + '" placeholder="UID or scan" class="edt-inp" style="font-family:monospace;"></div>';
+    }
+    
+    // Coords
+    h += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
+    h += '<div style="flex:1;"><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);font-weight:700;display:block;margin-bottom:3px;">Latitude</label>';
+    h += '<input type="text" id="edt_cp_lat" value="' + lat + '" placeholder="0.000000" class="edt-inp" style="font-family:monospace;"></div>';
+    h += '<div style="flex:1;"><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);font-weight:700;display:block;margin-bottom:3px;">Longitude</label>';
+    h += '<input type="text" id="edt_cp_lng" value="' + lng + '" placeholder="0.000000" class="edt-inp" style="font-family:monospace;"></div>';
+    h += '</div>';
+    
+    // Parameters
+    h += '<div class="edt-param-box">';
+    h += '<div class="edt-param-title">Parameters</div>';
+    
+    // Radius slider
+    h += '<div class="edt-slider-row"><span class="edt-slider-lbl" style="color:#d32f2f;">Radius</span><span class="edt-slider-val" id="edt_rad_val">' + rad + 'm</span></div>';
+    h += '<input type="range" id="edt_cp_rad" min="0" max="500" value="' + rad + '" step="5" class="edt-slider-i" style="accent-color:#d32f2f;">';
+    h += '<div class="edt-preset-row"><span class="edt-preset" onclick="edtSetRad(0)">Off</span><span class="edt-preset" onclick="edtSetRad(25)">25</span><span class="edt-preset" onclick="edtSetRad(50)">50</span><span class="edt-preset" onclick="edtSetRad(100)">100</span><span class="edt-preset" onclick="edtSetRad(250)">250</span></div>';
+    
+    // Dwell slider
+    h += '<div class="edt-slider-row"><span class="edt-slider-lbl" style="color:#EF9F27;">Dwell</span><span class="edt-slider-val" id="edt_dwell_val">' + dwell + 'min</span></div>';
+    h += '<input type="range" id="edt_cp_dwell" min="0" max="60" value="' + dwell + '" step="1" class="edt-slider-i" style="accent-color:#EF9F27;">';
+    h += '<div class="edt-preset-row"><span class="edt-preset" onclick="edtSetDwell(0)">Off</span><span class="edt-preset" onclick="edtSetDwell(5)">5</span><span class="edt-preset" onclick="edtSetDwell(10)">10</span><span class="edt-preset" onclick="edtSetDwell(30)">30</span></div>';
+    
+    // Tolerance slider
+    h += '<div class="edt-slider-row"><span class="edt-slider-lbl" style="color:#6C8EEF;">Tolerance</span><span class="edt-slider-val" id="edt_tol_val">' + tol + 'min</span></div>';
+    h += '<input type="range" id="edt_cp_tol" min="0" max="60" value="' + tol + '" step="1" class="edt-slider-i" style="accent-color:#6C8EEF;">';
+    h += '<div class="edt-preset-row"><span class="edt-preset" onclick="edtSetTol(0)">Off</span><span class="edt-preset" onclick="edtSetTol(5)">5</span><span class="edt-preset" onclick="edtSetTol(15)">15</span><span class="edt-preset" onclick="edtSetTol(30)">30</span></div>';
+    
+    h += '</div>'; // end param box
+    
+    // Target time
+    h += '<div style="margin-bottom:12px;"><label style="font-size:0.55rem;color:rgba(255,255,255,0.3);font-weight:700;display:block;margin-bottom:3px;">Target Time</label>';
+    h += '<input type="time" id="edt_cp_time" value="' + time + '" class="edt-inp"></div>';
+    
+    // Save
+    h += '<button class="edt-save-btn" onclick="mgSaveEditingCheckpoint()"><i class="fas fa-check"></i> Save Checkpoint</button>';
+    
+    body.innerHTML = h;
+    
+    // Bind slider events
+    var radEl = $('edt_cp_rad');
+    var dwellEl = $('edt_cp_dwell');
+    var tolEl = $('edt_cp_tol');
+    if (radEl) radEl.oninput = function(){ $('edt_rad_val').textContent = this.value + 'm'; };
+    if (dwellEl) dwellEl.oninput = function(){ $('edt_dwell_val').textContent = this.value + 'min'; };
+    if (tolEl) tolEl.oninput = function(){ $('edt_tol_val').textContent = this.value + 'min'; };
+    
+    // Show editor
+    $('mgMapView').style.display = 'none';
+    $('mgEditorView').style.display = 'flex';
+    
+    // Init map
+    setTimeout(function(){ mgInitEditorMap(row); }, 100);
+};
+
+// Slider preset helpers
+window.edtSetRad = function(v){ $('edt_cp_rad').value=v; $('edt_rad_val').textContent=v+'m'; };
+window.edtSetDwell = function(v){ $('edt_cp_dwell').value=v; $('edt_dwell_val').textContent=v+'min'; };
+window.edtSetTol = function(v){ $('edt_cp_tol').value=v; $('edt_tol_val').textContent=v+'min'; };
+
+window.mgOpenDeviceEditor = function(deviceId) {
+    var d = allDevices.find(function(x){return x.id===deviceId;});
+    if (!d) return;
+    mgEditingDevice = deviceId;
+    mgEditingRow = null;
+    $('mgEditorLabel').textContent = d.device_name || d.device_id || 'Device';
+    $('mgEditorTitle').querySelector('i').className = 'fas fa-mobile-screen';
+    
+    var body = $('mgEditorBody');
+    body.innerHTML = '';
+    
+    // Build device editor fields
+    var html = '';
+    html += '<div class="mg-dd-section" style="border:1px solid rgba(255,255,255,0.05);border-radius:10px;margin-bottom:8px;overflow:hidden;">';
+    html += '<div class="mg-dd-section-title" style="padding:8px 12px;font-size:0.58rem;font-weight:800;text-transform:uppercase;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.02);"><i class="fas fa-key" style="color:rgba(255,255,255,0.3);"></i> Identity</div>';
+    html += '<div style="padding:8px 12px;">';
+    html += '<div class="mg-dd-row"><span class="mg-dd-label">Name</span><input class="mg-dd-input" id="edt_dev_name" value="' + (d.device_name||'') + '"></div>';
+    html += '<div class="mg-dd-row"><span class="mg-dd-label">Callsign</span><input class="mg-dd-input" id="edt_dev_callsign" value="' + (d.assigned_callsign||d.callsign||'') + '"></div>';
+    html += '<div class="mg-dd-row"><span class="mg-dd-label">IMEI</span><input class="mg-dd-input" id="edt_dev_imei" value="' + (d.imei||'') + '"></div>';
+    html += '</div></div>';
+    
+    html += '<div class="mg-dd-section" style="border:1px solid rgba(255,255,255,0.05);border-radius:10px;margin-bottom:8px;overflow:hidden;">';
+    html += '<div class="mg-dd-section-title" style="padding:8px 12px;font-size:0.58rem;font-weight:800;text-transform:uppercase;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.02);"><i class="fas fa-satellite" style="color:#6C8EEF;"></i> Location</div>';
+    html += '<div style="padding:8px 12px;">';
+    html += '<div class="mg-dd-row"><span class="mg-dd-label">Latitude</span><input class="mg-dd-input" id="edt_dev_lat" value="' + (d.last_latitude||'') + '" placeholder="Pick on map below"></div>';
+    html += '<div class="mg-dd-row"><span class="mg-dd-label">Longitude</span><input class="mg-dd-input" id="edt_dev_lng" value="' + (d.last_longitude||'') + '" placeholder="Pick on map below"></div>';
+    html += '</div></div>';
+    
+    html += '<div style="margin-top:12px;display:flex;gap:8px;">';
+    html += '<button type="button" style="flex:1;padding:10px;border-radius:8px;border:none;background:#6C8EEF;color:#fff;font-size:0.65rem;font-weight:700;cursor:pointer;" onclick="mgSaveEditingDevice()"><i class="fas fa-check"></i> Save Device</button>';
+    html += '</div>';
+    
+    body.innerHTML = html;
+    
+    // Show editor
+    $('mgMapView').style.display = 'none';
+    $('mgEditorView').style.display = 'flex';
+    
+    // Init editor map with device position
+    setTimeout(function(){ mgInitEditorMap(null, d); }, 100);
+};
+
+window.mgCloseEditor = function() {
+    $('mgEditorView').style.display = 'none';
+    $('mgMapView').style.display = 'flex';
+    mgEditingRow = null;
+    mgEditingDevice = null;
+    mgEditorPickCallback = null;
+    if (cbMap) cbMap.invalidateSize();
+};
+
+function mgInitEditorMap(row, device) {
+    var el = $('mgEditorMap');
+    if (!el) return;
+    
+    // Determine center
+    var lat, lng;
+    if (row) {
+        lat = parseFloat(row.querySelector('.cp-inline-lat')?.value) || (cbAreaOfInterest ? cbAreaOfInterest[0][0] : -1.2921);
+        lng = parseFloat(row.querySelector('.cp-inline-lng')?.value) || (cbAreaOfInterest ? cbAreaOfInterest[0][1] : 36.8219);
+    } else if (device) {
+        lat = device.last_latitude || (cbAreaOfInterest ? cbAreaOfInterest[0][0] : -1.2921);
+        lng = device.last_longitude || (cbAreaOfInterest ? cbAreaOfInterest[0][1] : 36.8219);
+    } else {
+        lat = cbAreaOfInterest ? cbAreaOfInterest[0][0] : -1.2921;
+        lng = cbAreaOfInterest ? cbAreaOfInterest[0][1] : 36.8219;
+    }
+    
+    if (mgEditorMap) { mgEditorMap.remove(); }
+    mgEditorMap = L.map('mgEditorMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mgEditorMap);
+    L.control.zoom({ position: 'topright' }).addTo(mgEditorMap);
+    
+    // Draw boundary if exists
+    if (cbAreaOfInterest) {
+        L.polygon(cbAreaOfInterest, { color:'#00C49A', weight:2, dashArray:'6,4', fillColor:'#00C49A', fillOpacity:0.05, interactive:false }).addTo(mgEditorMap);
+    }
+    
+    // Draw existing checkpoint markers
+    if (cbMarkers) {
+        cbMarkers.forEach(function(m) {
+            var ll = m.getLatLng();
+            L.circleMarker([ll.lat, ll.lng], { radius:5, color:'#fff', fillColor:'#fff', fillOpacity:0.5, weight:1 }).addTo(mgEditorMap);
+        });
+    }
+    
+    // Add marker for current item
+    if (!isNaN(lat) && !isNaN(lng)) {
+        L.marker([lat, lng], { draggable: true }).addTo(mgEditorMap).on('dragend', function(e) {
+            var ll = e.target.getLatLng();
+            mgEditorUpdateCoords(ll.lat, ll.lng);
+        });
+    }
+    
+    // Click to set
+    mgEditorMap.on('click', function(e) {
+        if (mgEditorPickCallback) {
+            mgEditorPickCallback(e.latlng.lat, e.latlng.lng);
+            mgEditorPickCallback = null;
+            $('mgEditorPickBtn').innerHTML = '<i class="fas fa-map-pin"></i> Pick on Map';
+            $('mgEditorPickBtn').style.background = 'rgba(0,196,154,0.2)';
+        }
+    });
+    
+    setTimeout(function(){ mgEditorMap.invalidateSize(); }, 50);
+}
+
+function mgEditorUpdateCoords(lat, lng) {
+    if (mgEditingRow) {
+        var latInp = mgEditingRow.querySelector('.cp-inline-lat');
+        var lngInp = mgEditingRow.querySelector('.cp-inline-lng');
+        if (latInp) latInp.value = lat.toFixed(6);
+        if (lngInp) lngInp.value = lng.toFixed(6);
+        // Also update editor inputs
+        var edtLat = $('edt_cp-inline-lat');
+        var edtLng = $('edt_cp-inline-lng');
+        if (edtLat) edtLat.value = lat.toFixed(6);
+        if (edtLng) edtLng.value = lat.toFixed(6);
+    }
+    if (mgEditingDevice) {
+        var edtLat = $('edt_dev_lat');
+        var edtLng = $('edt_dev_lng');
+        if (edtLat) edtLat.value = lat.toFixed(6);
+        if (edtLng) edtLng.value = lng.toFixed(6);
+    }
+}
+
+window.mgEditorPickMode = function() {
+    mgEditorPickCallback = mgEditorUpdateCoords;
+    $('mgEditorPickBtn').innerHTML = '<i class="fas fa-crosshairs"></i> Click Map...';
+    $('mgEditorPickBtn').style.background = 'rgba(239,159,39,0.3)';
+};
+
+window.mgSaveEditingCheckpoint = function() {
+    if (!mgEditingRow) return;
+    // Read values from editor and write back to row
+    var name = $('edt_cp_name')?.value?.trim() || '';
+    if (!name) { toast('Name required', true); return; }
+    var lat = $('edt_cp_lat')?.value || '';
+    var lng = $('edt_cp_lng')?.value || '';
+    var rad = $('edt_cp_rad')?.value || '0';
+    var dwell = $('edt_cp_dwell')?.value || '0';
+    var tol = $('edt_cp_tol')?.value || '15';
+    var time = $('edt_cp_time')?.value || '';
+    var tag = $('edt_cp_tag')?.value || '';
+    
+    // Write back to row inputs
+    var nameInp = mgEditingRow.querySelector('.cp-inline-name');
+    var latInp = mgEditingRow.querySelector('.cp-inline-lat');
+    var lngInp = mgEditingRow.querySelector('.cp-inline-lng');
+    var radInp = mgEditingRow.querySelector('.cp-inline-rad');
+    var dwellInp = mgEditingRow.querySelector('.cp-inline-dwell');
+    var tolInp = mgEditingRow.querySelector('.cp-inline-tol');
+    var timeInp = mgEditingRow.querySelector('.cp-inline-time');
+    var tagInp = mgEditingRow.querySelector('.cp-inline-tag');
+    
+    if (nameInp) nameInp.value = name;
+    if (latInp) latInp.value = lat;
+    if (lngInp) lngInp.value = lng;
+    if (radInp) radInp.value = rad;
+    if (dwellInp) dwellInp.value = dwell;
+    if (tolInp) tolInp.value = tol;
+    if (timeInp) timeInp.value = time;
+    if (tagInp) tagInp.value = tag;
+    
+    // Update row header dots
+    mgUpdateRowDots(mgEditingRow);
+    
+    // Trigger the row's save
+    var saveBtn = mgEditingRow.querySelector('.cb-r-save');
+    if (saveBtn) {
+        cbSaveSingleRow(saveBtn);
+    }
+    setTimeout(function(){ mgCloseEditor(); }, 800);
+};
+
+function mgUpdateRowDots(row) {
+    var rad = row.querySelector('.cp-inline-rad')?.value || '0';
+    var dwell = row.querySelector('.cp-inline-dwell')?.value || '0';
+    var tol = row.querySelector('.cp-inline-tol')?.value || '0';
+    var time = row.querySelector('.cp-inline-time')?.value || '';
+    var lat = row.querySelector('.cp-inline-lat')?.value || '';
+    var lng = row.querySelector('.cp-inline-lng')?.value || '';
+    
+    var dotsEl = row.querySelector('.cb-reg-dots');
+    if (!dotsEl) return;
+    var dots = [];
+    if (parseInt(rad) > 0) dots.push('<span class="cb-reg-dot rad"><i class="fas fa-circle-dot"></i><span>' + rad + '</span></span>');
+    if (parseInt(dwell) > 0) dots.push('<span class="cb-reg-dot dwell"><i class="fas fa-stopwatch"></i><span>' + dwell + '</span></span>');
+    if (parseInt(tol) > 0) dots.push('<span class="cb-reg-dot tol"><i class="fas fa-hourglass-start"></i><span>' + tol + '</span></span>');
+    if (time) dots.push('<span class="cb-reg-dot time"><i class="fas fa-clock"></i><span>' + time + '</span></span>');
+    if (lat && lng) dots.push('<span class="cb-reg-dot loc"><i class="fas fa-location-dot"></i></span>');
+    dotsEl.innerHTML = dots.join('');
+}
+
+window.cbRowClickEdit = function(row) {
+    var type = row.dataset.cpType || 'nfc';
+    if (type === 'nfc' || type === 'gps') {
+        mgOpenCheckpointEditor(row);
+    } else {
+        // Peer, geo, custom - open inline expand
+        mgToggleCpConfig({target: row.querySelector('.cb-reg-hd')}, row.querySelector('.cb-reg-hd'));
+    }
+};
+
+window.mgSaveEditingDevice = function() {
+    if (!mgEditingDevice) return;
+    var entry = {
+        device_name: $('edt_dev_name')?.value?.trim() || null,
+        assigned_callsign: $('edt_dev_callsign')?.value?.trim() || null,
+        imei: $('edt_dev_imei')?.value?.trim() || null,
+    };
+    var lat = $('edt_dev_lat')?.value;
+    var lng = $('edt_dev_lng')?.value;
+    if (lat && lng) {
+        entry.last_latitude = parseFloat(lat);
+        entry.last_longitude = parseFloat(lng);
+    }
+    api('/api/devices/' + mgEditingDevice + '/', { method:'PATCH', body:JSON.stringify(entry) }).then(function(res) {
+        if (res.ok) { toast('Device saved'); mgCloseEditor(); mgLoadDevices(); }
+        else { toast('Save failed', true); }
+    });
 };
 
 /* ── Direct inline add (like routes.html qAddPoint) ── */
@@ -4072,8 +4676,14 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
     _panelLoaded[panel] = true;
     if (panel === 'fleet') {
         setTimeout(function(){ mgLoadDevices(); mgLoadAssets(); }, 100);
-        setTimeout(function(){ initMap(); }, 300);
-        setTimeout(function(){ if (cbMap) cbMap.invalidateSize(); }, 500);
+        // Wait for panel animation to complete before init map
+        setTimeout(function(){
+            initMap();
+            // Double-check size after a tick
+            requestAnimationFrame(function(){
+                if (cbMap) cbMap.invalidateSize();
+            });
+        }, 400);
     } else if (panel === 'staff') {
         Promise.all([mgLoadGuards(), mgRefreshBlueprintShift()]).then(function(){
             if (window.CalendarComponent) CalendarComponent.render();

@@ -13,7 +13,7 @@ import secrets
 
 from django.db.models import Q, Prefetch
 from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -75,6 +75,62 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Only admins can create organizations")
         serializer.save()
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def org_area_of_interest(request):
+    """Get the organization's operational area of interest."""
+    org = get_user_organization_or_none(request.user)
+    if not org:
+        return Response({'detail': 'No organization'}, status=404)
+    return Response({
+        'area_of_interest': org.area_of_interest,
+        'operational_note': org.operational_note,
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_org_area_of_interest(request):
+    """Set the organization's operational area of interest."""
+    from api.org_permissions import get_user_organization
+    try:
+        org = get_user_organization(request.user)
+    except Exception as e:
+        return Response({'detail': str(e)}, status=403)
+    area = request.data.get('area_of_interest')
+    note = request.data.get('operational_note', '')
+    if area is not None and not isinstance(area, list):
+        return Response({'detail': 'area_of_interest must be a list of [lat, lng] points'}, status=400)
+    org.area_of_interest = area
+    org.operational_note = note
+    org.save(update_fields=['area_of_interest', 'operational_note'])
+    return Response({'status': 'updated', 'area_of_interest': org.area_of_interest})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_point_in_area(request):
+    """Check if a given lat/lng is within the org's area of interest."""
+    from api.org_permissions import get_user_organization_or_none
+    org = get_user_organization_or_none(request.user)
+    if not org or not org.area_of_interest:
+        return Response({'in_area': True, 'has_area': False})
+    
+    lat = float(request.query_params.get('lat', 0))
+    lng = float(request.query_params.get('lng', 0))
+    
+    # Point-in-polygon algorithm
+    polygon = org.area_of_interest
+    inside = False
+    n = len(polygon)
+    j = n - 1
+    for i in range(n):
+        yi, xi = polygon[i]
+        yj, xj = polygon[j]
+        if ((yi > lat) != (yj > lat)) and (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi):
+            inside = not inside
+        j = i
+    
+    return Response({'in_area': inside, 'has_area': True})
 
 class CallSignViewSet(viewsets.ModelViewSet):
     serializer_class = CallSignSerializer

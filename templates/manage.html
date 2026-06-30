@@ -56,12 +56,7 @@
     </div>
 </div>
 
-<!-- Device Control Dropdown -->
-<div id="mgDcDropdownBackdrop" onclick="mgDcClose()"></div>
-<div id="mgDcDropdown">
-    <div id="mgDcDropdownBody" style="width:500px;max-width:calc(100vw - 40px);max-height:min(80vh,700px);background:linear-gradient(160deg, rgba(24,24,32,0.98), rgba(16,16,24,0.99));border:1px solid rgba(255,255,255,0.08);border-radius:16px;display:flex;flex-direction:column;box-shadow:0 20px 64px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.04);overflow:hidden;">
-    </div>
-</div>
+
 
 <!-- NFC Scan Window -->
 <div id="cbScanBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:none;align-items:center;justify-content:center;">
@@ -85,6 +80,41 @@
         <div style="display:flex;gap:8px;">
             <button type="button" id="cbAcceptScanBtn" class="mg-btn mg-btn-primary" style="flex:1;display:none;"><i class="fas fa-check"></i> Accept</button>
             <button type="button" class="mg-btn" onclick="cbCloseScan()"><i class="fas fa-xmark"></i> Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Operational Zone Setup -->
+<div id="cbZoneModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10001;display:none;align-items:center;justify-content:center;">
+    <div style="background:linear-gradient(160deg, rgba(28,28,40,0.98), rgba(18,18,28,0.99));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:0.85rem;font-weight:800;color:#fff;"><i class="fas fa-draw-polygon" style="color:#00C49A;margin-right:8px;"></i>Operational Zone</div>
+            <button type="button" onclick="cbCloseZoneModal()" style="background:rgba(255,255,255,0.06);border:none;color:rgba(255,255,255,0.5);width:28px;height:28px;border-radius:6px;cursor:pointer;"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);margin-bottom:16px;">Define the area where guards operate. Checkpoints outside this zone will be flagged.</div>
+        
+        <!-- Zone editor map -->
+        <div id="cbZoneMap" style="height:250px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:#0a0a12;margin-bottom:12px;"></div>
+        
+        <!-- Instructions -->
+        <div id="cbZoneInstructions" style="font-size:0.58rem;color:#00C49A;margin-bottom:12px;padding:8px 10px;background:rgba(0,196,154,0.08);border:1px solid rgba(0,196,154,0.15);border-radius:8px;display:none;">
+            <i class="fas fa-crosshairs"></i> Click the map to add boundary points (minimum 3)
+        </div>
+        
+        <!-- Point list -->
+        <div id="cbZonePoints" style="margin-bottom:12px;max-height:100px;overflow-y:auto;"></div>
+        
+        <!-- Note -->
+        <div style="margin-bottom:16px;">
+            <label style="font-size:0.55rem;color:rgba(255,255,255,0.3);font-weight:700;display:block;margin-bottom:4px;">Zone Note</label>
+            <input type="text" id="cbZoneNote" placeholder="e.g. Downtown patrol district" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.25);color:#fff;font-size:0.65rem;">
+        </div>
+        
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;">
+            <button type="button" id="cbZoneDrawBtn" onclick="cbStartZoneDraw()" style="flex:1;padding:10px;border-radius:8px;border:none;background:rgba(0,196,154,0.15);color:#00C49A;font-size:0.65rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i> Draw Boundary</button>
+            <button type="button" onclick="cbSaveZone()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#6C8EEF;color:#fff;font-size:0.65rem;font-weight:700;cursor:pointer;"><i class="fas fa-check"></i> Save Zone</button>
+            <button type="button" onclick="cbClearZone()" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.4);font-size:0.65rem;cursor:pointer;"><i class="fas fa-trash"></i></button>
         </div>
     </div>
 </div>

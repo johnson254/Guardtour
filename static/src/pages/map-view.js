@@ -364,8 +364,20 @@ window.tmPickOnMap = () => {
   window._tmPickMarker = L.marker([0,0], { opacity: 0 }).addTo(map);
   window._tmPickHandler = (e) => {
     const { lat, lng } = e.latlng;
-    if (byId('tmObjLat')) byId('tmObjLat').value = lat.toFixed(6);
-    if (byId('tmObjLng')) byId('tmObjLng').value = lng.toFixed(6);
+    // If a checkpoint row is waiting for coords, write there first
+    if (window._pickRow) {
+      var latInp = window._pickRow.querySelector('.cp-inline-lat');
+      var lngInp = window._pickRow.querySelector('.cp-inline-lng');
+      if (latInp) latInp.value = lat.toFixed(6);
+      if (lngInp) lngInp.value = lng.toFixed(6);
+      if (typeof addMapMarker === 'function') addMapMarker(lat, lng, window._pickRow.dataset.cpType || 'gps');
+      window._pickRow = null;
+      var hint = byId('cbMapHint');
+      if (hint) hint.classList.remove('active');
+    } else {
+      if (byId('tmObjLat')) byId('tmObjLat').value = lat.toFixed(6);
+      if (byId('tmObjLng')) byId('tmObjLng').value = lng.toFixed(6);
+    }
     if (window._tmPickMarker) {
       window._tmPickMarker.setLatLng(e.latlng).setOpacity(1);
     }

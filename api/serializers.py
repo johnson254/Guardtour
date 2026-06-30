@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
-        fields = ['id', 'name', 'contact_email', 'phone', 'address', 'default_time_tolerance', 'is_active', 'shift_mode', 'created_at']
+        fields = ['id', 'name', 'contact_email', 'phone', 'address', 'default_time_tolerance', 'is_active', 'shift_mode', 'created_at', 'area_of_interest', 'operational_note']
 
 class AdminSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
