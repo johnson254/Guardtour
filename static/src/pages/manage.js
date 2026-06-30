@@ -1023,9 +1023,16 @@ window.mgDcClose = function() {
     _dcDeviceId = null;
 };
 
-// Close dropdown on Escape key
+// Close overlays on Escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && _dcDeviceId) mgDcClose();
+    if (e.key === 'Escape') {
+        if (_dcDeviceId) mgDcClose();
+        if (_swapDeviceId) {
+            $('mgSwapOverlay').classList.add('mg-hidden');
+            _swapDeviceId = null;
+            _swapDeviceName = null;
+        }
+    }
 });
 
 window.mgDcSaveDevice = async function(deviceId) {
@@ -1336,8 +1343,19 @@ window.mgDcPollTtsAck = function(deviceId) {
 
 /* ── Swap Operator ─────────────────────────────── */
 let _swapDeviceId = null;
+let _swapDeviceName = null;
+
 window.mgSwapOperator = function(deviceId, deviceName) {
     _swapDeviceId = deviceId;
+    _swapDeviceName = deviceName;
+
+    // Find current operator on this device
+    const currentShift = allDeploys.find(s => s.device === deviceId && s.is_active);
+    const currentGuard = currentShift ? allGuards.find(g => g.id === currentShift.guard_supervisor) : null;
+    const currentLabel = currentGuard
+        ? [currentGuard.first_name, currentGuard.last_name].filter(Boolean).join(' ') || currentGuard.username
+        : 'Unassigned';
+
     const guardOpts = (allGuards||[]).map(g => {
         const label = [g.first_name, g.last_name].filter(Boolean).join(' ') || g.username || 'Unnamed';
         const suffix = g.callsign ? ` (${g.callsign})` : ' [New]';
@@ -1346,6 +1364,10 @@ window.mgSwapOperator = function(deviceId, deviceName) {
 
     $('mgSwapBody').innerHTML = `
         <div style="margin-bottom:12px; font-size:0.85rem; opacity:0.7;">Swapping operator on <strong>${deviceName}</strong></div>
+        <div style="margin-bottom:12px; padding:8px 10px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:0.65rem; color:rgba(255,255,255,0.5);">
+            <i class="fas fa-user" style="margin-right:4px; opacity:0.4;"></i>
+            Current: <strong style="color:rgba(255,255,255,0.8);">${currentLabel}</strong>
+        </div>
         <label class="mg-fi-label" for="mgSwapGuard">New Operator / Guard</label>
         <select id="mgSwapGuard" class="mg-fi">
             <option value="">— Select Guard —</option>
@@ -1368,7 +1390,7 @@ window.mgConfirmSwap = async function() {
     });
     if (res.ok) {
         toast('Operator swapped');
-        mgLogFleetEvent('swap', 'Operator swap on ' + deviceName, 'Device reassigned');
+        mgLogFleetEvent('swap', 'Operator swap on ' + (_swapDeviceName || 'device'), 'Device reassigned');
         $('mgSwapOverlay').classList.add('mg-hidden');
         mgLoadDevices();
     } else {
