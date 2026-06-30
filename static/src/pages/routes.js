@@ -299,6 +299,89 @@ window.bpSelectRoute = async function (id) {
 };
 
 /* ═══════════════════════════════════════════════════
+   QUICK DEPLOY (from route list)
+═══════════════════════════════════════════════════ */
+window.mgQuickDeploy = async function(routeId) {
+    if (bpDirty && !confirm('Discard unsaved changes?')) return;
+    try {
+        const res = await api('/api/routes/' + routeId + '/');
+        if (!res.ok) return;
+        const r = await res.json();
+        selId = routeId; bpDirty = false; refreshRouteList();
+        $('bpEdTitle').textContent = 'Edit Blueprint';
+        $('bpRouteName').value = r.name || '';
+        $('bpDate').value = r.scheduled_date || '';
+        $('bpMissionBrief').value = r.description || r.readout_text || '';
+        $('bpAnnounceToggle').checked = r.send_announcement !== false;
+        $('bpLeadTime').value = r.start_alert_lead_time || 15;
+        $('bpRepeatLabel').textContent = $('bpLeadTime').value;
+        bpUpdateAlertTime();
+        $('bpIsDaily').checked = r.is_daily || false;
+        $('bpStartTime').value = r.scheduled_start_time || '';
+        $('bpSendAlert').checked = r.send_start_alert !== false;
+        const shiftVal = (r.shift || r.duty_cycle || '').toLowerCase();
+        $('bpShiftDay').checked = shiftVal === 'day';
+        $('bpShiftNight').checked = shiftVal === 'night';
+        $('bpShiftAny').checked = shiftVal !== 'day' && shiftVal !== 'night';
+        bpHandleShift();
+        assignedGuardIds = r.assigned_guards || [];
+        clearTags('bpGuardTags');
+        assignedGuardIds.forEach(gid => {
+            const g = getPersonById(gid);
+            if (g) addPersonTag('bpGuardTags', gid, g.username);
+        });
+        bpSetLogic(r.logic_type || 'Flexible');
+        bpClearCps();
+        (r.checkpoints || []).forEach(cp => bpAddCp(cp));
+        setDispatch(true);
+        bpUpdatePreview();
+        wizStrategy = 'Quick';
+        // Open quick deploy wizard via htmx
+        showOverlay('wizStepQuick');
+        // Populate quick deploy fields
+        $('qName').value = r.name || '';
+        $('qTime').value = r.scheduled_start_time || '';
+        $('qAlert').checked = r.send_start_alert !== false;
+        $('qAnnounceToggle').checked = r.send_announcement !== false;
+        $('qLead').value = r.start_alert_lead_time || 15;
+        $('qAnnouncementText').value = r.description || r.readout_text || '';
+        var sv = (r.shift || r.duty_cycle || '').toLowerCase();
+        $('qShiftDay').checked = sv === 'day';
+        $('qShiftNight').checked = sv === 'night';
+        $('qShiftAny').checked = sv !== 'day' && sv !== 'night';
+        clearTags('qGuardTags');
+        (r.assigned_guards || []).forEach(function(gid) {
+            var g = getPersonById(gid);
+            if (g) addPersonTag('qGuardTags', gid, g.username);
+        });
+        $('qPointsList').innerHTML = '';
+        (r.checkpoints || []).forEach(function(cp) { qAddPoint(cp.checkpoint_type || cp.type || 'nfc'); });
+        var pointCards = $('qPointsList').querySelectorAll('.q-point-card');
+        (r.checkpoints || []).forEach(function(cp, i) {
+            if (!pointCards[i]) return;
+            var nameInp = pointCards[i].querySelector('.q-name');
+            if (nameInp) nameInp.value = cp.name || '';
+            var tagInp = pointCards[i].querySelector('.q-tag');
+            if (tagInp && cp.nfc_tag) tagInp.value = cp.nfc_tag;
+            var latInp = pointCards[i].querySelector('.q-lat');
+            if (latInp && cp.lat) latInp.value = cp.lat;
+            var lngInp = pointCards[i].querySelector('.q-lng');
+            if (lngInp && cp.lng) lngInp.value = cp.lng;
+            var timeChip = pointCards[i].querySelector('.q-time');
+            if (timeChip && cp.planned_time) { timeChip.value = cp.planned_time; timeChip.closest('.rs-cp-setting').classList.add('on'); }
+            var tolInp = pointCards[i].querySelector('.q-gap');
+            if (tolInp) tolInp.value = cp.time_tolerance ?? 15;
+            var dwellInp = pointCards[i].querySelector('.q-dwell');
+            if (dwellInp) dwellInp.value = cp.dwell_time ?? 0;
+            var radInp = pointCards[i].querySelector('.q-radius');
+            if (radInp) radInp.value = cp.radius ?? 50;
+        });
+        regSliderSyncAll();
+        qdShowInlineConfirm();
+    } catch (e) { toast('Failed to load route', true); }
+};
+
+/* ═══════════════════════════════════════════════════
    CREATE / CLOSE
 ═══════════════════════════════════════════════════ */
 window.bpCreateNew = function () {
