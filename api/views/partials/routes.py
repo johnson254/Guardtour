@@ -91,7 +91,7 @@ def routes_wizard_partial(request):
         '2': 'partials/routes/wizard/step-2.html',
         'quick': 'partials/routes/wizard/step-quick.html',
         'audit': 'partials/routes/wizard/step-audit.html',
-        'quickdeploy': 'partials/routes/wizard/step-quickdeploy.html',
+        'custom': 'partials/routes/wizard/step-custom.html',
         'editconfirm': 'partials/routes/wizard/step-editconfirm.html',
     }
 
