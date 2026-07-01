@@ -60,7 +60,7 @@ window.showOverlay = function(stepId = 'wizStep1') {
     var cs = $('qdConfirmStrip'); if (cs && stepId !== 'wizStepQuick') cs.style.display = 'none';
     // Load step content via htmx
     if (window.htmx) {
-        const stepMap = { wizStepQuick: 'quick', wizStepAudit: 'audit', wizStepQuickDeploy: 'quickdeploy', wizStepEditConfirm: 'editconfirm' };
+        const stepMap = { wizStepQuick: 'quick', wizStepAudit: 'audit', wizStepCustom: 'custom', wizStepQuickDeploy: 'quickdeploy', wizStepEditConfirm: 'editconfirm' };
         const stepParam = stepMap[stepId] || stepId.replace('wizStep', '');
         const strategy = wizStrategy || '';
         htmx.ajax('GET', '/api/routes-wizard-partial/?step=' + stepParam + (strategy ? '&strategy=' + strategy : ''), {
@@ -93,6 +93,12 @@ window.wizGo = function(step, strategyOrKey) {
         wizStrategy = 'Audit';
         bpSetLogic('Audit');
         showOverlay('wizStepAudit');
+        return;
+    } else if (step === 'custom') {
+        wizStrategy = 'Custom';
+        bpSetLogic('Custom');
+        hideOverlay();
+        showCustomPlanner();
         return;
     }
     wizStrategy = strategyOrKey;
@@ -293,8 +299,7 @@ window.bpSelectRoute = async function (id) {
         (r.checkpoints || []).forEach(cp => bpAddCp(cp));
         setDispatch(true);
         bpUpdatePreview();
-        // Load checkpoints into Mission Builder pool
-        mbLoadRouteCheckpoints(r);
+        // Checkpoints loaded inline via bpAddCp above
         var reviewBtn = $('bpReviewBtn');
         if (reviewBtn) reviewBtn.classList.remove('rs-hidden');
     } catch (e) {}
@@ -523,8 +528,10 @@ function getCpData() {
 }
 
 window.bpRefreshCps = function () {
+    const list = $('bpCpList');
+    if (!list) return;
     const data = getCpData();
-    $('bpCpList').innerHTML = '';
+    list.innerHTML = '';
     data.forEach(d => bpAddCp(d));
 };
 
@@ -2039,14 +2046,13 @@ document.addEventListener('click', e => {
 ═══════════════════════════════════════════════════ */
 function bpBoot() {
     bpLoad().then(function() {
-        showOverlay('wizStep1');
+        // showOverlay('wizStep1');
     });
     // Wire callsign inputs
     populateTagSuggest('qGuardInput', 'qGuardTags');
     populateTagSuggest('wiz2GuardInput', 'wiz2GuardTags');
     populateTagSuggest('bpGuardInput', 'bpGuardTags');
     populateTagSuggest('auditAuditorInput', 'auditAuditorTags');
-    populateTagSuggest('sweepTargetInput', 'sweepTargetTags');
     bpUpdatePreview();
     CalendarComponent.init({
         onDayClick: function(dateStr) {
@@ -2080,294 +2086,531 @@ document.addEventListener('htmx:afterSettle', function(evt) {
 document.addEventListener('htmx:afterSwap', function(evt) {
     var target = evt.detail && evt.detail.target;
     if (target && target.id === 'bpOverlayContent') {
-        // Re-initialize tag inputs for the loaded wizard step
         if ($('wiz2GuardInput')) populateTagSuggest('wiz2GuardInput', 'wiz2GuardTags');
         if ($('qGuardInput')) populateTagSuggest('qGuardInput', 'qGuardTags');
         if ($('auditAuditorInput')) populateTagSuggest('auditAuditorInput', 'auditAuditorTags');
+        if ($('cstmGuardInput')) populateTagSuggest('cstmGuardInput', 'cstmGuardTags');
     }
 });
 
 /* ═══════════════════════════════════════════════════
-   MISSION BUILDER — Timeline Scheduler
-   Integrated into routes page
+   CUSTOM DEPLOY — dedicated wizard with date/time
 ═══════════════════════════════════════════════════ */
-
-const MB = {
-  checkpoints: [],
-  placedCheckpoints: [],
-  strategy: 'Flexible',
-  date: '',
-  startTime: '08:00',
-  slotInterval: 30,
-  slotsPerDay: 32,
-  dragSource: null,
-  active: false,
+window.cstmHandleShift = function() {
+    var val = document.querySelector('input[name="cstmShift"]:checked')?.value || '';
+    $('bpShiftDay').checked = val === 'Day';
+    $('bpShiftNight').checked = val === 'Night';
+    $('bpShiftAny').checked = val !== 'Day' && val !== 'Night';
+    if (typeof bpHandleShift === 'function') bpHandleShift();
 };
 
-function mbToggleView() {
-  MB.active = !MB.active;
-  const timelineView = $('mbTimelineView');
-  const editorBody = $('bpEditorBody');
-  const toggleBtn = $('mbToggleBtn');
-  const summaryPanel = $('mbSummaryPanel');
-  const manifestPanel = $('rsManifestPanel');
+/* Uses same card rendering as Quick Deploy but targets custom containers */
+window.cstmAddPoint = function(type) {
+    const list = $('cstmPointsList');
+    $('cstmPointsEmpty')?.remove();
+    const idx = list.querySelectorAll('.q-point-card').length;
+    const icons = { nfc:'fa-wifi', gps:'fa-map-pin', peer:'fa-user-shield', custom:'fa-pen' };
+    const cols  = { nfc:'var(--r-crim)', gps:'var(--r-indigo)', peer:'var(--r-violet)', custom:'var(--r-teal)' };
+    const div = document.createElement('div');
+    div.className = 'rs-cp-row q-point-card';
+    div.dataset.type = type;
+    div.style.marginBottom = '4px';
+    div.innerHTML = '<div class="rs-cp-grip" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></div>' +
+        '<div class="rs-cp-badge"><div class="rs-cp-type-icon"><i class="fas ' + icons[type] + '" style="color:' + cols[type] + '"></i></div></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;gap:3px;">' +
+            '<div class="rs-cp-top-row">' +
+                (type === 'gps' || type === 'custom'
+                    ? '<div style="position:relative;flex:1;"><input class="rs-fi rs-fi-sm q-name" style="width:100%;font-size:0.62rem;padding:3px 6px;" placeholder="Point name" oninput="bpNameInput(this)"><div class="rs-suggest-list rs-hidden" style="top:26px;left:0;right:0;"></div></div>' +
+                      '<div style="display:flex;gap:2px;align-items:center;"><span style="font-size:0.42rem;color:var(--r-mute);font-weight:700;">LAT</span><input class="rs-fi rs-fi-sm q-lat" style="width:48px;font-size:0.6rem;padding:3px 4px;" placeholder="0.00"></div>' +
+                      '<div style="display:flex;gap:2px;align-items:center;"><span style="font-size:0.42rem;color:var(--r-mute);font-weight:700;">LNG</span><input class="rs-fi rs-fi-sm q-lng" style="width:48px;font-size:0.6rem;padding:3px 4px;" placeholder="0.00"></div>'
+                    : '<div style="position:relative;flex:1;"><input class="rs-fi rs-fi-sm q-name" style="width:100%;font-size:0.62rem;padding:3px 6px;" placeholder="Point name" oninput="bpNameInput(this)"><div class="rs-suggest-list rs-hidden" style="top:26px;left:0;right:0;"></div></div>' +
+                      '<input class="rs-fi rs-fi-sm q-tag" style="width:95px;font-size:0.6rem;padding:3px 6px;font-family:monospace;" placeholder="NFC ID">'
+                ) +
+            '</div>' +
+            '<div class="rs-enf-row" style="max-width:100%;">' +
+                '<div class="rs-enf-card" style="min-width:70px;"><div class="rs-enf-head" style="padding:3px 5px;"><div class="rs-enf-icon" style="width:18px;height:18px;border-radius:4px;background:rgba(108,142,239,0.12);color:#6C8EEF;font-size:0.42rem;"><i class="fas fa-hourglass-start"></i></div><div class="rs-enf-info"><div class="rs-enf-lbl" style="font-size:0.42rem;">Gap</div></div><div class="rs-enf-val cp-tol-val" style="font-size:0.65rem;">15<small>min</small></div></div><div class="rs-enf-body" style="padding:0 5px 3px;"><input type="range" class="rs-enf-slider q-gap" min="0" max="60" value="15" step="1" oninput="regSliderSync(this)"><div class="rs-enf-presets"><div class="rs-enf-preset" data-v="0">Off</div><div class="rs-enf-preset" data-v="5">5</div><div class="rs-enf-preset" data-v="15">15</div><div class="rs-enf-preset" data-v="30">30</div><div class="rs-enf-preset" data-v="60">60</div></div></div></div>' +
+                '<div class="rs-enf-card" style="min-width:60px;"><div class="rs-enf-head" style="padding:3px 5px;"><div class="rs-enf-icon" style="width:18px;height:18px;border-radius:4px;background:rgba(239,159,39,0.12);color:#EF9F27;font-size:0.42rem;"><i class="fas fa-person-walking"></i></div><div class="rs-enf-info"><div class="rs-enf-lbl" style="font-size:0.42rem;">Dwell</div></div><div class="rs-enf-val cp-dwell-val" style="font-size:0.65rem;">5<small>min</small></div></div><div class="rs-enf-body" style="padding:0 5px 3px;"><input type="range" class="rs-enf-slider q-dwell" min="0" max="60" value="5" step="1" oninput="regSliderSync(this)"><div class="rs-enf-presets"><div class="rs-enf-preset" data-v="0">Off</div><div class="rs-enf-preset" data-v="5">5</div><div class="rs-enf-preset" data-v="10">10</div><div class="rs-enf-preset" data-v="30">30</div><div class="rs-enf-preset" data-v="60">60</div></div></div></div>' +
+                '<div class="rs-enf-card" style="min-width:60px;"><div class="rs-enf-head" style="padding:3px 5px;"><div class="rs-enf-icon" style="width:18px;height:18px;border-radius:4px;background:rgba(211,47,47,0.12);color:#d32f2f;font-size:0.42rem;"><i class="fas fa-bullseye"></i></div><div class="rs-enf-info"><div class="rs-enf-lbl" style="font-size:0.42rem;">Radius</div></div><div class="rs-enf-val cp-rad-val" style="font-size:0.65rem;">50<small>m</small></div></div><div class="rs-enf-body" style="padding:0 5px 3px;"><input type="range" class="rs-enf-slider q-radius" min="0" max="500" value="50" step="5" oninput="regSliderSync(this)"><div class="rs-enf-presets"><div class="rs-enf-preset" data-v="0">Off</div><div class="rs-enf-preset" data-v="25">25</div><div class="rs-enf-preset" data-v="50">50</div><div class="rs-enf-preset" data-v="100">100</div><div class="rs-enf-preset" data-v="250">250</div></div></div></div>' +
+            '</div>' +
+            '<div class="rs-cp-settings" style="margin-top:2px;">' +
+                '<div class="rs-cp-setting" onclick="rsToggleProp(event,this)">' +
+                    '<i class="fas fa-alarm-clock"></i><input type="time" class="si q-time"><span class="sl">time</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="rs-cp-actions"><button type="button" class="rs-cp-del" onclick="this.closest(\'.q-point-card\').remove();if(!$(\'cstmPointsList\').querySelectorAll(\'.q-point-card\').length)cstmResetList();"><i class="fas fa-times"></i></button></div>';
+    list.appendChild(div);
+};
 
-  if (MB.active) {
-    timelineView.style.display = 'flex';
-    editorBody.style.display = 'none';
-    if (summaryPanel) summaryPanel.style.display = 'flex';
-    if (manifestPanel) manifestPanel.style.display = 'none';
-    if (toggleBtn) { toggleBtn.classList.add('active'); toggleBtn.style.borderColor = 'var(--r-teal)'; }
-    mbRenderTimeline();
-  } else {
-    timelineView.style.display = 'none';
-    editorBody.style.display = '';
-    if (summaryPanel) summaryPanel.style.display = 'none';
-    if (manifestPanel) manifestPanel.style.display = 'flex';
-    if (toggleBtn) { toggleBtn.classList.remove('active'); toggleBtn.style.borderColor = ''; }
-  }
+window.cstmResetList = function() {
+    const list = $('cstmPointsList');
+    if (!list.querySelector('#cstmPointsEmpty')) {
+        const el = document.createElement('div');
+        el.id = 'cstmPointsEmpty';
+        el.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 0;color:rgba(255,255,255,0.1);font-size:0.7rem;font-weight:700;';
+        el.innerHTML = '<i class="fas fa-layer-group" style="font-size:1.2rem;margin-bottom:5px;"></i>Empty — add points above';
+        list.appendChild(el);
+    }
+};
+
+function cstmSyncFields() {
+    const name = ($('cstmName').value || '').trim();
+    if (!name) { toast('Blueprint name required', true); return false; }
+    $('bpRouteName').value        = name;
+    $('bpDate').value             = $('cstmDate').value || '';
+    $('bpStartTime').value        = $('cstmTime').value || '';
+    var cstmSv = document.querySelector('input[name="cstmShift"]:checked')?.value || '';
+    $('bpShiftDay').checked       = cstmSv === 'Day';
+    $('bpShiftNight').checked     = cstmSv === 'Night';
+    $('bpShiftAny').checked       = cstmSv !== 'Day' && cstmSv !== 'Night';
+    $('bpLeadTime').value         = $('cstmLead').value || 15;
+    $('bpSendAlert').checked      = $('cstmAlert').checked;
+    $('bpAnnounceToggle').checked = true;
+    $('bpIsDaily').checked        = false;
+    $('bpMissionBrief').value     = '';
+    clearTags('bpGuardTags');
+    assignedGuardIds = [];
+    Array.from($('cstmGuardTags')?.querySelectorAll('.rs-person-tag') || []).forEach(t => {
+        addPersonTag('bpGuardTags', t.dataset.pid, t.dataset.label, t.dataset.type);
+    });
+    return true;
 }
 
-function mbRenderPool() {
-  const pool = $('mbCheckpointPool');
-  if (!pool) return;
-  if (!MB.checkpoints.length) {
-    pool.innerHTML = '<div class="rs-empty" style="padding:20px;"><i class="fas fa-check"></i><br/>No checkpoints</div>';
-    return;
-  }
-  pool.innerHTML = MB.checkpoints.map((cp, i) => {
-    const type = cp.checkpoint_type || 'nfc';
-    const icon = type === 'gps' ? 'fa-map-pin' : type === 'peer' ? 'fa-user-shield' : type === 'custom' ? 'fa-pen' : 'fa-wifi';
-    const isPlaced = MB.placedCheckpoints.some(p => p.cp.name === cp.name);
-    return `<div class="mb-pool-item${isPlaced ? ' placed' : ''}" draggable="true" data-cp-idx="${i}" data-type="${type}">
-      <i class="fas ${icon}" style="margin-right:6px;font-size:0.65rem;"></i>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cp.name || 'Checkpoint ' + (i + 1)}</span>
-      <span style="font-size:0.5rem;color:var(--r-mute);text-transform:uppercase;">${type}</span>
+function cstmBuildCps() {
+    const points = Array.from($('cstmPointsList').querySelectorAll('.q-point-card'));
+    if (!points.length) { toast('Add at least one checkpoint', true); return false; }
+    bpClearCps(); bpSetLogic('Custom');
+    points.forEach(p => {
+        bpAddCp({
+            name:           p.querySelector('.q-name')?.value || '',
+            nfc_tag:        p.querySelector('.q-tag')?.value  || '',
+            lat:            p.querySelector('.q-lat')?.value  || '',
+            lng:            p.querySelector('.q-lng')?.value  || '',
+            planned_time:   p.querySelector('.q-time')?.value || null,
+            time_tolerance: parseInt(p.querySelector('.q-gap')?.value, 10) ?? 15,
+            dwell_time:     parseInt(p.querySelector('.q-dwell')?.value, 10) ?? 0,
+            radius:         parseInt(p.querySelector('.q-radius')?.value, 10) ?? 50,
+            type: p.dataset.type === 'gps' ? 'gps' : p.dataset.type === 'peer' ? 'peer' : 'nfc',
+        });
+    });
+    return true;
+}
+
+window.cstmApply = function() {
+    if (!cstmSyncFields()) return;
+    if (!cstmBuildCps()) return;
+    hideOverlay(); $('bpEdTitle').textContent = 'New Blueprint'; setDispatch(false);
+    bpUpdatePreview(); toast('Custom blueprint ready — save when done.');
+};
+
+window.cstmSaveDeploy = function() {
+    if (!cstmSyncFields()) return;
+    if (!cstmBuildCps()) return;
+    bpUpdatePreview();
+    bpConfirmExecute();
+};
+/* ── Custom Route Planner: 3-panel crew planner ── */
+const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const cpState = {
+  selectedDays: [],
+  calDate: new Date(),
+  activePerson: null,
+  activeTab: 'day',
+  pool: [],
+  assignments: {},
+  nextPoolId: 1,
+};
+
+window.showCustomPlanner = function() {
+  const pl = $('bpCustomPlanner');
+  const ed = $('bpEditorBody');
+  const cal = $('rsCalView');
+  if (pl) pl.classList.remove('rs-hidden');
+  if (ed) ed.classList.add('rs-hidden');
+  if (cal) cal.style.display = 'none';
+  cpInit();
+};
+
+window.hideCustomPlanner = function() {
+  const pl = $('bpCustomPlanner');
+  const ed = $('bpEditorBody');
+  const cal = $('rsCalView');
+  if (pl) pl.classList.add('rs-hidden');
+  if (ed) ed.classList.remove('rs-hidden');
+  if (cal) cal.style.display = '';
+};
+
+function cpInit() {
+  cpState.selectedDays = [];
+  cpState.calDate = new Date();
+  cpState.activePerson = null;
+  cpState.activeTab = 'day';
+  cpState.pool = [];
+  cpState.assignments = {};
+  cpState.nextPoolId = 1;
+  cpRenderPersonnel();
+  cpRenderCalendar();
+  cpRenderPool();
+  cpUpdateStats();
+}
+
+function cpRenderPersonnel() {
+  const list = $('cpPersonnelList');
+  if (!list) return;
+  const guards = (allPersonnel || []).filter(p => !p.role || p.role === 'guard');
+  list.innerHTML = guards.map(p => {
+    const pid = p.id || p.user_id || '0';
+    const initial = (p.callsign || p.username || '?')[0].toUpperCase();
+    const label = p.callsign || p.username || 'Guard';
+    return `<div class="cp-person-card${cpState.activePerson === pid ? ' cp-person-active' : ''}" data-pid="${pid}" onclick="cpSelectPerson('${pid}')">
+      <div class="cp-avatar">${initial}</div>
+      <div class="cp-pinfo"><div class="cp-pname">${esc(label)}</div><div class="cp-pshift">${esc(p.role || 'guard')}</div></div>
+      <div class="cp-pcount">0</div>
     </div>`;
   }).join('');
-
-  pool.querySelectorAll('.mb-pool-item').forEach(el => {
-    el.addEventListener('dragstart', (e) => {
-      if (el.classList.contains('placed')) { e.preventDefault(); return; }
-      MB.dragSource = { type: 'pool', cpIdx: parseInt(el.dataset.cpIdx) };
-      el.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'copy';
-    });
-    el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
-      MB.dragSource = null;
-    });
-  });
 }
 
-function mbRenderTimeline() {
-  const labels = $('mbTimeLabels');
-  const slots = $('mbTimeSlots');
-  if (!labels || !slots) return;
+window.cpSelectPerson = function(pid) {
+  cpState.activePerson = pid;
+  cpRenderPersonnel();
+  cpRenderTimeline();
+};
 
-  labels.innerHTML = '';
-  slots.innerHTML = '';
+const CP_HOURS = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0') + ':00');
+const CP_DAY_HOURS = CP_HOURS.filter(h => { const n = +h; return n >= 6 && n < 18; });
+const CP_NIGHT_HOURS = CP_HOURS.filter(h => { const n = +h; return n >= 18 || n < 6; });
 
-  const [startH, startM] = MB.startTime.split(':').map(Number);
+window.cpSwitchTab = function(tab) {
+  cpState.activeTab = tab;
+  document.querySelectorAll('.cp-tab-btn').forEach(b => b.classList.toggle('active-cp-tab', b.dataset.tab === tab));
+  cpRenderTimeline();
+};
 
-  for (let i = 0; i < MB.slotsPerDay; i++) {
-    const mins = startH * 60 + startM + i * MB.slotInterval;
-    const h = Math.floor(mins / 60) % 24;
-    const m = mins % 60;
-    const timeStr = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-
-    const label = document.createElement('div');
-    label.className = 'mb-time-label';
-    label.textContent = timeStr;
-    labels.appendChild(label);
-
-    const slot = document.createElement('div');
-    slot.className = 'mb-time-slot';
-    slot.dataset.slotIdx = i;
-    slot.dataset.time = timeStr;
-    slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); });
-    slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
-    slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); mbOnDrop(i, timeStr); });
-    slots.appendChild(slot);
+function cpRenderTimeline() {
+  const grid = $('cpTimelineGrid');
+  const empty = $('cpTimelineEmpty');
+  if (!grid || !empty) return;
+  if (!cpState.activePerson) {
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
   }
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+  const hrs = cpState.activeTab === 'night' ? CP_NIGHT_HOURS : CP_DAY_HOURS;
+  const key = cpState.activePerson + '_' + (cpState.selectedDays[0] || new Date().toISOString().slice(0,10));
+  const hourAssignments = cpState.assignments[key] || {};
 
-  MB.placedCheckpoints.forEach(p => mbRenderPlacedCp(p));
-  mbUpdateSummary();
-}
+  hrs.forEach(h => {
+    const assigned = hourAssignments[h] || [];
+    const cell = document.createElement('div');
+    cell.className = 'cp-slot';
 
-function mbRenderPlacedCp(p) {
-  const slots = $('mbTimeSlots');
-  if (!slots) return;
-  const slot = slots.children[p.slotIdx];
-  if (!slot) return;
+    const timeLbl = document.createElement('div');
+    timeLbl.className = 'cp-time-lbl';
+    timeLbl.textContent = h;
 
-  const type = p.cp.checkpoint_type || 'nfc';
-  const icon = type === 'gps' ? 'fa-map-pin' : type === 'peer' ? 'fa-user-shield' : type === 'custom' ? 'fa-pen' : 'fa-wifi';
-  const el = document.createElement('div');
-  el.className = `mb-placed-cp ${type}`;
-  el.style.top = '2px';
-  el.style.bottom = '2px';
-  el.draggable = true;
-  el.innerHTML = `<i class="fas ${icon}" style="font-size:0.5rem;"></i>
-    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.cp.name || 'CP'}</span>
-    <span class="cp-time">${p.time}</span>
-    <button class="cp-remove" onclick="mbRemovePlaced(${p.slotIdx})"><i class="fas fa-times"></i></button>`;
-  el.addEventListener('dragstart', (e) => { MB.dragSource = { type: 'placed', slotIdx: p.slotIdx }; e.dataTransfer.effectAllowed = 'move'; });
-  slot.appendChild(el);
-}
+    const drop = document.createElement('div');
+    drop.className = 'cp-dropzone';
+    drop.dataset.hour = h;
 
-function mbOnDrop(slotIdx, timeStr) {
-  if (!MB.dragSource) return;
-  if (MB.dragSource.type === 'pool') {
-    const cp = MB.checkpoints[MB.dragSource.cpIdx];
-    if (!cp) return;
-    MB.placedCheckpoints = MB.placedCheckpoints.filter(p => p.cp.name !== cp.name);
-    MB.placedCheckpoints.push({ cp, slotIdx, time: timeStr });
-  } else if (MB.dragSource.type === 'placed') {
-    const placed = MB.placedCheckpoints.find(p => p.slotIdx === MB.dragSource.slotIdx);
-    if (placed) {
-      MB.placedCheckpoints = MB.placedCheckpoints.filter(p => p.slotIdx !== MB.dragSource.slotIdx);
-      placed.slotIdx = slotIdx;
-      placed.time = timeStr;
-      MB.placedCheckpoints.push(placed);
-    }
-  }
-  MB.placedCheckpoints.sort((a, b) => a.slotIdx - b.slotIdx);
-  if (MB.strategy === 'Sequential') mbEnforceSequence();
-  mbRenderPool();
-  mbRenderTimeline();
-}
-
-function mbEnforceSequence() {
-  for (let i = 1; i < MB.placedCheckpoints.length; i++) {
-    if (MB.placedCheckpoints[i].slotIdx <= MB.placedCheckpoints[i - 1].slotIdx) {
-      MB.placedCheckpoints[i].slotIdx = MB.placedCheckpoints[i - 1].slotIdx + 1;
-      const [startH, startM] = MB.startTime.split(':').map(Number);
-      const mins = startH * 60 + startM + MB.placedCheckpoints[i].slotIdx * MB.slotInterval;
-      const h = Math.floor(mins / 60) % 24;
-      const m = mins % 60;
-      MB.placedCheckpoints[i].time = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-    }
-  }
-}
-
-function mbRemovePlaced(slotIdx) {
-  MB.placedCheckpoints = MB.placedCheckpoints.filter(p => p.slotIdx !== slotIdx);
-  mbRenderPool();
-  mbRenderTimeline();
-}
-
-function mbSetStrategy(strategy, btn) {
-  MB.strategy = strategy;
-  $$('.mb-strategy-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  if (strategy === 'Sequential') { mbEnforceSequence(); mbRenderTimeline(); }
-}
-
-function mbOnDateChange() {
-  MB.date = $('mbDate').value;
-  mbUpdateSummary();
-}
-
-function mbOnStartChange() {
-  MB.startTime = $('mbStartTime').value;
-  MB.placedCheckpoints.forEach(p => {
-    const [startH, startM] = MB.startTime.split(':').map(Number);
-    const mins = startH * 60 + startM + p.slotIdx * MB.slotInterval;
-    const h = Math.floor(mins / 60) % 24;
-    const m = mins % 60;
-    p.time = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-  });
-  mbRenderTimeline();
-}
-
-function mbUpdateSummary() {
-  const [startH, startM] = MB.startTime.split(':').map(Number);
-  const endMins = startH * 60 + startM + MB.slotsPerDay * MB.slotInterval;
-  const endH = Math.floor(endMins / 60) % 24;
-  const endM = endMins % 60;
-  // Update brief panel if it exists
-  const sumDate = $('mbSumDate');
-  const sumStart = $('mbSumStart');
-  const sumEnd = $('mbSumEnd');
-  const sumCp = $('mbSumCp');
-  if (sumDate) sumDate.textContent = MB.date || '—';
-  if (sumStart) sumStart.textContent = MB.startTime || '—';
-  if (sumEnd) sumEnd.textContent = String(endH).padStart(2, '0') + ':' + String(endM).padStart(2, '0');
-  if (sumCp) sumCp.textContent = MB.placedCheckpoints.length + '/' + MB.checkpoints.length;
-}
-
-/* ── Deploy from Mission Builder ── */
-async function mbDeployFromTimeline() {
-  if (!selId) { toast('No route selected', true); return; }
-  if (!MB.date) { toast('Set a date', true); return; }
-  if (!MB.placedCheckpoints.length) { toast('Place at least one checkpoint', true); return; }
-
-  try {
-    const checkpoints = MB.placedCheckpoints.map((p, i) => ({
-      id: p.cp.id,
-      name: p.cp.name,
-      checkpoint_type: p.cp.checkpoint_type,
-      nfc_tag: p.cp.nfc_tag,
-      lat: p.cp.lat,
-      lng: p.cp.lng,
-      planned_time: p.time,
-      time_tolerance: p.cp.time_tolerance || 15,
-      dwell_time: p.cp.dwell_time || 0,
-      radius: p.cp.radius || 50,
-      order: i,
-      auditor_id: p.cp.auditor_id,
-      target_id: p.cp.target_id,
-    }));
-
-    const saveRes = await api(`/api/routes/${selId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        scheduled_date: MB.date,
-        scheduled_start_time: MB.startTime,
-        logic_type: MB.strategy,
-        checkpoints: checkpoints,
-      }),
-    });
-
-    if (!saveRes.ok) { toast('Failed to save schedule', true); return; }
-
-    const deployRes = await api(`/api/routes/${selId}/deploy/`, {
-      method: 'POST',
-      body: JSON.stringify({ scheduled_date: MB.date, scheduled_start_time: MB.startTime }),
-    });
-
-    if (deployRes.ok) {
-      toast('Mission deployed — ' + MB.placedCheckpoints.length + ' checkpoints scheduled');
-      MB.placedCheckpoints = [];
-      mbRenderPool();
-      mbRenderTimeline();
+    if (assigned.length) {
+      assigned.forEach(pid => {
+        const p = cpState.pool.find(x => x.id === pid);
+        if (!p) return;
+        const icon = p.type === 'gps' ? 'fa-map-pin' : p.type === 'peer' ? 'fa-user-shield' : 'fa-wifi';
+        const aClass = p.type === 'gps' ? 'gps' : p.type === 'peer' ? 'peer' : 'nfc';
+        const stratClass = p.strategy === 'Sequential' ? 'sequential' : p.strategy === 'Timed' ? 'timed' : p.strategy === 'Audit' ? 'audit' : 'flexible';
+        const item = document.createElement('div');
+        item.className = 'cp-assigned';
+        item.innerHTML = `<div class="cp-aicon ${aClass}"><i class="fas ${icon}"></i></div>
+          <span class="cp-aname">${esc(p.name)}</span>
+          <span class="cp-astrat ${stratClass}"></span>
+          <button type="button" class="cp-aremove" title="Remove">×</button>`;
+        item.querySelector('.cp-aremove').addEventListener('click', e => {
+          e.stopPropagation();
+          cpRemoveAssignment(h, pid);
+        });
+        drop.appendChild(item);
+      });
     } else {
-      let detail = '';
-      try { const d = await deployRes.json(); detail = d?.detail ? ' — ' + d.detail : ''; } catch (_) {}
-      toast('Deploy failed' + detail, true);
+      const ph = document.createElement('div');
+      ph.className = 'cp-placeholder';
+      ph.textContent = '+';
+      drop.appendChild(ph);
     }
-  } catch (e) {
-    toast('Deploy request failed', true);
+
+    cell.appendChild(timeLbl);
+    cell.appendChild(drop);
+    cell.addEventListener('click', () => cpSlotClick(h));
+    grid.appendChild(cell);
+  });
+}
+
+function cpRemoveAssignment(hour, poolId) {
+  const key = cpState.activePerson + '_' + (cpState.selectedDays[0] || new Date().toISOString().slice(0,10));
+  const hourSlots = cpState.assignments[key]?.[hour];
+  if (!hourSlots) return;
+  const idx = hourSlots.indexOf(poolId);
+  if (idx >= 0) hourSlots.splice(idx, 1);
+  if (!hourSlots.length) delete cpState.assignments[key][hour];
+  cpRenderTimeline();
+  cpUpdateStats();
+}
+
+function cpSlotClick(hour) {
+  const type = $('cpTypeSelect')?.value || 'nfc';
+  const name = ($('cpNameInput')?.value || '').trim() || hour + ' CP';
+  const id = cpState.nextPoolId++;
+  cpState.pool.push({ id, name, type, strategy: 'Flexible' });
+  cpRenderPool();
+  cpAssignToSlot(hour, id);
+  cpUpdateStats();
+  $('cpNameInput').value = '';
+}
+
+function cpAssignToSlot(hour, poolId) {
+  const key = cpState.activePerson + '_' + (cpState.selectedDays[0] || new Date().toISOString().slice(0,10));
+  if (!cpState.assignments[key]) cpState.assignments[key] = {};
+  if (!cpState.assignments[key][hour]) cpState.assignments[key][hour] = [];
+  cpState.assignments[key][hour].push(poolId);
+  cpRenderTimeline();
+  cpUpdateStats();
+}
+
+function cpRenderPool() {
+  const list = $('cpPoolList');
+  const empty = $('cpPoolEmpty');
+  if (!list) return;
+  if (!cpState.pool.length) {
+    list.innerHTML = '';
+    list.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  list.style.display = 'flex';
+  list.innerHTML = cpState.pool.map((p, i) => {
+    const icon = p.type === 'gps' ? 'fa-map-pin' : p.type === 'peer' ? 'fa-user-shield' : 'fa-wifi';
+    return `<div class="cp-card" data-idx="${i}">
+      <div class="cp-cicon ${p.type}"><i class="fas ${icon}"></i></div>
+      <div class="cp-cname">${esc(p.name)}</div>
+      <select class="cp-cstrat" onchange="cpPoolStrategy(${i},this.value)">
+        <option value="Flexible"${p.strategy==='Flexible'?' selected':''}>Flex</option>
+        <option value="Sequential"${p.strategy==='Sequential'?' selected':''}>Seq</option>
+        <option value="Timed"${p.strategy==='Timed'?' selected':''}>T</option>
+        <option value="Audit"${p.strategy==='Audit'?' selected':''}>A</option>
+      </select>
+      <button type="button" class="cp-cremove" onclick="cpRemovePoolItem(${i})"><i class="fas fa-times"></i></button>
+    </div>`;
+  }).join('');
+}
+
+window.cpPoolStrategy = function(idx, val) {
+  if (cpState.pool[idx]) cpState.pool[idx].strategy = val;
+};
+
+window.cpRemovePoolItem = function(idx) {
+  cpState.pool.splice(idx, 1);
+  cpRenderPool();
+  cpUpdateStats();
+};
+
+window.cpAddCheckpoint = function() {
+  const name = ($('cpNameInput')?.value || '').trim();
+  const type = $('cpTypeSelect')?.value || 'nfc';
+  if (!name) { toast('Enter a checkpoint name', true); return; }
+  cpState.pool.push({ id: cpState.nextPoolId++, name, type, strategy: 'Flexible' });
+  cpRenderPool();
+  cpUpdateStats();
+  $('cpNameInput').value = '';
+};
+
+window.cpAddExamples = function() {
+  const ex = [
+    { name: 'Main Gate', type: 'nfc' },
+    { name: 'Armory', type: 'nfc' },
+    { name: 'Patrol Zone A', type: 'gps' },
+    { name: 'Comms Relay', type: 'peer' },
+  ];
+  ex.forEach(e => cpState.pool.push({ id: cpState.nextPoolId++, ...e, strategy: 'Flexible' }));
+  cpRenderPool();
+  cpUpdateStats();
+  toast('Added ' + ex.length + ' example checkpoints');
+};
+
+function cpRenderCalendar() {
+  const grid = $('cpCalGrid');
+  const monthLabel = $('cpCalMonth');
+  if (!grid) return;
+  const d = new Date(cpState.calDate);
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+  monthLabel.textContent = new Date(year, month).toLocaleDateString('en-US', { month:'long', year:'numeric' });
+  const dows = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  grid.innerHTML = dows.map(d => `<div class="cp-cal-dow">${d}</div>`).join('');
+  for (let i = firstDow - 1; i >= 0; i--) {
+    grid.innerHTML += `<div class="cp-cal-cell other-month">${daysInPrev - i}</div>`;
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = dateStr === today;
+    const isSel = cpState.selectedDays.includes(dateStr);
+    grid.innerHTML += `<div class="cp-cal-cell${isToday?' cp-today':''}${isSel?' cp-selected':''}" data-date="${dateStr}" onclick="cpToggleDay(this,'${dateStr}')">${day}</div>`;
+  }
+  const totalCells = grid.children.length;
+  const rem = (7 - totalCells % 7) % 7;
+  for (let i = 1; i <= rem; i++) {
+    grid.innerHTML += `<div class="cp-cal-cell other-month">${i}</div>`;
   }
 }
 
-/* ── Load checkpoints when route selected ── */
-function mbLoadRouteCheckpoints(route) {
-  MB.checkpoints = route.checkpoints || [];
-  MB.placedCheckpoints = [];
-  MB.date = new Date().toISOString().split('T')[0];
-  $('mbDate').value = MB.date;
-  $('mbStartTime').value = MB.startTime;
-  mbRenderPool();
-  mbRenderTimeline();
+window.cpCalMove = function(dir) {
+  cpState.calDate.setMonth(cpState.calDate.getMonth() + dir);
+  cpRenderCalendar();
+};
+
+window.cpCalToday = function() {
+  cpState.calDate = new Date();
+  cpRenderCalendar();
+};
+
+window.cpToggleDay = function(el, dateStr) {
+  const idx = cpState.selectedDays.indexOf(dateStr);
+  if (idx >= 0) cpState.selectedDays.splice(idx, 1);
+  else cpState.selectedDays.push(dateStr);
+  cpRenderCalendar();
+  cpUpdateStats();
+};
+
+window.cpSelectAll = function() {
+  const d = cpState.calDate;
+  const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  cpState.selectedDays = [];
+  for (let day = 1; day <= days; day++) {
+    cpState.selectedDays.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+  }
+  cpRenderCalendar();
+  cpUpdateStats();
+};
+
+window.cpClearAll = function() {
+  cpState.selectedDays = [];
+  cpRenderCalendar();
+  cpUpdateStats();
+};
+
+window.cpSelectWeekdays = function() {
+  const d = cpState.calDate;
+  const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  cpState.selectedDays = [];
+  for (let day = 1; day <= days; day++) {
+    const dow = new Date(d.getFullYear(), d.getMonth(), day).getDay();
+    if (dow > 0 && dow < 6) cpState.selectedDays.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+  }
+  cpRenderCalendar();
+  cpUpdateStats();
+};
+
+window.cpSelectWeekend = function() {
+  const d = cpState.calDate;
+  const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  cpState.selectedDays = [];
+  for (let day = 1; day <= days; day++) {
+    const dow = new Date(d.getFullYear(), d.getMonth(), day).getDay();
+    if (dow === 0 || dow === 6) cpState.selectedDays.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+  }
+  cpRenderCalendar();
+  cpUpdateStats();
+};
+
+function cpUpdateStats() {
+  $('cpBadgeDays') && ($('cpBadgeDays').innerHTML = '<i class="far fa-calendar-alt"></i> ' + cpState.selectedDays.length + ' days');
+  $('cpBadgeCps') && ($('cpBadgeCps').innerHTML = '<i class="fas fa-list-check"></i> ' + cpState.pool.length);
+  $('cpBadgeCrew') && ($('cpBadgeCrew').innerHTML = '<i class="fas fa-user-shield"></i> ' + (allPersonnel||[]).filter(p => !p.role || p.role === 'guard').length + ' crew');
+  $('cpApplyCount') && ($('cpApplyCount').textContent = cpState.selectedDays.length || '0');
+  $('cpFooterDays') && ($('cpFooterDays').textContent = cpState.selectedDays.length);
+  $('cpFooterCps') && ($('cpFooterCps').textContent = cpState.pool.length);
+  if ($('cpFooterSched')) {
+    const sched = Object.values(cpState.assignments).reduce((sum, day) => sum + Object.values(day).reduce((a, b) => a + b.length, 0), 0);
+    $('cpFooterSched').textContent = sched;
+  }
+  document.querySelectorAll('.cp-person-card').forEach(card => {
+    const pid = card.dataset.pid;
+    const cnt = Object.keys(cpState.assignments).filter(k => k.startsWith(pid)).reduce((sum, k) => {
+      return sum + Object.values(cpState.assignments[k] || {}).reduce((a, b) => a + b.length, 0);
+    }, 0);
+    const countEl = card.querySelector('.cp-pcount');
+    if (countEl) countEl.textContent = cnt;
+  });
 }
 
-// Exports
-window.mbToggleView = mbToggleView;
-window.mbSetStrategy = mbSetStrategy;
-window.mbOnDateChange = mbOnDateChange;
-window.mbOnStartChange = mbOnStartChange;
-window.mbDeployFromTimeline = mbDeployFromTimeline;
-window.mbRemovePlaced = mbRemovePlaced;
-window.mbLoadRouteCheckpoints = mbLoadRouteCheckpoints;
+window.cpApplyRoute = function() {
+  if (!cpState.selectedDays.length) { toast('Select at least one day', true); return; }
+  if (!cpState.pool.length) { toast('Add at least one checkpoint', true); return; }
+  if (!cpState.activePerson) { toast('Select a crew member', true); return; }
+  const name = prompt('Blueprint name:', 'Custom Plan ' + new Date().toISOString().slice(0,10));
+  if (!name) return;
+  $('bpRouteName').value = name;
+  $('bpDate').value = cpState.selectedDays[0] || '';
+  $('bpStartTime').value = CP_DAY_HOURS[0] || '';
+  const shiftVal = cpState.activeTab === 'night' ? 'Night' : 'Day';
+  $('bpShiftDay').checked = shiftVal === 'Day';
+  $('bpShiftNight').checked = shiftVal === 'Night';
+  $('bpShiftAny').checked = false;
+  if (typeof bpHandleShift === 'function') bpHandleShift();
+  if ($('bpAnnounceToggle')) $('bpAnnounceToggle').checked = true;
+  if ($('bpLeadTime')) $('bpLeadTime').value = 15;
+  $('bpIsDaily').checked = false;
+  $('bpMissionBrief').value = '';
+  clearTags('bpGuardTags');
+  assignedGuardIds = [];
+  bpClearCps();
+  bpSetLogic('Custom');
+  const key = cpState.activePerson + '_' + cpState.selectedDays[0];
+  const slots = cpState.assignments[key] || {};
+  Object.keys(slots).sort().forEach(hour => {
+    (slots[hour] || []).forEach(pid => {
+      const p = cpState.pool.find(x => x.id === pid);
+      if (!p) return;
+      bpAddCp({
+        name: p.name,
+        nfc_tag: '',
+        lat: '',
+        lng: '',
+        planned_time: hour,
+        time_tolerance: 15,
+        dwell_time: 5,
+        radius: 50,
+        type: p.type === 'gps' ? 'gps' : p.type === 'peer' ? 'peer' : 'nfc',
+      });
+    });
+  });
+  hideCustomPlanner();
+  $('bpEdTitle').textContent = 'New Blueprint';
+  setDispatch(false);
+  bpUpdatePreview();
+  toast('Custom plan applied to editor — save when ready.');
+};
+
+window.cpDeployRoute = function() {
+  cpApplyRoute();
+  setTimeout(() => { bpUpdatePreview(); bpConfirmExecute(); }, 100);
+};
+
+window.cpExportPlan = function() {
+  const blob = new Blob([JSON.stringify({ days: cpState.selectedDays, pool: cpState.pool, assignments: cpState.assignments, activePerson: cpState.activePerson, tab: cpState.activeTab }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'crew-plan-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Plan exported');
+};
