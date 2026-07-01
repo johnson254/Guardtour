@@ -163,39 +163,6 @@
             <div style="font-size:0.6rem;color:rgba(255,255,255,0.3);">Loading state…</div>
         </div>
     </div>
-<div class="dc-toasts" id="dcToasts"></div>
-
-<!-- Confirmation overlay: TTS per-checkpoint resend -->
-<div class="dc-confirm-overlay" id="dcTtsConfirm" style="display:none;">
-    <div class="dc-confirm-modal">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <div style="width:28px;height:28px;border-radius:8px;background:rgba(108,142,239,0.12);display:flex;align-items:center;justify-content:center;color:#6C8EEF;"><i class="fas fa-volume-high" style="font-size:0.7rem;"></i></div>
-            <span style="font-weight:800;font-size:0.7rem;color:white;">Resend TTS</span>
-        </div>
-        <div style="font-size:0.6rem;color:rgba(255,255,255,0.6);line-height:1.5;" id="dcTtsConfirmBody"></div>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);font-size:0.6rem;font-weight:800;cursor:pointer;" onclick="this.closest('.dc-confirm-overlay').style.display='none'">Cancel</button>
-            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:none;background:#6C8EEF;color:white;font-size:0.6rem;font-weight:800;cursor:pointer;" id="dcTtsConfirmBtn">Send TTS</button>
-        </div>
-    </div>
-</div>
-
-<!-- Confirmation overlay: Checkpoint config edit -->
-<div class="dc-confirm-overlay" id="dcCpEditConfirm" style="display:none;">
-    <div class="dc-confirm-modal">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <div style="width:28px;height:28px;border-radius:8px;background:rgba(108,142,239,0.12);display:flex;align-items:center;justify-content:center;color:#6C8EEF;"><i class="fas fa-sliders" style="font-size:0.7rem;"></i></div>
-            <span style="font-weight:800;font-size:0.7rem;color:white;">Apply Checkpoint Changes</span>
-        </div>
-        <div style="font-size:0.6rem;color:rgba(255,255,255,0.6);line-height:1.5;" id="dcCpEditBody"></div>
-        <div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:8px;font-size:0.55rem;color:rgba(255,255,255,0.7);" id="dcCpEditDiff"></div>
-        <div style="font-size:0.5rem;color:rgba(255,213,79,0.6);background:rgba(255,213,79,0.06);border-radius:6px;padding:4px 8px;"><i class="fas fa-info-circle"></i> Changes apply to the route blueprint — affects future deployments</div>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.5);font-size:0.6rem;font-weight:800;cursor:pointer;" onclick="this.closest('.dc-confirm-overlay').style.display='none'">Cancel</button>
-            <button type="button" style="flex:1;padding:6px;border-radius:8px;border:none;background:#6C8EEF;color:white;font-size:0.6rem;font-weight:800;cursor:pointer;" id="dcCpEditConfirmBtn">Apply Changes</button>
-        </div>
-    </div>
-</div>
 
 {% block page_js %}
   {% load static %}
