@@ -30,10 +30,7 @@ def _resolve_devices(user):
 
 def _resolve_checkpoints(user):
     org = _resolve_org(user)
-    qs = MapObject.objects.filter(
-        Q(type__in=['nfc', 'gps', 'geo', 'peer', 'poi', 'geofence']) |
-        Q(checkpoint_type__in=['nfc', 'gps', 'geo', 'peer', 'custom'])
-    )
+    qs = MapObject.objects.filter(type__in=['poi', 'geofence'])
     if org:
         qs = qs.filter(organization=org)
     return qs
@@ -122,8 +119,7 @@ def fleet_panel_stats_partial(request):
     offline = total - online
 
     asset_count = MapObject.objects.filter(
-        Q(type__in=['nfc', 'gps', 'geo', 'peer', 'poi', 'geofence']) |
-        Q(checkpoint_type__in=['nfc', 'gps', 'geo', 'peer', 'custom'])
+        type__in=['poi', 'geofence']
     ).count()
     tc_fleet = total + asset_count
     return HttpResponse(render_to_string('partials/manage/fleet_panel_stats.html', {

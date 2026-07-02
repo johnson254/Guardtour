@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'guardtour.wsgi.application'
 
 # ── Database ──────────────────────────────────────────────────────────────────
 # Default: PostgreSQL. Override with DB_ENGINE=sqlite3 for dev.
-DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.postgresql')
+DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
 if DB_ENGINE == 'django.db.backends.sqlite3':
     DATABASES = {
         'default': {

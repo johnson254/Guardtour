@@ -2032,7 +2032,7 @@ window.bpDeleteRoute = async function (e, id) {
 document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        if ($('bpOverlay').classList.contains('hidden')) bpSaveRoute();
+        if ($('bpOverlay').classList.contains('rs-hidden')) bpSaveRoute();
     }
 });
 
@@ -2074,11 +2074,11 @@ function bpBoot() {
 // Initial page load
 document.addEventListener('DOMContentLoaded', bpBoot);
 
-// htmx SPA navigation — show overlay when routes page is swapped into main content
+// htmx SPA navigation — do not auto-open builder panel on route swaps
 document.addEventListener('htmx:afterSettle', function(evt) {
     var target = evt.detail && evt.detail.target;
-    if (target && target.id === 'spa-content' && $('bpOverlay')) {
-        bpBoot();
+    if (target && target.id === 'spa-content') {
+        // intentionally no auto-open of builder
     }
 });
 
