@@ -98,6 +98,9 @@ urlpatterns = [
     path('checkpoints-partial/', views.checkpoints_list_partial, name='checkpoints_list_partial'),
     path('staff-panel-partial/', views.staff_panel_partial, name='staff_panel_partial'),
     path('fleet-panel-partial/', views.fleet_panel_partial, name='fleet_panel_partial'),
+    path('staff-panel-stats-partial/', views.staff_panel_stats_partial, name='staff_panel_stats_partial'),
+    path('fleet-panel-stats-partial/', views.fleet_panel_stats_partial, name='fleet_panel_stats_partial'),
+    path('audit-panel-stats-partial/', views.audit_panel_stats_partial, name='audit_panel_stats_partial'),
     path('audit-panel-partial/', views.audit_panel_partial, name='audit_panel_partial'),
     path('end-shift/<int:pk>/', views.end_shift, name='end_shift'),
 

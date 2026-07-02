@@ -1,0 +1,4 @@
+<div class="mg-stat"><div class="mg-stat-val">{{ total_routes }}</div><div class="mg-stat-lbl">Blueprints</div></div>
+<div class="mg-stat"><div class="mg-stat-val green">{{ active_shifts }}</div><div class="mg-stat-lbl">Active Now</div></div>
+<div class="mg-stat"><div class="mg-stat-val">{{ completed_shifts }}</div><div class="mg-stat-lbl">Completed</div></div>
+<div class="mg-stat"><div class="mg-stat-val {% if with_cps < total_routes %}amber{% else %}green{% endif %}">{{ with_cps }}/{{ total_routes }}</div><div class="mg-stat-lbl">With Checkpoints</div></div>

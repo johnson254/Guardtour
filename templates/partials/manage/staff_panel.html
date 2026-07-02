@@ -14,7 +14,7 @@
 <div class="mg-panel-body" style="padding:0;">
     <div class="mg-duty-grid">
         <div style="padding:14px 16px; overflow-y:auto; border-right:1px solid var(--border);">
-            <div class="mg-stats" id="personnelStats"></div>
+            <div class="mg-stats" id="personnelStats" hx-get="/api/staff-panel-stats-partial/" hx-trigger="load, every 30s" hx-swap="innerHTML"></div>
             <div class="mg-filter-bar" style="margin-bottom:12px;">
                 <div class="mg-search-wrap">
                     <i class="fas fa-search"></i>

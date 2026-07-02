@@ -1,0 +1,6 @@
+<div class="mg-stat"><div class="mg-stat-val">{{ total }}</div><div class="mg-stat-lbl">Devices</div></div>
+<div class="mg-stat"><div class="mg-stat-val green">{{ online }}</div><div class="mg-stat-lbl">Online</div></div>
+<div class="mg-stat"><div class="mg-stat-val blue">{{ on_mission }}</div><div class="mg-stat-lbl">On Mission</div></div>
+<div class="mg-stat"><div class="mg-stat-val {% if tts_pending %}amber{% endif %}">{{ tts_pending }}</div><div class="mg-stat-lbl">TTS Pending</div></div>
+<div class="mg-stat"><div class="mg-stat-val {% if nfc_pending %}amber{% endif %}">{{ nfc_pending }}</div><div class="mg-stat-lbl">NFC Fetch</div></div>
+<div class="mg-stat"><div class="mg-stat-val red">{{ offline }}</div><div class="mg-stat-lbl">Offline</div></div>

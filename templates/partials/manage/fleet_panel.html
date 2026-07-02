@@ -292,7 +292,7 @@
 
 <div class="mg-fleet-grid">
     <!-- Stats bar -->
-    <div class="mg-stats" id="deviceStats" style="grid-column: 1 / -1; margin: 0;"></div>
+    <div class="mg-stats" id="deviceStats" style="grid-column: 1 / -1; margin: 0;" hx-get="/api/fleet-panel-stats-partial/" hx-trigger="load, every 30s" hx-swap="innerHTML"></div>
     <!-- LEFT: Devices -->
     <div class="mg-fleet-devices">
         <div class="mg-fleet-devices-head">
