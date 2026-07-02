@@ -63,87 +63,95 @@
         const ROLE_LABELS = {
             admin: 'Admin',
             supervisor: 'Supervisor',
+            guardsupervisor: 'Supervisor',
+            guard_supervisor: 'Supervisor',
             guard: 'Guard',
             dispatcher: 'Dispatcher',
             user_role: 'Dispatcher',
             'user role': 'Dispatcher',
-            'User Role': 'Dispatcher',
-            'User': 'Dispatcher',
+            User: 'Dispatcher',
             user: 'Dispatcher',
             guest: 'Guest',
         };
 
-        function labelFor(role, fallback) {
-            const key = String(role || '').trim();
-            return ROLE_LABELS[key] || ROLE_LABELS[key.toLowerCase()] || fallback || 'Guest';
+        function labelFor(role) {
+            const key = String(role || '').trim().toLowerCase();
+            return ROLE_LABELS[key] || 'Guest';
         }
+
+        let __cachedUser = null;
 
         function setUser(raw) {
-            window.__localUser = raw || { role: 'Guest', organization_id: null, username: '', organization_name: 'SecOps v2.0' };
+            __cachedUser = raw || { role: 'Guest', organization_id: null, username: '', organization_name: 'SecOps v2.0' };
+            window.__localUser = __cachedUser;
         }
 
-        function renderNav() {
+        function updateActiveNav() {
+            document.querySelectorAll('#navMenu a').forEach(a => {
+                a.classList.toggle('active', window.location.pathname === a.getAttribute('href'));
+            });
+        }
+
+        function renderNav(user) {
             const nav = document.getElementById('navMenu');
             if (!nav) return;
             nav.innerHTML = '';
-            try {
-                const raw = JSON.parse(localStorage.getItem('gt_user') || 'null') || {};
-                const role = String(raw.role || '').trim().toLowerCase();
-                const orgId = raw.organization_id;
-                const isSystemAdmin = role === 'admin' && [null, undefined, ''].includes(orgId);
-                const isDispatcher = ['dispatcher', 'user role', 'user_role'].includes(role);
-                const isSupervisor = role === 'supervisor';
-                const isGuard = role === 'guard';
-                const isAdmin = role === 'admin' && !isSystemAdmin;
-                const isKnownRole = ['admin', 'supervisor', 'guard', 'dispatcher', 'user role', 'user_role'].includes(role);
-                const showAll = !isKnownRole;
-                const links = [
-                    { url: '/routes/', name: 'Routes', icon: 'fa-route', allow: isAdmin || isDispatcher },
-                    { url: '/mission-builder/', name: 'Mission Builder', icon: 'fa-calendar-check', allow: isAdmin || isDispatcher },
-                    { url: '/dispatch/', name: 'Live Dispatch', icon: 'fa-satellite-dish', allow: isAdmin || isDispatcher },
-                    { url: '/manage/', name: 'Fleet', icon: 'fa-microchip', allow: isAdmin || isSupervisor || isDispatcher },
-                    { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: true },
-                    { url: '/map-view/', name: 'Map', icon: 'fa-map-location-dot', allow: isAdmin || isSupervisor || isDispatcher || isGuard || showAll },
-                    { url: '/analytics/', name: 'Reports', icon: 'fa-chart-line', allow: true },
-                    { url: '/incidents/', name: 'Incidents', icon: 'fa-triangle-exclamation', allow: isAdmin || isSupervisor || isDispatcher },
-                    { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: isSystemAdmin },
-                ];
-                links.forEach(l => {
-                    if (!l.allow) return;
-                    const a = document.createElement('a');
-                    a.href = l.url;
-                    if (window.location.pathname === l.url) a.className = 'active';
-                    a.innerHTML = `<i class="fas ${l.icon}"></i> ${l.name}`;
-                    a.setAttribute('hx-get', l.url);
-                    a.setAttribute('hx-target', '#spa-content');
-                    a.setAttribute('hx-swap', 'innerHTML transition:true');
-                    a.setAttribute('hx-push-url', 'true');
-                    a.addEventListener('click', (e) => { if (a.classList.contains('active')) { e.preventDefault(); return false; } });
-                    nav.appendChild(a);
-                });
-            } catch (e) { console.error('Nav render error:', e); }
+            const raw = user || {};
+            const role = String(raw.role || '').trim().toLowerCase();
+            const orgId = raw.organization_id;
+            const isSystemAdmin = role === 'admin' && (orgId === null || orgId === undefined || orgId === '');
+            const isDispatcher = ['dispatcher', 'user role', 'user_role'].includes(role);
+            const isSupervisor = role === 'supervisor' || role === 'guardsupervisor' || role === 'guard_supervisor';
+            const isAdmin = role === 'admin' && !isSystemAdmin;
+            const links = [
+                { url: '/routes/', name: 'Routes', icon: 'fa-route', allow: isAdmin || isDispatcher },
+                { url: '/dispatch/', name: 'Live Dispatch', icon: 'fa-satellite-dish', allow: isAdmin || isDispatcher },
+                { url: '/manage/', name: 'Fleet', icon: 'fa-microchip', allow: isAdmin || isSupervisor || isDispatcher },
+                { url: '/dashboard/', name: 'Dashboard', icon: 'fa-gauge-high', allow: true },
+                { url: '/map-view/', name: 'Map', icon: 'fa-map-location-dot', allow: isAdmin || isSupervisor || isDispatcher },
+                { url: '/analytics/', name: 'Reports', icon: 'fa-chart-line', allow: true },
+                { url: '/incidents/', name: 'Incidents', icon: 'fa-triangle-exclamation', allow: isAdmin || isSupervisor || isDispatcher },
+                { url: '/control/', name: 'SecOps Control', icon: 'fa-sliders', allow: isSystemAdmin },
+            ];
+            links.forEach(l => {
+                if (!l.allow) return;
+                const a = document.createElement('a');
+                a.href = l.url;
+                if (window.location.pathname === l.url) a.classList.add('active');
+                a.innerHTML = `<i class="fas ${l.icon}"></i> ${l.name}`;
+                a.setAttribute('hx-get', l.url);
+                a.setAttribute('hx-target', '#spa-content');
+                a.setAttribute('hx-swap', 'innerHTML transition:true');
+                a.setAttribute('hx-push-url', 'true');
+                a.addEventListener('click', (e) => { if (a.classList.contains('active')) { e.preventDefault(); return false; } });
+                nav.appendChild(a);
+            });
         }
 
         function init() {
+            let parsed = null;
             try {
-                const parsed = JSON.parse(localStorage.getItem('gt_user') || 'null');
-                setUser(parsed);
-            } catch (_e) { setUser(null); }
+                parsed = JSON.parse(localStorage.getItem('gt_user'));
+            } catch (_e) { /* ignore */ }
+            setUser(parsed);
 
-            const raw = window.__localUser;
+            const raw = __cachedUser;
             const role = String(raw.role || '').trim();
             const roleBadge = document.getElementById('role-badge');
             const orgName = document.getElementById('org-name');
             const logoutBtn = document.getElementById('logout-btn');
             const nameEl = document.getElementById('user-name');
 
-            if (roleBadge) roleBadge.textContent = labelFor(role, String(role).charAt(0).toUpperCase() + String(role).slice(1));
+            if (roleBadge) roleBadge.textContent = labelFor(role);
             if (orgName && raw.organization_name) orgName.textContent = raw.organization_name;
             if (nameEl) nameEl.textContent = raw.username || 'User';
             if (logoutBtn) logoutBtn.addEventListener('click', () => { try { localStorage.removeItem('gt_user'); } catch (_e) {} window.location.href = '/logout/'; });
 
-            renderNav();
+            renderNav(__cachedUser);
         }
+
+        // Fix SPA active-state detection after HTMX swaps
+        document.addEventListener('htmx:afterOnLoad', updateActiveNav);
 
         init();
     </script>

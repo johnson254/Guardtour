@@ -1,0 +1,179 @@
+{% comment %} Wizard Step: Custom Design — matches Quick Deploy structure, adds crew + event planner {% endcomment %}
+<div class="rs-wiz" id="wizStepCustom">
+    <button type="button" class="rs-btn-back" onclick="wizBack(1)"><i class="fas fa-arrow-left"></i> Back</button>
+    <div class="rs-wiz-header">
+        <div class="rs-wiz-title"><i class="fas fa-sliders" style="color:var(--r-teal)"></i> Custom Design</div>
+        <div class="rs-wiz-sub">Custom route sequence. Reuse quick-deploy structure, with overrides per checkpoint.</div>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(0,196,154,0.045), rgba(20,20,32,0.96) 50%);">
+        <div class="rs-form-section-title" style="margin-bottom:12px;">
+            <span><i class="fas fa-sliders" style="color:var(--r-teal);margin-right:6px;"></i> Mission Parameters</span>
+            <small><i class="fas fa-circle" style="color:var(--r-indigo);font-size:0.45rem;"></i> custom setup</small>
+        </div>
+
+        <div class="rs-g2">
+            <div style="grid-column: span 2;" class="form-group">
+                <label class="rs-lbl" for="cplName">Blueprint Name *</label>
+                <input id="cplName" class="rs-fi rs-fi-sm" placeholder="e.g. Custom Patrol Alpha">
+            </div>
+            <div style="grid-column:span 2;">
+                <label class="rs-lbl" for="cplGuardInput">Assigned Personnel</label>
+                <div style="position:relative;">
+                    <div class="rs-tag-wrap" onclick="this.querySelector('input').focus()">
+                        <div id="cplGuardTags" style="display:contents"></div>
+                        <input id="cplGuardInput" class="rs-tag-input" placeholder="Type callsign + Enter…">
+                    </div>
+                    <div id="cplGuardSuggest" class="rs-suggest-list rs-hidden"></div>
+                </div>
+            </div>
+            <div style="grid-column:span 2;">
+                <label class="rs-lbl" for="cplShiftAny">Duty Cycle</label>
+                <div class="rs-shift-pill" style="width: 100%;">
+                    <input type="radio" name="cplShift" value="Day" id="cplShiftDay" class="rs-shift-radio" onchange="cplHandleShift && cplHandleShift()">
+                    <label for="cplShiftDay" class="rs-shift-btn rs-shift-btn-day" style="flex:1; justify-content: center;"><i class="fas fa-sun"></i> Day Shift</label>
+                    <input type="radio" name="cplShift" value="" id="cplShiftAny" checked class="rs-shift-radio" onchange="cplHandleShift && cplHandleShift()">
+                    <label for="cplShiftAny" class="rs-shift-btn rs-shift-btn-any" style="flex:1; justify-content: center;"><i class="fas fa-infinity"></i> Flexible</label>
+                    <input type="radio" name="cplShift" value="Night" id="cplShiftNight" class="rs-shift-radio" onchange="cplHandleShift && cplHandleShift()">
+                    <label for="cplShiftNight" class="rs-shift-btn rs-shift-btn-night" style="flex:1; justify-content: center;"><i class="fas fa-moon"></i> Night Shift</label>
+                </div>
+            </div>
+            <div>
+                <label class="rs-lbl" for="cplStart">Start Time</label>
+                <input id="cplStart" type="time" class="rs-fi rs-fi-sm" style="width:100%;">
+            </div>
+            <div>
+                <label class="rs-lbl" for="cplLead">Alert Lead (min)</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input id="cplLead" type="number" min="0" value="15" class="rs-fi rs-fi-sm" style="flex:1;">
+                    <div class="rs-toggle-wrap" for="cplAlert">
+                        <label class="db-toggle"><input type="checkbox" id="cplAlert" checked><span class="db-toggle-sl"></span></label>
+                        <span class="rs-toggle-label">Alert</span>
+                    </div>
+                </div>
+            </div>
+            <div style="grid-column:span 2;">
+                <label class="rs-lbl" for="cplAnnouncementText">TTS Announcement</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input id="cplAnnouncementText" class="rs-fi rs-fi-sm" placeholder="Radio instructions…" style="flex:1;">
+                    <div class="rs-toggle-wrap">
+                        <label class="db-toggle"><input type="checkbox" id="cplAnnounceToggle" checked><span class="db-toggle-sl"></span></label>
+                        <span class="rs-toggle-label">Broadcast</span>
+                    </div>
+                </div>
+            </div>
+            <div style="grid-column:span 2;">
+                <div style="font-size:0.68rem; color:var(--r-teal); font-weight:800; padding:4px 0;"><i class="fas fa-calendar-check"></i> Active for today only</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(0,196,154,0.045), rgba(20,20,32,0.96) 45%, rgba(211,47,47,0.035));">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span class="rs-lbl" style="margin-bottom:0;">Checkpoint Sequence</span>
+            <div style="display:flex;gap:5px;">
+                <button type="button" class="rs-btn rs-btn-xs" onclick="cstmAddPoint('nfc')"><i class="fas fa-wifi" style="color:var(--r-crim)"></i> NFC</button>
+                <button type="button" class="rs-btn rs-btn-xs" onclick="cstmAddPoint('gps')"><i class="fas fa-map-pin" style="color:var(--r-indigo)"></i> GPS</button>
+                <button type="button" class="rs-btn rs-btn-xs" onclick="cstmAddPoint('peer')"><i class="fas fa-user-shield" style="color:var(--r-violet)"></i> Peer</button>
+                <button type="button" class="rs-btn rs-btn-xs" onclick="cstmAddPoint('custom')"><i class="fas fa-pen" style="color:var(--r-teal)"></i> Custom</button>
+            </div>
+        </div>
+        <div id="cstmPointsList" class="rs-cp-list" style="max-height:160px;min-height:60px;border:1.5px dashed var(--r-line);border-radius:10px;padding:6px;">
+            <div id="cstmPointsEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 0;color:rgba(255,255,255,0.1);font-size:0.7rem;font-weight:700;">
+                <i class="fas fa-layer-group" style="font-size:1.2rem;margin-bottom:5px;"></i>Empty — add points above
+            </div>
+        </div>
+    </div>
+
+    <div class="rs-block" style="background:linear-gradient(135deg, rgba(79,110,247,0.12), rgba(20,20,32,0.96) 55%, rgba(108,142,239,0.08));border-color:rgba(79,110,247,0.18);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="rs-lbl" style="margin-bottom:0;font-size:0.72rem;"><i class="fas fa-users" style="color:#6C8EEF;margin-right:4px;"></i> Crew &amp; Event Planner</span>
+                <span style="font-size:0.52rem;font-weight:800;color:var(--r-mute);letter-spacing:0.4px;text-transform:uppercase;background:rgba(79,110,247,0.08);border:1px solid rgba(79,110,247,0.18);padding:2px 8px;border-radius:40px;">Custom</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button type="button" class="rs-btn rs-btn-xs" onclick="cplEditCrew()" style="border-color:rgba(79,110,247,0.3);color:#6C8EEF;"><i class="fas fa-user-shield"></i> Edit Crew</button>
+                <button type="button" class="rs-btn rs-btn-xs" onclick="cplEditEvent()" style="border-color:rgba(79,110,247,0.3);color:#6C8EEF;"><i class="fas fa-calendar-check"></i> Edit Event</button>
+            </div>
+        </div>
+
+        <div id="cplStageRow" style="display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:6px;margin-bottom:6px;"></div>
+        <div id="cplHourGrid" style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:6px;"></div>
+        <div id="cplStatusRow" style="margin-top:8px;font-size:0.6rem;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px;"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+        <button type="button" class="rs-btn rs-btn-block" style="flex:1;" onclick="window.cplApply ? cplApply() : (typeof cstmApply==='function' ? cstmApply() : '')"><i class="fas fa-wand-magic-sparkles"></i> Apply to Editor</button>
+        <button type="button" class="rs-btn rs-btn-success rs-btn-block" style="flex:1;" onclick="window.cplDeploy ? cplDeploy() : (typeof cstmSaveDeploy==='function' ? cstmSaveDeploy() : '')"><i class="fas fa-rocket"></i> Deploy Now</button>
+    </div>
+
+<script>
+(function () {
+  try { window.__cplInit && window.__cplInit(); return; } catch (_) {}
+  window.__cplInit = function () {
+    window.cplApply = function () { };
+    window.cplDeploy = function () { };
+
+    window.cplEditCrew = function () { cplStatusRow().innerHTML = '<i class=\"fas fa-user-shield\" style=\"color:#6C8EEF;\"></i> Crew mode active'; };
+    window.cplEditEvent = function () { cplStatusRow().innerHTML = '<i class=\"fas fa-calendar-check\" style=\"color:#6C8EEF;\"></i> Event mode active'; };
+
+    function status(row) { return document.getElementById('cplStatusRow') || row; }
+    function stageContainer() { return document.getElementById('cplStageRow'); }
+    function hourContainer() { return document.getElementById('cplHourGrid'); }
+
+    function renderStages() {
+      const el = stageContainer();
+      if (!el) return;
+      el.innerHTML = '<div style=\"grid-column:1/-1;font-size:0.6rem;font-weight:800;color:rgba(255,255,255,0.55);letter-spacing:0.3px;text-transform:uppercase;\"><i class=\"fas fa-layer-group\" style=\"color:#6C8EEF;margin-right:4px;\"></i> Mission Stages</div>';
+      [
+        { label: 'Operation', time: '06:00', icon: 'fa-flag' },
+        { label: 'Sweep A', time: '08:00', icon: 'fa-route' },
+        { label: 'Relay / Audit', time: '11:00', icon: 'fa-users-viewfinder' },
+      ].forEach(stage => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:rgba(79,110,247,0.08);border:1px solid rgba(79,110,247,0.18);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:3px;';
+        card.innerHTML = '<div style=\"font-size:0.5rem;font-weight:800;color:rgba(255,255,255,0.45);letter-spacing:0.4px;text-transform:uppercase;\">Stage</div>';
+        const title = document.createElement('div');
+        title.style.cssText = 'font-size:0.72rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:6px;';
+        title.innerHTML = '<i class=\"fas ' + stage.icon + '\" style=\"color:#6C8EEF;font-size:0.6rem;\"></i>' + stage.label;
+        const time = document.createElement('div');
+        time.style.cssText = 'font-size:0.5rem;font-weight:800;color:#6C8EEF;';
+        time.textContent = stage.time;
+        card.appendChild(title);
+        card.appendChild(time);
+        el.appendChild(card);
+      });
+    }
+
+    function renderHourGrid() {
+      const el = hourContainer();
+      if (!el) return;
+      el.innerHTML = '';
+      const hours = ['06:00','07:00','08:00','09:00','10:00','11:00'];
+      hours.forEach(h => {
+        const slot = document.createElement('div');
+        slot.style.cssText = 'background:rgba(0,0,0,0.18);border:1px solid rgba(79,110,247,0.12);border-radius:10px;padding:8px;min-height:42px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;cursor:pointer;transition:0.15s;';
+        slot.innerHTML = '<div style=\"font-size:0.6rem;font-weight:900;color:#6C8EEF;\">' + h + '</div>';
+        const hint = document.createElement('div');
+        hint.style.cssText = 'font-size:0.52rem;color:rgba(255,255,255,0.25);';
+        hint.textContent = 'click to assign';
+        slot.appendChild(hint);
+        slot.addEventListener('click', function() { hint.textContent = hint.textContent === 'click to assign' ? 'assigned' : 'click to assign'; });
+        slot.addEventListener('mouseenter', function() { slot.style.borderColor = 'rgba(79,110,247,0.45)'; slot.style.background = 'rgba(79,110,247,0.08)'; });
+        slot.addEventListener('mouseleave', function() { slot.style.borderColor = 'rgba(79,110,247,0.12)'; slot.style.background = 'rgba(0,0,0,0.18)'; });
+        el.appendChild(slot);
+      });
+    }
+
+    function init() {
+      renderStages();
+      renderHourGrid();
+      status().innerHTML = '<i class=\"fas fa-circle-check\" style=\"color:#6C8EEF;\"></i> Ready — define crew, stage, and hour assignments below';
+    }
+
+    init();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', window.__cplInit); else window.__cplInit();
+})();
+</script>
+</div>

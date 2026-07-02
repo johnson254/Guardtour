@@ -1,0 +1,14 @@
+{% extends base_template %}
+{% block content %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/page-routes.css' %}" />
+<style>
+  .rs-shell > #rsSidebar {
+    background: rgba(0, 0, 0, 0.28);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .rs-shell > #rsLibPanel {
+    background: rgba(0, 0, 0, 0.28);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  }
+</style>

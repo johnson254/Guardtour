@@ -1,0 +1,97 @@
+<div class="cp-planner rs-hidden" id="bpCustomPlanner">
+  <div class="cp-planner-header">
+    <div class="cp-planner-head-left">
+      <span class="cp-planner-title"><i class="fas fa-sliders"></i> CUSTOM PLANNER</span>
+      <span class="rs-badge cp-badge-sm" id="cpBadgeDays"><i class="far fa-calendar-alt"></i> 0 days</span>
+      <span class="rs-badge cp-badge-sm" id="cpBadgeCps"><i class="fas fa-list-check"></i> 0</span>
+      <span class="rs-badge cp-badge-sm" id="cpBadgeCrew"><i class="fas fa-user-shield"></i> 0 crew</span>
+    </div>
+    <button type="button" class="rs-btn rs-btn-xs cp-exit-btn" onclick="hideCustomPlanner()"><i class="fas fa-times"></i> Exit Planner</button>
+  </div>
+
+  <div class="cp-grid">
+    <!-- ─── LEFT: Personnel + Calendar ─── -->
+    <div class="cp-left">
+      <div class="cp-section">
+        <div class="rs-lbl"><i class="fas fa-user-shield cp-lbl-blue"></i> Team</div>
+        <div class="cp-personnel-list" id="cpPersonnelList"></div>
+      </div>
+      <div class="cp-cal">
+        <div class="cp-cal-head">
+          <span class="cp-cal-month" id="cpCalMonth"></span>
+          <div class="cp-cal-nav">
+            <button type="button" class="rs-btn rs-btn-xs cp-cal-nav-btn" onclick="cpCalMove(-1)"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="rs-btn rs-btn-xs cp-cal-nav-btn" onclick="cpCalMove(1)"><i class="fas fa-chevron-right"></i></button>
+            <button type="button" class="rs-btn rs-btn-xs cp-cal-today-btn" onclick="cpCalToday()">Today</button>
+          </div>
+        </div>
+        <div class="cp-cal-grid" id="cpCalGrid"></div>
+        <div class="cp-cal-actions">
+          <button type="button" class="rs-btn rs-btn-xs cp-cal-act-btn" onclick="cpSelectAll()">All</button>
+          <button type="button" class="rs-btn rs-btn-xs cp-cal-act-btn" onclick="cpClearAll()">Clear</button>
+          <button type="button" class="rs-btn rs-btn-xs cp-cal-act-btn" onclick="cpSelectWeekdays()">Week</button>
+          <button type="button" class="rs-btn rs-btn-xs cp-cal-act-btn" onclick="cpSelectWeekend()">End</button>
+        </div>
+      </div>
+      <div class="cp-left-apply">
+        <button type="button" class="rs-btn rs-btn-indigo rs-btn-sm cp-apply-btn" onclick="cpApplyRoute()">
+          <i class="fas fa-save"></i> Apply to <span class="cp-apply-count" id="cpApplyCount">0</span> days
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── CENTER: Timeline ─── -->
+    <div class="cp-center">
+      <div class="cp-center-head">
+        <div class="cp-center-id">
+          <span class="cp-person-name" id="cpPersonName">Select crew</span>
+          <span class="rs-badge rs-b-off cp-shift-badge" id="cpPersonShift">—</span>
+        </div>
+        <div class="cp-tab-group">
+          <button type="button" class="cp-tab-btn active-cp-tab" data-tab="day" onclick="cpSwitchTab('day')">Day</button>
+          <button type="button" class="cp-tab-btn" data-tab="night" onclick="cpSwitchTab('night')">Night</button>
+        </div>
+      </div>
+      <div class="cp-timeline-wrap" id="cpTimelineWrap">
+        <div class="cp-timeline-empty" id="cpTimelineEmpty">
+          <i class="fas fa-arrow-left"></i> Select a crew member to start planning
+        </div>
+        <div class="cp-timeline-grid" id="cpTimelineGrid"></div>
+      </div>
+    </div>
+
+    <!-- ─── RIGHT: Checkpoint Pool ─── -->
+    <div class="cp-right">
+      <div class="rs-lbl"><i class="fas fa-list-check cp-lbl-blue"></i> Checkpoints</div>
+      <div class="cp-pool-toolbar">
+        <input id="cpNameInput" class="rs-fi rs-fi-sm cp-name-input" placeholder="Name…">
+        <select id="cpTypeSelect" class="cp-type-select">
+          <option value="nfc">NFC</option>
+          <option value="gps">GPS</option>
+          <option value="peer">Peer</option>
+        </select>
+        <button type="button" class="rs-btn rs-btn-primary rs-btn-xs" onclick="cpAddCheckpoint()" title="Add checkpoint"><i class="fas fa-plus"></i></button>
+        <button type="button" class="rs-btn rs-btn-xs cp-examples-btn" onclick="cpAddExamples()" title="Add examples"><i class="fas fa-wand-magic-sparkles"></i> Ex</button>
+      </div>
+      <div class="cp-pool-empty" id="cpPoolEmpty">
+        <i class="fas fa-list-check"></i> No checkpoints yet
+      </div>
+      <div class="cp-pool-list" id="cpPoolList"></div>
+      <div class="cp-pool-actions">
+        <button type="button" class="rs-btn rs-btn-primary rs-btn-sm" onclick="cpApplyRoute()" style="flex:1;"><i class="fas fa-wand-magic-sparkles"></i> Apply</button>
+        <button type="button" class="rs-btn rs-btn-success rs-btn-sm" onclick="cpDeployRoute()" style="flex:1;"><i class="fas fa-rocket"></i> Deploy</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cp-footer">
+    <div class="cp-footer-stats">
+      <span class="cp-stat-item"><i class="fas fa-calendar-day"></i> Selected: <strong id="cpFooterDays">0</strong></span>
+      <span class="cp-stat-item"><i class="fas fa-list-check"></i> CPs: <strong id="cpFooterCps">0</strong></span>
+      <span class="cp-stat-item cp-stat-sched"><i class="fas fa-calendar-check"></i> Scheduled: <strong id="cpFooterSched">0</strong></span>
+    </div>
+    <div class="cp-footer-actions">
+      <button type="button" class="rs-btn rs-btn-xs cp-export-btn" onclick="cpExportPlan()"><i class="fas fa-download"></i> Export</button>
+    </div>
+  </div>
+</div>
