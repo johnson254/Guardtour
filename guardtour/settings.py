@@ -7,6 +7,14 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-change-this')
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
+# ── Celery ──────────────────────────────────────────────────────────────────
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/1')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/1')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
 
 INSTALLED_APPS = [
     'daphne',
@@ -81,8 +89,16 @@ WSGI_APPLICATION = 'guardtour.wsgi.application'
 
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
-if DB_ENGINE == 'django.db.backends.postgresql' or DB_ENGINE == 'django.contrib.gis.db.backends.postgis':
+# Default: PostgreSQL. Override with DB_ENGINE=sqlite3 for dev.
+DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.postgresql')
+if DB_ENGINE == 'django.db.backends.sqlite3':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        }
+    }
+else:
     DATABASES = {
         'default': {
             'ENGINE': DB_ENGINE,
@@ -91,13 +107,6 @@ if DB_ENGINE == 'django.db.backends.postgresql' or DB_ENGINE == 'django.contrib.
             'PASSWORD': os.environ.get('DB_PASSWORD', ''),
             'HOST': os.environ.get('DB_HOST', 'localhost'),
             'PORT': os.environ.get('DB_PORT', '5432'),
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
         }
     }
 

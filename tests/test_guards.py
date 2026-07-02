@@ -1,7 +1,8 @@
 import pytest
 from django.test import TestCase
 from rest_framework.test import APIClient
-from api.models import GuardSupervisor, User, Dispatcher, Organization, Device, Checkpoint
+from django.contrib.auth.models import User
+from api.models import GuardSupervisor, Dispatcher, Organization, Device, Checkpoint
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 
