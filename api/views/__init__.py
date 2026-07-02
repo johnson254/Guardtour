@@ -47,8 +47,8 @@ from api.views.partials.admin import admin_stats_partial
 from api.views.partials.org_bar import org_stats_partial
 from api.views.partials.incidents import incidents_partial, incidents_guards_options_partial
 from api.views.partials.options import alerts_partial
-from api.views.partials.routes import routes_list_partial, route_editor_partial, routes_wizard_partial, routes_checkpoint_form_partial, routes_deploy_preview_partial
-from api.views.partials.dispatch import blueprints_partial, missions_partial
+from api.views.partials.routes import routes_list_partial, route_editor_partial, routes_wizard_partial, routes_checkpoint_form_partial, routes_deploy_preview_partial, profiles_partial, map_objects_partial
+from api.views.partials.dispatch import blueprints_partial, missions_partial, dispatch_stats_partial, deployment_live_partial
 from api.views.partials.manage import devices_list_partial, checkpoints_list_partial, staff_panel_partial, fleet_panel_partial, audit_panel_partial
 
 # Page renders

@@ -129,3 +129,23 @@ def routes_deploy_preview_partial(request, pk):
         'route': route,
         'checkpoints': checkpoints,
     }, request=request))
+
+
+@api_view(['GET'])
+@login_required
+def profiles_partial(request):
+    """Return HTML fragment of personnel profiles for htmx."""
+    guards = _resolve_guard_queryset(request.user)
+    return HttpResponse(render_to_string('partials/routes/profiles.html', {
+        'guards': guards,
+    }, request=request))
+
+
+@api_view(['GET'])
+@login_required
+def map_objects_partial(request):
+    """Return HTML fragment of map objects (assets) for htmx."""
+    objects = _resolve_mapobject_queryset(request.user)
+    return HttpResponse(render_to_string('partials/routes/map_objects.html', {
+        'map_objects': objects,
+    }, request=request))

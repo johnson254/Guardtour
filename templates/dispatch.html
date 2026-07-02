@@ -56,12 +56,15 @@
                 <button type="button" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;" onclick="dcLoadAll()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
             </div>
         </div>
-        <div class="dc-ls-stats" id="dcLsStats">
-            <div class="dc-ls-stat"><div class="dc-ls-stat-val green" id="dcLsActive">—</div><div class="dc-ls-stat-lbl">Active</div></div>
-            <div class="dc-ls-stat"><div class="dc-ls-stat-val blue" id="dcLsOnDuty">—</div><div class="dc-ls-stat-lbl">On Duty</div></div>
-            <div class="dc-ls-stat"><div class="dc-ls-stat-val amber" id="dcLsPending">—</div><div class="dc-ls-stat-lbl">Pending</div></div>
-            <div class="dc-ls-stat"><div class="dc-ls-stat-val red" id="dcLsMissed">—</div><div class="dc-ls-stat-lbl">Missed</div></div>
-            <div class="dc-ls-stat"><div class="dc-ls-stat-val amber" id="dcLsDaily">—</div><div class="dc-ls-stat-lbl">Daily</div></div>
+        <div class="dc-ls-stats" id="dcLsStats"
+             hx-get="/api/dispatch-stats-partial/"
+             hx-trigger="load, every 30s"
+             hx-swap="innerHTML">
+            <div class="dc-ls-stat"><div class="dc-ls-stat-val green">—</div><div class="dc-ls-stat-lbl">Active</div></div>
+            <div class="dc-ls-stat"><div class="dc-ls-stat-val blue">—</div><div class="dc-ls-stat-lbl">On Duty</div></div>
+            <div class="dc-ls-stat"><div class="dc-ls-stat-val amber">—</div><div class="dc-ls-stat-lbl">Pending</div></div>
+            <div class="dc-ls-stat"><div class="dc-ls-stat-val red">—</div><div class="dc-ls-stat-lbl">Missed</div></div>
+            <div class="dc-ls-stat"><div class="dc-ls-stat-val amber">—</div><div class="dc-ls-stat-lbl">Daily</div></div>
         </div>
         <div class="dc-ls-tabs" id="dcLsTabs">
             <button type="button" class="dc-ls-tab active"

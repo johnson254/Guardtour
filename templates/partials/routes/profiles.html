@@ -1,0 +1,5 @@
+<script id="bpProfilesData" type="application/json">[
+{% for g in guards %}
+  {"id":{{ g.id }},"first_name":"{{ g.first_name|escapejs }}","last_name":"{{ g.last_name|escapejs }}","callsign":"{{ g.callsign|escapejs }}","role":"{{ g.role }}","shift":"{{ g.shift }}"}{% if not forloop.last %},{% endif %}
+{% endfor %}
+]</script>

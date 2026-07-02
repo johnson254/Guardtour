@@ -40,6 +40,7 @@ _api_v1_patterns = [
         path('<int:pk>/end/', views.end_shift, name='end-shift'),
         path('transfer/', views.transfer_shift, name='transfer-shift'),
     ])),
+    path('mission-builder/', views.mission_builder_page, name='mission-builder'),
     path('checkpoints/', include([
         path('schedule/', views.schedule_checkpoints, name='schedule-checkpoints'),
         path('bulk-schedule/', views.bulk_schedule_checkpoints, name='bulk-schedule-checkpoints'),
@@ -89,6 +90,10 @@ urlpatterns = [
     path('routes-deploy-preview-partial/<int:pk>/', views.routes_deploy_preview_partial, name='routes_deploy_preview_partial'),
     path('blueprints-partial/', views.blueprints_partial, name='blueprints_partial'),
     path('missions-partial/', views.missions_partial, name='missions_partial'),
+    path('dispatch-stats-partial/', views.dispatch_stats_partial, name='dispatch_stats_partial'),
+    path('deployment-live-partial/', views.deployment_live_partial, name='deployment_live_partial'),
+    path('profiles-partial/', views.profiles_partial, name='profiles_partial'),
+    path('map-objects-partial/', views.map_objects_partial, name='map_objects_partial'),
     path('devices-partial/', views.devices_list_partial, name='devices_list_partial'),
     path('checkpoints-partial/', views.checkpoints_list_partial, name='checkpoints_list_partial'),
     path('staff-panel-partial/', views.staff_panel_partial, name='staff_panel_partial'),

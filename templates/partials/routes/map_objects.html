@@ -1,0 +1,5 @@
+<script id="bpMapObjectsData" type="application/json">[
+{% for obj in map_objects %}
+  {"id":{{ obj.id }},"name":"{{ obj.name|escapejs }}","type":"{{ obj.type }}","geometry":{{ obj.geometry|default:'null'|safe }}}{% if not forloop.last %},{% endif %}
+{% endfor %}
+]</script>
